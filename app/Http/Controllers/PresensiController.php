@@ -300,6 +300,113 @@ class PresensiController extends Controller
         return view('rekap-presensi', compact('kelasList', 'mapelList', 'selectedKelas', 'selectedPelajaranId', 'rekapData', 'bulan', 'tahun'));
     }
 
+    private function getRekapDataForExport(Request $request)
+    {
+        $guruId = Auth::id();
+        $selectedKelasId = $request->get('kelas_id');
+        $selectedPelajaranId = $request->get('pelajaran_id');
+        $bulan = $request->get('bulan', Carbon::now()->month);
+        $tahun = $request->get('tahun', Carbon::now()->year);
+
+        if (!$selectedKelasId) {
+            return ['selectedKelas' => null, 'rekapData' => [], 'selectedPelajaran' => null];
+        }
+
+        $selectedKelas = Kelas::find($selectedKelasId);
+        $selectedPelajaran = $selectedPelajaranId ? MataPelajaran::find($selectedPelajaranId) : null;
+        $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
+        
+        $presensiQuery = Presensi::whereHas('jadwal', function($q) use ($selectedKelasId, $selectedPelajaranId, $guruId) {
+                $q->where('kelas_id', $selectedKelasId)
+                  ->where('guru_id', $guruId);
+                if ($selectedPelajaranId) {
+                    $q->where('pelajaran_id', $selectedPelajaranId);
+                }
+            })
+            ->whereMonth('tanggal', $bulan)
+            ->whereYear('tanggal', $tahun)
+            ->get();
+
+        $rekapData = [];
+        foreach ($siswaList as $siswa) {
+            $siswaPresensi = $presensiQuery->where('siswa_id', $siswa->id);
+            $rekapData[$siswa->id] = [
+                'siswa' => $siswa,
+                'summary' => [
+                    'H' => $siswaPresensi->where('status_kehadiran', 'H')->count(),
+                    'S' => $siswaPresensi->where('status_kehadiran', 'S')->count(),
+                    'I' => $siswaPresensi->where('status_kehadiran', 'I')->count(),
+                    'A' => $siswaPresensi->where('status_kehadiran', 'A')->count(),
+                ],
+            ];
+        }
+
+        return ['selectedKelas' => $selectedKelas, 'rekapData' => $rekapData, 'selectedPelajaran' => $selectedPelajaran];
+    }
+
+    public function exportRekapCsv(Request $request)
+    {
+        $bulan = $request->get('bulan', Carbon::now()->month);
+        $tahun = $request->get('tahun', Carbon::now()->year);
+        $data = $this->getRekapDataForExport($request);
+        
+        if (!$data['selectedKelas']) {
+            return redirect()->back()->with('error', 'Pilih kelas terlebih dahulu.');
+        }
+
+        $kelas = $data['selectedKelas'];
+        $pelajaran = $data['selectedPelajaran'];
+        $rekapData = $data['rekapData'];
+
+        $namaPelajaran = $pelajaran ? '_' . str_replace(' ', '_', $pelajaran->nama_pelajaran) : '';
+        $filename = 'rekap_presensi_' . str_replace(' ', '_', $kelas->nama_kelas) . $namaPelajaran . '_' . $bulan . '_' . $tahun . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function () use ($rekapData) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM
+            fputcsv($file, ['No', 'NIS', 'Nama Siswa', 'Hadir', 'Sakit', 'Izin', 'Alfa', 'Total']);
+            $no = 1;
+            foreach ($rekapData as $row) {
+                $total = $row['summary']['H'] + $row['summary']['S'] + $row['summary']['I'] + $row['summary']['A'];
+                fputcsv($file, [
+                    $no++,
+                    $row['siswa']->nis ?? '-',
+                    $row['siswa']->nama_siswa ?? '-',
+                    $row['summary']['H'],
+                    $row['summary']['S'],
+                    $row['summary']['I'],
+                    $row['summary']['A'],
+                    $total
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportRekapPdf(Request $request)
+    {
+        $bulan = $request->get('bulan', Carbon::now()->month);
+        $tahun = $request->get('tahun', Carbon::now()->year);
+        $data = $this->getRekapDataForExport($request);
+        
+        if (!$data['selectedKelas']) {
+            return redirect()->back()->with('error', 'Pilih kelas terlebih dahulu.');
+        }
+
+        $selectedKelas = $data['selectedKelas'];
+        $selectedPelajaran = $data['selectedPelajaran'];
+        $rekapData = $data['rekapData'];
+
+        return view('exports.rekap-presensi-pdf', compact('selectedKelas', 'selectedPelajaran', 'rekapData', 'bulan', 'tahun'));
+    }
+
     private function getDateRange($rentang, $tanggal = null)
     {
         $now = $tanggal ? Carbon::parse($tanggal) : Carbon::today();

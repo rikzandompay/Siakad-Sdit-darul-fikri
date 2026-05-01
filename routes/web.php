@@ -46,6 +46,8 @@ Route::middleware('auth')->group(function () {
     // Presensi + Export
     Route::get('/presensi', [PresensiController::class, 'index'])->name('presensi.index');
     Route::get('/presensi/rekap', [PresensiController::class, 'rekap'])->name('presensi.rekap');
+    Route::get('/presensi/rekap/export/csv', [PresensiController::class, 'exportRekapCsv'])->name('presensi.rekap.export.csv');
+    Route::get('/presensi/rekap/export/pdf', [PresensiController::class, 'exportRekapPdf'])->name('presensi.rekap.export.pdf');
     Route::get('/presensi/{kelas}', [PresensiController::class, 'show'])->name('presensi.show');
     Route::post('/presensi', [PresensiController::class, 'store'])->name('presensi.store');
     Route::get('/presensi/{kelas}/export/csv', [PresensiController::class, 'exportCsv'])->name('presensi.export.csv');

@@ -89,11 +89,23 @@
                         </div>
                     </div>
                     
-                    <div class="relative w-full md:w-64">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span class="material-symbols-outlined text-gray-400 text-sm">search</span>
+                    <div class="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+                        <div class="flex gap-2 w-full md:w-auto">
+                            <a href="{{ route('presensi.rekap.export.pdf', request()->all()) }}" target="_blank"
+                                class="flex-1 md:flex-none flex items-center justify-center gap-1.5 bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-100 transition-colors border border-red-100">
+                                <span class="material-symbols-outlined text-sm">picture_as_pdf</span> PDF
+                            </a>
+                            <a href="{{ route('presensi.rekap.export.csv', request()->all()) }}" target="_blank"
+                                class="flex-1 md:flex-none flex items-center justify-center gap-1.5 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-emerald-100 transition-colors border border-emerald-100">
+                                <span class="material-symbols-outlined text-sm">csv</span> CSV
+                            </a>
                         </div>
-                        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari Nama / NIS..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none">
+                        <div class="relative w-full md:w-64">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="material-symbols-outlined text-gray-400 text-sm">search</span>
+                            </div>
+                            <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari Nama / NIS..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none">
+                        </div>
                     </div>
                 </div>
                 <div class="overflow-x-auto">
