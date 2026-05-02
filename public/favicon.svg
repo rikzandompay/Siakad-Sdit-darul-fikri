@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+    <!-- bg-amber-500 (#F59E0B) rounded rectangle -->
+    <rect x="0" y="0" width="512" height="512" rx="100" fill="#F59E0B" />
+    
+    <!-- School/Graduation Cap Icon in emerald-950 (#022C22) -->
+    <!-- Slightly scaled down to fit inside the box nicely -->
+    <g transform="translate(64, 64) scale(0.4)" fill="#022C22">
+        <!-- viewBox for this inner path is 0 -960 960 960 -->
+        <path d="M480-120 200-272v-240L40-600l440-240 440 240v320h-80v-276l-80 44v240L480-120Zm0-332 274-148-274-148-274 148 274 148Zm0 241 200-108v-151L480-360 280-470v151l200 108Zm0-241Zm0 90Z" transform="translate(0, 960)"/>
+    </g>
+</svg>

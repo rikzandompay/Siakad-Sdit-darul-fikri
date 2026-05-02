@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <title>@yield('title', 'SDIT Darul Fikri') - Sistem Informasi</title>
     <!-- Preconnect to CDNs for faster loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>

@@ -7,9 +7,9 @@
     <h2 class="font-bold text-2xl text-emerald-900">Presensi Sholat {{ $jenisSholat }}</h2>
     <p class="text-gray-500 text-sm mt-1">
         @if($jenisSholat == 'Zuhur')
-            Kelola kehadiran sholat Zuhur harian untuk kelas 3-6.
+            Kelola kehadiran sholat Zuhur berjamaah untuk kelas 3 hingga 6.
         @else
-            Kelola kehadiran sholat Dhuha setiap hari Jumat untuk kelas 1-6.
+            Kelola kehadiran sholat Dhuha berjamaah untuk seluruh kelas.
         @endif
     </p>
 </div>
@@ -28,12 +28,7 @@
     </a>
 </div>
 
-@if($jenisSholat == 'Dhuha' && !$isFriday)
-<div class="bg-amber-50 border border-amber-200 text-amber-800 px-6 py-4 rounded-xl flex items-center gap-3 shadow-sm mb-6">
-    <span class="material-symbols-outlined text-amber-600">info</span>
-    <span class="font-medium text-sm">Sholat Dhuha hanya dilaksanakan pada hari Jumat. Hari ini bukan hari Jumat, namun Anda tetap dapat menginput data untuk tanggal Jumat sebelumnya.</span>
-</div>
-@endif
+
 
 <!-- Stats -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -83,12 +78,12 @@
 <div>
     <h3 class="font-bold text-lg text-gray-900 mb-4">Pilih Kelas untuk Presensi Sholat {{ $jenisSholat }}</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @foreach($kelasList as $kelas)
+        @forelse($kelasList as $kelas)
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                 <div class="h-28 bg-emerald-900 relative overflow-hidden flex items-end p-6">
                     <div>
                         <div class="bg-amber-500 text-emerald-950 font-bold px-2.5 py-0.5 rounded text-[10px] inline-block mb-2 uppercase tracking-wider">
-                            {{ $jenisSholat == 'Zuhur' ? 'Setiap Hari' : 'Jumat' }}
+                            {{ $jenisSholat == 'Zuhur' ? 'Setiap Hari' : 'Setiap Hari' }}
                         </div>
                         <h3 class="text-white font-bold text-lg leading-none">{{ $kelas->nama_kelas }}</h3>
                     </div>
@@ -112,7 +107,21 @@
                     </a>
                 </div>
             </div>
-        @endforeach
+        @empty
+            <div class="col-span-3 py-20 flex flex-col items-center justify-center text-center">
+                <div class="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mb-5">
+                    <span class="material-symbols-outlined text-4xl text-emerald-400" style="font-variation-settings: 'FILL' 1;">mosque</span>
+                </div>
+                <h4 class="text-lg font-bold text-gray-800 mb-2">Belum Ada Kelas yang Tersedia</h4>
+                <p class="text-gray-400 text-sm max-w-sm leading-relaxed">
+                    @if($jenisSholat == 'Zuhur')
+                        Pembiasaan sholat Zuhur berjamaah di sekolah diperuntukkan bagi kelas 3 hingga kelas 6. Kelas yang Anda ampu saat ini belum termasuk dalam program ini.
+                    @else
+                        Anda belum terdaftar sebagai wali kelas yang mengikuti program sholat Dhuha berjamaah.
+                    @endif
+                </p>
+            </div>
+        @endforelse
     </div>
 </div>
 @endsection

@@ -21,9 +21,10 @@ class PresensiSholatController extends Controller
         $dayName = $today->translatedFormat('l');
 
         if ($jenisSholat === 'Zuhur') {
-            // Kelas 3-6 setiap hari
+            // Kelas 3-6 setiap hari, hanya wali kelas
             $kelasList = Kelas::withCount(['siswa' => fn($q) => $q->where('status', 'Aktif')])
                 ->with('waliKelas')
+                ->where('wali_kelas_id', Auth::id())
                 ->where(function ($q) {
                     $q->where('nama_kelas', 'like', '%3%')
                       ->orWhere('nama_kelas', 'like', '%4%')
@@ -35,12 +36,16 @@ class PresensiSholatController extends Controller
             // Dhuha: Kelas 1-6 hari Jumat saja
             $kelasList = Kelas::withCount(['siswa' => fn($q) => $q->where('status', 'Aktif')])
                 ->with('waliKelas')
+                ->where('wali_kelas_id', Auth::id())
                 ->orderBy('nama_kelas')->get();
         }
 
-        // Stats hari ini
+        // Stats hari ini - filter by teacher's classes
+        $kelasIds = $kelasList->pluck('id');
         $presensiToday = PresensiSholat::where('tanggal', $today)
-            ->where('jenis_sholat', $jenisSholat)->get();
+            ->where('jenis_sholat', $jenisSholat)
+            ->whereIn('kelas_id', $kelasIds)
+            ->get();
         $hadirCount = $presensiToday->where('status_kehadiran', 'H')->count();
         $sakitCount = $presensiToday->where('status_kehadiran', 'S')->count();
         $izinCount = $presensiToday->where('status_kehadiran', 'I')->count();
@@ -131,14 +136,15 @@ class PresensiSholatController extends Controller
         $tahun = $request->get('tahun', Carbon::now()->year);
 
         if ($jenisSholat === 'Zuhur') {
-            $kelasList = Kelas::where(function ($q) {
+            $kelasList = Kelas::where('wali_kelas_id', Auth::id())
+                ->where(function ($q) {
                     $q->where('nama_kelas', 'like', '%3%')
                       ->orWhere('nama_kelas', 'like', '%4%')
                       ->orWhere('nama_kelas', 'like', '%5%')
                       ->orWhere('nama_kelas', 'like', '%6%');
                 })->orderBy('nama_kelas')->get();
         } else {
-            $kelasList = Kelas::orderBy('nama_kelas')->get();
+            $kelasList = Kelas::where('wali_kelas_id', Auth::id())->orderBy('nama_kelas')->get();
         }
 
         $rekapData = [];
