@@ -1,33 +1,22 @@
 @extends('layouts.app')
-@section('title', 'Presensi ' . $kelas->nama_kelas)
-@section('page-title', 'Presensi Siswa')
+@section('title', 'Presensi Sholat ' . $jenisSholat . ' - ' . $kelas->nama_kelas)
+@section('page-title', 'Presensi Sholat ' . $jenisSholat)
 
 @section('content')
-<!-- Header with Export Buttons -->
+<!-- Header -->
 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
     <div>
         <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <a href="{{ route('presensi.index') }}" class="hover:text-emerald-700">Presensi</a>
+            <a href="{{ route('presensi-sholat.index', ['jenis' => $jenisSholat]) }}" class="hover:text-emerald-700">Sholat {{ $jenisSholat }}</a>
             <span class="material-symbols-outlined text-xs">chevron_right</span>
             <span class="text-emerald-800 font-medium">{{ $kelas->nama_kelas }}</span>
         </div>
-        <h2 class="font-bold text-2xl text-emerald-900">Presensi Siswa</h2>
-        <p class="text-gray-500 text-sm">Kelola kehadiran harian siswa {{ $kelas->nama_kelas }}</p>
+        <h2 class="font-bold text-2xl text-emerald-900">Presensi Sholat {{ $jenisSholat }}</h2>
+        <p class="text-gray-500 text-sm">Kelola kehadiran sholat {{ $jenisSholat }} siswa {{ $kelas->nama_kelas }}</p>
     </div>
     <div class="flex items-center gap-2 flex-wrap">
-        <a href="{{ route('presensi.export.pdf', ['kelas' => $kelas->id, 'jadwal_id' => $jadwalId, 'tanggal' => $tanggal, 'rentang' => $rentang]) }}"
-           target="_blank"
-           class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-            <span class="material-symbols-outlined text-sm text-red-500">picture_as_pdf</span>
-            Export PDF
-        </a>
-        <a href="{{ route('presensi.export.csv', ['kelas' => $kelas->id, 'jadwal_id' => $jadwalId, 'tanggal' => $tanggal, 'rentang' => $rentang]) }}"
-           class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-            <span class="material-symbols-outlined text-sm text-emerald-600">table_chart</span>
-            Export CSV
-        </a>
-        @if($jadwalId)
-        <button type="submit" form="form-presensi"
+        @if($siswa->count() > 0)
+        <button type="submit" form="form-presensi-sholat"
            class="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-bold hover:bg-amber-600 transition-colors shadow-sm">
             <span class="material-symbols-outlined text-sm">save</span>
             Simpan Presensi
@@ -36,7 +25,7 @@
     </div>
 </div>
 
-<!-- Summary Cards (matching screenshot) -->
+<!-- Summary Cards -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
     <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
@@ -46,7 +35,6 @@
             <span class="text-sm font-bold text-emerald-700">Hadir</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $hadirCount }}</p>
-        <p class="text-xs text-gray-400 mt-1">Siswa telah terdata hadir</p>
     </div>
     <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
@@ -56,7 +44,6 @@
             <span class="text-sm font-bold text-blue-700">Sakit</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $sakitCount }}</p>
-        <p class="text-xs text-gray-400 mt-1">Dalam pantauan kesehatan</p>
     </div>
     <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
@@ -66,53 +53,33 @@
             <span class="text-sm font-bold text-amber-700">Izin</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $izinCount }}</p>
-        <p class="text-xs text-gray-400 mt-1">Disetujui pihak sekolah</p>
     </div>
     <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
             <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
                 <span class="material-symbols-outlined text-red-600" style="font-variation-settings: 'FILL' 1;">cancel</span>
             </div>
-            <span class="text-sm font-bold text-red-700">Alfa</span>
+            <span class="text-sm font-bold text-red-700">Alpa</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $alpaCount }}</p>
-        <p class="text-xs text-gray-400 mt-1">Tanpa keterangan valid</p>
     </div>
 </div>
 
-<!-- Filter Bar (matching screenshot: Pilih Kelas, Mata Pelajaran, Tanggal, Rentang Waktu) -->
+<!-- Filter -->
 <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-    <form method="GET" action="{{ route('presensi.show', $kelas->id) }}" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+    <form method="GET" action="{{ route('presensi-sholat.show', $kelas->id) }}" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <input type="hidden" name="jenis" value="{{ $jenisSholat }}">
         <div>
             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Pilih Kelas</label>
-            <select onchange="window.location.href='/presensi/'+this.value" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500">
+            <select onchange="window.location.href='/presensi-sholat/'+this.value+'?jenis={{ $jenisSholat }}'" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500">
                 @foreach($kelasList as $k)
                     <option value="{{ $k->id }}" {{ $kelas->id == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
                 @endforeach
             </select>
         </div>
         <div>
-            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Mata Pelajaran</label>
-            <select name="jadwal_id" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500">
-                @foreach($jadwalList as $j)
-                    <option value="{{ $j->id }}" {{ $jadwalId == $j->id ? 'selected' : '' }}>
-                        {{ $j->mataPelajaran->nama_pelajaran }} ({{ $j->hari }})
-                    </option>
-                @endforeach
-            </select>
-        </div>
-        <div>
             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Tanggal</label>
             <input name="tanggal" type="date" value="{{ $tanggal }}" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500" />
-        </div>
-        <div>
-            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Rentang Waktu</label>
-            <select name="rentang" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500">
-                <option value="hari_ini" {{ $rentang == 'hari_ini' ? 'selected' : '' }}>Hari Ini</option>
-                <option value="minggu_ini" {{ $rentang == 'minggu_ini' ? 'selected' : '' }}>Minggu Ini</option>
-                <option value="bulan_ini" {{ $rentang == 'bulan_ini' ? 'selected' : '' }}>Bulan Ini</option>
-                <option value="semester_ini" {{ $rentang == 'semester_ini' ? 'selected' : '' }}>Semester Ini</option>
-            </select>
         </div>
         <div>
             <button type="submit" class="w-full h-10 bg-emerald-900 text-white font-bold px-6 rounded-lg hover:bg-emerald-800 text-sm transition-colors flex items-center justify-center gap-2">
@@ -123,18 +90,19 @@
     </form>
 </div>
 
-@if($jadwalId && $siswa->count() > 0)
+@if($siswa->count() > 0)
 <!-- Attendance Form -->
-<form id="form-presensi" method="POST" action="{{ route('presensi.store') }}">
+<form id="form-presensi-sholat" method="POST" action="{{ route('presensi-sholat.store') }}">
     @csrf
-    <input type="hidden" name="jadwal_id" value="{{ $jadwalId }}">
+    <input type="hidden" name="kelas_id" value="{{ $kelas->id }}">
+    <input type="hidden" name="jenis_sholat" value="{{ $jenisSholat }}">
     <input type="hidden" name="tanggal" value="{{ $tanggal }}">
 
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
             <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-emerald-700">list_alt</span>
-                <h3 class="font-bold text-gray-900">Daftar Kehadiran Siswa</h3>
+                <span class="material-symbols-outlined text-emerald-700">mosque</span>
+                <h3 class="font-bold text-gray-900">Daftar Kehadiran Sholat {{ $jenisSholat }}</h3>
             </div>
             <span class="text-sm text-gray-500">{{ $siswa->count() }} Siswa</span>
         </div>
@@ -196,20 +164,14 @@
     <div class="flex justify-end mt-4">
         <button type="submit" class="px-8 py-3 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/20 flex items-center gap-2">
             <span class="material-symbols-outlined">save</span>
-            Simpan Presensi
+            Simpan Presensi Sholat
         </button>
     </div>
 </form>
-@elseif($siswa->count() == 0)
+@else
 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center text-gray-400">
     <span class="material-symbols-outlined text-5xl mb-3">person_off</span>
     <p class="font-medium">Tidak ada siswa aktif di kelas ini</p>
-</div>
-@else
-<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center text-gray-400">
-    <span class="material-symbols-outlined text-5xl mb-3">calendar_today</span>
-    <p class="font-medium">Silakan pilih mata pelajaran terlebih dahulu</p>
-    <p class="text-sm mt-1">Pilih jadwal pelajaran di filter di atas</p>
 </div>
 @endif
 @endsection

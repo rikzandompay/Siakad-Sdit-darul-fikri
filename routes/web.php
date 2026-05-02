@@ -9,6 +9,7 @@ use App\Http\Controllers\JadwalPelajaranController;
 use App\Http\Controllers\PresensiController;
 use App\Http\Controllers\NilaiRapotController;
 use App\Http\Controllers\PengaturanController;
+use App\Http\Controllers\PresensiSholatController;
 
 // ── AUTH ROUTES ──
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
@@ -77,4 +78,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/pengaturan/mapel', [PengaturanController::class, 'storeMapel'])->name('pengaturan.mapel.store');
     Route::put('/pengaturan/mapel/{mapel}', [PengaturanController::class, 'updateMapel'])->name('pengaturan.mapel.update');
     Route::delete('/pengaturan/mapel/{mapel}', [PengaturanController::class, 'destroyMapel'])->name('pengaturan.mapel.destroy');
+
+    // Presensi Sholat
+    Route::get('/presensi-sholat', [PresensiSholatController::class, 'index'])->name('presensi-sholat.index');
+    Route::get('/presensi-sholat/rekap', [PresensiSholatController::class, 'rekap'])->name('presensi-sholat.rekap');
+    Route::get('/presensi-sholat/rekap/export/csv', [PresensiSholatController::class, 'exportRekapCsv'])->name('presensi-sholat.rekap.export.csv');
+    Route::get('/presensi-sholat/rekap/export/pdf', [PresensiSholatController::class, 'exportRekapPdf'])->name('presensi-sholat.rekap.export.pdf');
+    Route::get('/presensi-sholat/{kelas}', [PresensiSholatController::class, 'show'])->name('presensi-sholat.show');
+    Route::post('/presensi-sholat', [PresensiSholatController::class, 'store'])->name('presensi-sholat.store');
 });

@@ -5,6 +5,11 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'SDIT Darul Fikri') - Sistem Informasi</title>
+    <!-- Preconnect to CDNs for faster loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -117,8 +122,8 @@
                 <span class="font-medium text-sm">Kelas & Mapel</span>
             </a>
             <!-- Presensi Dropdown Menu -->
-            <div x-data="{ open: {{ request()->routeIs('presensi.*') ? 'true' : 'false' }} }">
-                <button @click="open = !open" class="w-full flex items-center justify-between px-6 py-3 transition-colors duration-200 {{ request()->routeIs('presensi.*') ? 'bg-emerald-900/50 text-amber-500 border-l-4 border-amber-500' : 'text-emerald-100/70 hover:text-white hover:bg-emerald-900/30' }}">
+            <div x-data="{ open: {{ request()->routeIs('presensi.*') || request()->routeIs('presensi-sholat.*') ? 'true' : 'false' }} }">
+                <button @click="open = !open" class="w-full flex items-center justify-between px-6 py-3 transition-colors duration-200 {{ request()->routeIs('presensi.*') || request()->routeIs('presensi-sholat.*') ? 'bg-emerald-900/50 text-amber-500 border-l-4 border-amber-500' : 'text-emerald-100/70 hover:text-white hover:bg-emerald-900/30' }}">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined">how_to_reg</span>
                         <span class="font-medium text-sm">Presensi</span>
@@ -134,6 +139,18 @@
                     <a href="{{ route('presensi.rekap') }}" class="flex items-center gap-3 pl-12 pr-6 py-3 transition-colors duration-200 {{ request()->routeIs('presensi.rekap') ? 'text-white' : 'text-emerald-100/60 hover:text-white hover:bg-emerald-900/20' }}">
                         <div class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('presensi.rekap') ? 'bg-amber-500' : 'bg-emerald-700' }}"></div>
                         <span class="text-sm">Rekap Absensi Siswa</span>
+                    </a>
+                    <a href="{{ route('presensi-sholat.index', ['jenis' => 'Zuhur']) }}" class="flex items-center gap-3 pl-12 pr-6 py-3 transition-colors duration-200 {{ request()->routeIs('presensi-sholat.*') && request()->get('jenis', 'Zuhur') == 'Zuhur' ? 'text-white' : 'text-emerald-100/60 hover:text-white hover:bg-emerald-900/20' }}">
+                        <div class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('presensi-sholat.*') && request()->get('jenis', 'Zuhur') == 'Zuhur' ? 'bg-amber-500' : 'bg-emerald-700' }}"></div>
+                        <span class="text-sm">Sholat Zuhur</span>
+                    </a>
+                    <a href="{{ route('presensi-sholat.index', ['jenis' => 'Dhuha']) }}" class="flex items-center gap-3 pl-12 pr-6 py-3 transition-colors duration-200 {{ request()->routeIs('presensi-sholat.index') && request()->get('jenis') == 'Dhuha' || request()->routeIs('presensi-sholat.show') && request()->get('jenis') == 'Dhuha' ? 'text-white' : 'text-emerald-100/60 hover:text-white hover:bg-emerald-900/20' }}">
+                        <div class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('presensi-sholat.index') && request()->get('jenis') == 'Dhuha' || request()->routeIs('presensi-sholat.show') && request()->get('jenis') == 'Dhuha' ? 'bg-amber-500' : 'bg-emerald-700' }}"></div>
+                        <span class="text-sm">Sholat Dhuha</span>
+                    </a>
+                    <a href="{{ route('presensi-sholat.rekap') }}" class="flex items-center gap-3 pl-12 pr-6 py-3 transition-colors duration-200 {{ request()->routeIs('presensi-sholat.rekap') ? 'text-white' : 'text-emerald-100/60 hover:text-white hover:bg-emerald-900/20' }}">
+                        <div class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('presensi-sholat.rekap') ? 'bg-amber-500' : 'bg-emerald-700' }}"></div>
+                        <span class="text-sm">Rekap Absensi Sholat</span>
                     </a>
                 </div>
             </div>

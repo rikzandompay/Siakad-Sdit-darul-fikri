@@ -101,8 +101,12 @@ class PresensiController extends Controller
             ->unique('id')
             ->values();
 
+        // Kelas list for dropdown - hanya kelas yang diampu guru login
+        $kelasIdsGuru = JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique();
+        $kelasList = Kelas::whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
+
         return view('presensiswa', compact(
-            'kelas', 'siswa', 'jadwalList', 'mapelList', 'tanggal', 'jadwalId', 'rentang',
+            'kelas', 'siswa', 'jadwalList', 'mapelList', 'kelasList', 'tanggal', 'jadwalId', 'rentang',
             'existingPresensi', 'hadirCount', 'sakitCount', 'izinCount', 'alpaCount'
         ));
     }
