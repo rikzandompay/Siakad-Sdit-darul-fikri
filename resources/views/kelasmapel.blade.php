@@ -186,6 +186,8 @@
             </div>
         </form>
     </div>
+</div>
+
 <!-- Modal Edit Jadwal -->
 <div id="modal-edit-jadwal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4">
@@ -244,19 +246,37 @@
 @push('scripts')
 <script>
 function openEditModal(jadwal) {
+    // Set form action ke route update yang benar
     document.getElementById('form-edit-jadwal').action = '/jadwal/' + jadwal.id;
-    document.getElementById('edit-pelajaran-id').value = jadwal.pelajaran_id;
-    document.getElementById('edit-guru-id').value = jadwal.guru_id;
-    document.getElementById('edit-hari').value = jadwal.hari;
-    
-    // Format the date strings to extract just HH:mm
+
+    // Set nilai dropdown Mata Pelajaran
+    var selectMapel = document.getElementById('edit-pelajaran-id');
+    for (var i = 0; i < selectMapel.options.length; i++) {
+        selectMapel.options[i].selected = (parseInt(selectMapel.options[i].value) === parseInt(jadwal.pelajaran_id));
+    }
+
+    // Set nilai dropdown Guru Pengampu
+    var selectGuru = document.getElementById('edit-guru-id');
+    for (var i = 0; i < selectGuru.options.length; i++) {
+        selectGuru.options[i].selected = (parseInt(selectGuru.options[i].value) === parseInt(jadwal.guru_id));
+    }
+
+    // Set nilai dropdown Hari
+    var selectHari = document.getElementById('edit-hari');
+    for (var i = 0; i < selectHari.options.length; i++) {
+        selectHari.options[i].selected = (selectHari.options[i].value === jadwal.hari);
+    }
+
+    // Format jam (ambil HH:mm dari string waktu)
     if (jadwal.jam_mulai) {
-        document.getElementById('edit-jam-mulai').value = jadwal.jam_mulai.substring(0, 5);
+        var jamMulai = jadwal.jam_mulai.length >= 5 ? jadwal.jam_mulai.substring(0, 5) : jadwal.jam_mulai;
+        document.getElementById('edit-jam-mulai').value = jamMulai;
     }
     if (jadwal.jam_selesai) {
-        document.getElementById('edit-jam-selesai').value = jadwal.jam_selesai.substring(0, 5);
+        var jamSelesai = jadwal.jam_selesai.length >= 5 ? jadwal.jam_selesai.substring(0, 5) : jadwal.jam_selesai;
+        document.getElementById('edit-jam-selesai').value = jamSelesai;
     }
-    
+
     document.getElementById('modal-edit-jadwal').classList.remove('hidden');
 }
 </script>
