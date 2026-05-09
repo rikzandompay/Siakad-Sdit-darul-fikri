@@ -46,7 +46,10 @@ class SiswaController extends Controller
     {
         $validated = $request->validate([
             'nis' => 'required|string|max:20|unique:siswa,nis',
+            'nisn' => 'required|string|max:20|unique:siswa,nisn',
             'nama_siswa' => 'required|string|max:100',
+            'tanggal_lahir' => 'required|date',
+            'alamat' => 'nullable|string|max:100',
             'jenis_kelamin' => 'required|in:L,P',
             'kelas_id' => 'required|exists:kelas,id',
             'nama_wali' => 'nullable|string|max:100',
@@ -63,7 +66,10 @@ class SiswaController extends Controller
     {
         $validated = $request->validate([
             'nis' => 'required|string|max:20|unique:siswa,nis,' . $siswa->id,
+            'nisn' => 'required|string|max:20|unique:siswa,nisn,' . $siswa->id,
             'nama_siswa' => 'required|string|max:100',
+            'tanggal_lahir' => 'required|date',
+            'alamat' => 'nullable|string|max:100',
             'jenis_kelamin' => 'required|in:L,P',
             'kelas_id' => 'required|exists:kelas,id',
             'nama_wali' => 'nullable|string|max:100',
@@ -117,13 +123,16 @@ class SiswaController extends Controller
         $callback = function () use ($data) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($file, ['No', 'NIS', 'Nama Siswa', 'Jenis Kelamin', 'Kelas', 'Nama Wali', 'No HP Wali', 'Status']);
+            fputcsv($file, ['No', 'NIS', 'NISN', 'Nama Siswa', 'Tanggal Lahir', 'Alamat', 'Jenis Kelamin', 'Kelas', 'Nama Wali', 'No HP Wali', 'Status']);
             $no = 1;
             foreach ($data as $s) {
                 fputcsv($file, [
                     $no++,
                     $s->nis,
+                    $s->nisn,
                     $s->nama_siswa,
+                    $s->tanggal_lahir,
+                    $s->alamat ?? '-',
                     $s->jenis_kelamin == 'L' ? 'Laki-laki' : 'Perempuan',
                     $s->kelas->nama_kelas ?? '-',
                     $s->nama_wali ?? '-',
