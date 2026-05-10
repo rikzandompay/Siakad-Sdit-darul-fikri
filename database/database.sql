@@ -15,7 +15,10 @@ CREATE TABLE guru (
 CREATE TABLE siswa (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nis VARCHAR(20) UNIQUE NOT NULL,
+    nisn VARCHAR(20) UNIQUE DEFAULT NULL, -- Tambahan baru
     nama_siswa VARCHAR(100) NOT NULL,
+    tanggal_lahir DATE DEFAULT NULL, -- Tambahan baru
+    alamat VARCHAR(100) DEFAULT NULL, -- Tambahan baru
     jenis_kelamin ENUM('L', 'P') NOT NULL,
     kelas_id INT,
     nama_wali VARCHAR(100) DEFAULT NULL, -- Tambahan baru
