@@ -85,25 +85,25 @@ class DatabaseSeeder extends Seeder
         // ── 5. SISWA ──
         $siswaData = [
             // Kelas 1
-            ['nis' => '202101001', 'nama_siswa' => 'Aliya Rahmah', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas1->id, 'nama_wali' => 'Ibu Rahmah', 'no_hp_wali' => '08112221001'],
-            ['nis' => '202101002', 'nama_siswa' => 'Bilal Ahmad', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas1->id, 'nama_wali' => 'Bpk. Ahmad', 'no_hp_wali' => '08112221002'],
-            ['nis' => '202101003', 'nama_siswa' => 'Citra Dewi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas1->id, 'nama_wali' => 'Ibu Dewi', 'no_hp_wali' => '08112221003'],
+            ['nis' => '202101001', 'nisn' => '0123456789', 'nama_siswa' => 'Aliya Rahmah', 'tanggal_lahir' => '2015-05-12', 'alamat' => 'Jl. Mawar No. 12, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas1->id, 'nama_wali' => 'Ibu Rahmah', 'no_hp_wali' => '08112221001'],
+            ['nis' => '202101002', 'nisn' => '0123456790', 'nama_siswa' => 'Bilal Ahmad', 'tanggal_lahir' => '2015-08-20', 'alamat' => 'Jl. Melati No. 5, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas1->id, 'nama_wali' => 'Bpk. Ahmad', 'no_hp_wali' => '08112221002'],
+            ['nis' => '202101003', 'nisn' => '0123456791', 'nama_siswa' => 'Citra Dewi', 'tanggal_lahir' => '2015-03-15', 'alamat' => 'Jl. Anggrek No. 8, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas1->id, 'nama_wali' => 'Ibu Dewi', 'no_hp_wali' => '08112221003'],
             // Kelas 2
-            ['nis' => '202102001', 'nama_siswa' => 'Dimas Pratama', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas2->id, 'nama_wali' => 'Bpk. Pratama', 'no_hp_wali' => '08113331001'],
-            ['nis' => '202102002', 'nama_siswa' => 'Eva Safitri', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas2->id, 'nama_wali' => 'Ibu Safitri', 'no_hp_wali' => '08113331002'],
+            ['nis' => '202102001', 'nisn' => '0123456792', 'nama_siswa' => 'Dimas Pratama', 'tanggal_lahir' => '2014-11-10', 'alamat' => 'Jl. Kamboja No. 2, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas2->id, 'nama_wali' => 'Bpk. Pratama', 'no_hp_wali' => '08113331001'],
+            ['nis' => '202102002', 'nisn' => '0123456793', 'nama_siswa' => 'Eva Safitri', 'tanggal_lahir' => '2014-01-25', 'alamat' => 'Jl. Tulip No. 1, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas2->id, 'nama_wali' => 'Ibu Safitri', 'no_hp_wali' => '08113331002'],
             // Kelas 3
-            ['nis' => '202103001', 'nama_siswa' => 'Farhan Maulana', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas3->id, 'nama_wali' => 'Bpk. Maulana', 'no_hp_wali' => '08114441001'],
-            ['nis' => '202103002', 'nama_siswa' => 'Ghina Azzahra', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas3->id, 'nama_wali' => 'Ibu Azzahra', 'no_hp_wali' => '08114441002'],
+            ['nis' => '202103001', 'nisn' => '0123456794', 'nama_siswa' => 'Farhan Maulana', 'tanggal_lahir' => '2013-07-05', 'alamat' => 'Jl. Dahlia No. 15, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas3->id, 'nama_wali' => 'Bpk. Maulana', 'no_hp_wali' => '08114441001'],
+            ['nis' => '202103002', 'nisn' => '0123456795', 'nama_siswa' => 'Ghina Azzahra', 'tanggal_lahir' => '2013-12-12', 'alamat' => 'Jl. Sakura No. 3, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas3->id, 'nama_wali' => 'Ibu Azzahra', 'no_hp_wali' => '08114441002'],
             // Kelas 4
-            ['nis' => '202104001', 'nama_siswa' => 'Ahmad Hidayat', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Bpk. Hidayat', 'no_hp_wali' => '08111111001'],
-            ['nis' => '202104002', 'nama_siswa' => 'Fatimah Az-Zahra', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Bpk. Zahra', 'no_hp_wali' => '08111111002'],
-            ['nis' => '202104003', 'nama_siswa' => 'Muhammad Khairi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Bpk. Khairi', 'no_hp_wali' => '08111111003'],
+            ['nis' => '202104001', 'nisn' => '0123456796', 'nama_siswa' => 'Ahmad Hidayat', 'tanggal_lahir' => '2012-09-30', 'alamat' => 'Jl. Kenanga No. 7, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Bpk. Hidayat', 'no_hp_wali' => '08111111001'],
+            ['nis' => '202104002', 'nisn' => '0123456797', 'nama_siswa' => 'Fatimah Az-Zahra', 'tanggal_lahir' => '2012-05-18', 'alamat' => 'Jl. Flamboyan No. 9, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Bpk. Zahra', 'no_hp_wali' => '08111111002'],
+            ['nis' => '202104003', 'nisn' => '0123456798', 'nama_siswa' => 'Muhammad Khairi', 'tanggal_lahir' => '2012-10-10', 'alamat' => 'Jl. Teratai No. 4, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Bpk. Khairi', 'no_hp_wali' => '08111111003'],
             // Kelas 5
-            ['nis' => '202105001', 'nama_siswa' => 'Haikal Rahman', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas5->id, 'nama_wali' => 'Bpk. Rahman', 'no_hp_wali' => '08115551001'],
-            ['nis' => '202105002', 'nama_siswa' => 'Inas Kamilah', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas5->id, 'nama_wali' => 'Ibu Kamilah', 'no_hp_wali' => '08115551002'],
+            ['nis' => '202105001', 'nisn' => '0123456799', 'nama_siswa' => 'Haikal Rahman', 'tanggal_lahir' => '2011-06-22', 'alamat' => 'Jl. Matahari No. 11, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas5->id, 'nama_wali' => 'Bpk. Rahman', 'no_hp_wali' => '08115551001'],
+            ['nis' => '202105002', 'nisn' => '0123456800', 'nama_siswa' => 'Inas Kamilah', 'tanggal_lahir' => '2011-02-14', 'alamat' => 'Jl. Kemuning No. 6, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas5->id, 'nama_wali' => 'Ibu Kamilah', 'no_hp_wali' => '08115551002'],
             // Kelas 6
-            ['nis' => '202106001', 'nama_siswa' => 'Jibril Hakim', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas6->id, 'nama_wali' => 'Bpk. Hakim', 'no_hp_wali' => '08116661001'],
-            ['nis' => '202106002', 'nama_siswa' => 'Khadijah Nur', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas6->id, 'nama_wali' => 'Ibu Nur', 'no_hp_wali' => '08116661002'],
+            ['nis' => '202106001', 'nisn' => '0123456801', 'nama_siswa' => 'Jibril Hakim', 'tanggal_lahir' => '2010-04-01', 'alamat' => 'Jl. Cempaka No. 10, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas6->id, 'nama_wali' => 'Bpk. Hakim', 'no_hp_wali' => '08116661001'],
+            ['nis' => '202106002', 'nisn' => '0123456802', 'nama_siswa' => 'Khadijah Nur', 'tanggal_lahir' => '2010-11-30', 'alamat' => 'Jl. Bougenville No. 14, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas6->id, 'nama_wali' => 'Ibu Nur', 'no_hp_wali' => '08116661002'],
         ];
         foreach ($siswaData as $s) {
             Siswa::create($s);
