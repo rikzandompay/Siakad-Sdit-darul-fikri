@@ -17,33 +17,33 @@ class DatabaseSeeder extends Seeder
     {
         // ── 1. GURU (USERS) ──
         $guru1 = User::create([
-            'name' => 'Dewi Quraisyinta',
-            'email' => 'dewi@darulfikri.sch.id',
-            'password' => Hash::make('sinta123'),
-            'nip' => '198501012010011001',
-            'nama_lengkap' => 'Ustadzah Dewi Quraisyinta, S.Pd.I',
-            'username' => 'sinta',
-            'no_hp' => '081234567890',
+            'name' => 'Guru Satu',
+            'email' => 'guru1@sekolah.sch.id',
+            'password' => Hash::make('password123'),
+            'nip' => '198001012010011001',
+            'nama_lengkap' => 'Ustadz/Ustadzah Guru Satu, S.Pd.',
+            'username' => 'guru1',
+            'no_hp' => '08110000001',
         ]);
 
         $guru2 = User::create([
-            'name' => 'Dwi Robiatul Adewiyah',
-            'email' => 'dwi@darulfikri.sch.id',
-            'password' => Hash::make('guru1234'),
-            'nip' => '198602152011012002',
-            'nama_lengkap' => 'Ustadzah Dwi Robiatul Adewiyah, S.Pd.',
-            'username' => 'dwi',
-            'no_hp' => '081234567891',
+            'name' => 'Guru Dua',
+            'email' => 'guru2@sekolah.sch.id',
+            'password' => Hash::make('password123'),
+            'nip' => '198102022011012002',
+            'nama_lengkap' => 'Ustadz/Ustadzah Guru Dua, S.Pd.',
+            'username' => 'guru2',
+            'no_hp' => '08110000002',
         ]);
 
         $guru3 = User::create([
-            'name' => 'Alfiani Wahyuningsih',
-            'email' => 'alfiani@darulfikri.sch.id',
-            'password' => Hash::make('guru1234'),
-            'nip' => '198703202012011003',
-            'nama_lengkap' => 'Ustadzah Alfiani Wahyuningsih, S.Pd.',
-            'username' => 'alfiani',
-            'no_hp' => '081234567892',
+            'name' => 'Guru Tiga',
+            'email' => 'guru3@sekolah.sch.id',
+            'password' => Hash::make('password123'),
+            'nip' => '198203032012011003',
+            'nama_lengkap' => 'Ustadz/Ustadzah Guru Tiga, S.Pd.',
+            'username' => 'guru3',
+            'no_hp' => '08110000003',
         ]);
 
         // ── 2. TAHUN AJARAN ──
@@ -72,38 +72,41 @@ class DatabaseSeeder extends Seeder
         }
 
         // ── 4. KELAS ──
-        // Kelas 1-2: Wali Kelas = Dewi Quraisyinta
+        // Kelas 1-2: Wali Kelas = Guru Satu
         $kelas1 = Kelas::create(['nama_kelas' => 'Kelas 1', 'wali_kelas_id' => $guru1->id]);
         $kelas2 = Kelas::create(['nama_kelas' => 'Kelas 2', 'wali_kelas_id' => $guru1->id]);
-        // Kelas 3-4: Wali Kelas = Dwi Robiatul Adewiyah
+        // Kelas 3-4: Wali Kelas = Guru Dua
         $kelas3 = Kelas::create(['nama_kelas' => 'Kelas 3', 'wali_kelas_id' => $guru2->id]);
         $kelas4 = Kelas::create(['nama_kelas' => 'Kelas 4', 'wali_kelas_id' => $guru2->id]);
-        // Kelas 5-6: Wali Kelas = Alfiani Wahyuningsih
+        // Kelas 5-6: Wali Kelas = Guru Tiga
         $kelas5 = Kelas::create(['nama_kelas' => 'Kelas 5', 'wali_kelas_id' => $guru3->id]);
         $kelas6 = Kelas::create(['nama_kelas' => 'Kelas 6', 'wali_kelas_id' => $guru3->id]);
 
         // ── 5. SISWA ──
         $siswaData = [
-            // Kelas 1
-            ['nis' => '202101001', 'nisn' => '0123456789', 'nama_siswa' => 'Aliya Rahmah', 'tanggal_lahir' => '2015-05-12', 'alamat' => 'Jl. Mawar No. 12, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas1->id, 'nama_wali' => 'Ibu Rahmah', 'no_hp_wali' => '08112221001'],
-            ['nis' => '202101002', 'nisn' => '0123456790', 'nama_siswa' => 'Bilal Ahmad', 'tanggal_lahir' => '2015-08-20', 'alamat' => 'Jl. Melati No. 5, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas1->id, 'nama_wali' => 'Bpk. Ahmad', 'no_hp_wali' => '08112221002'],
-            ['nis' => '202101003', 'nisn' => '0123456791', 'nama_siswa' => 'Citra Dewi', 'tanggal_lahir' => '2015-03-15', 'alamat' => 'Jl. Anggrek No. 8, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas1->id, 'nama_wali' => 'Ibu Dewi', 'no_hp_wali' => '08112221003'],
-            // Kelas 2
-            ['nis' => '202102001', 'nisn' => '0123456792', 'nama_siswa' => 'Dimas Pratama', 'tanggal_lahir' => '2014-11-10', 'alamat' => 'Jl. Kamboja No. 2, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas2->id, 'nama_wali' => 'Bpk. Pratama', 'no_hp_wali' => '08113331001'],
-            ['nis' => '202102002', 'nisn' => '0123456793', 'nama_siswa' => 'Eva Safitri', 'tanggal_lahir' => '2014-01-25', 'alamat' => 'Jl. Tulip No. 1, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas2->id, 'nama_wali' => 'Ibu Safitri', 'no_hp_wali' => '08113331002'],
-            // Kelas 3
-            ['nis' => '202103001', 'nisn' => '0123456794', 'nama_siswa' => 'Farhan Maulana', 'tanggal_lahir' => '2013-07-05', 'alamat' => 'Jl. Dahlia No. 15, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas3->id, 'nama_wali' => 'Bpk. Maulana', 'no_hp_wali' => '08114441001'],
-            ['nis' => '202103002', 'nisn' => '0123456795', 'nama_siswa' => 'Ghina Azzahra', 'tanggal_lahir' => '2013-12-12', 'alamat' => 'Jl. Sakura No. 3, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas3->id, 'nama_wali' => 'Ibu Azzahra', 'no_hp_wali' => '08114441002'],
-            // Kelas 4
-            ['nis' => '202104001', 'nisn' => '0123456796', 'nama_siswa' => 'Ahmad Hidayat', 'tanggal_lahir' => '2012-09-30', 'alamat' => 'Jl. Kenanga No. 7, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Bpk. Hidayat', 'no_hp_wali' => '08111111001'],
-            ['nis' => '202104002', 'nisn' => '0123456797', 'nama_siswa' => 'Fatimah Az-Zahra', 'tanggal_lahir' => '2012-05-18', 'alamat' => 'Jl. Flamboyan No. 9, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Bpk. Zahra', 'no_hp_wali' => '08111111002'],
-            ['nis' => '202104003', 'nisn' => '0123456798', 'nama_siswa' => 'Muhammad Khairi', 'tanggal_lahir' => '2012-10-10', 'alamat' => 'Jl. Teratai No. 4, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Bpk. Khairi', 'no_hp_wali' => '08111111003'],
-            // Kelas 5
-            ['nis' => '202105001', 'nisn' => '0123456799', 'nama_siswa' => 'Haikal Rahman', 'tanggal_lahir' => '2011-06-22', 'alamat' => 'Jl. Matahari No. 11, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas5->id, 'nama_wali' => 'Bpk. Rahman', 'no_hp_wali' => '08115551001'],
-            ['nis' => '202105002', 'nisn' => '0123456800', 'nama_siswa' => 'Inas Kamilah', 'tanggal_lahir' => '2011-02-14', 'alamat' => 'Jl. Kemuning No. 6, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas5->id, 'nama_wali' => 'Ibu Kamilah', 'no_hp_wali' => '08115551002'],
-            // Kelas 6
-            ['nis' => '202106001', 'nisn' => '0123456801', 'nama_siswa' => 'Jibril Hakim', 'tanggal_lahir' => '2010-04-01', 'alamat' => 'Jl. Cempaka No. 10, Bekasi', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas6->id, 'nama_wali' => 'Bpk. Hakim', 'no_hp_wali' => '08116661001'],
-            ['nis' => '202106002', 'nisn' => '0123456802', 'nama_siswa' => 'Khadijah Nur', 'tanggal_lahir' => '2010-11-30', 'alamat' => 'Jl. Bougenville No. 14, Bekasi', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas6->id, 'nama_wali' => 'Ibu Nur', 'no_hp_wali' => '08116661002'],
+            // ── KELAS I ──
+            ['nis' => '202101001', 'nisn' => '0011223344', 'nama_siswa' => 'Siswa Dummy Satu', 'tanggal_lahir' => '2018-05-10', 'alamat' => 'Jl. Pendidikan No. 1', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas1->id, 'nama_wali' => 'Wali Satu', 'no_hp_wali' => '08110000001'],
+            ['nis' => '202101002', 'nisn' => '0011223345', 'nama_siswa' => 'Siswa Dummy Dua',  'tanggal_lahir' => '2018-08-15', 'alamat' => 'Jl. Pendidikan No. 2', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas1->id, 'nama_wali' => 'Wali Dua',  'no_hp_wali' => '08110000002'],
+            
+            // ── KELAS II ──
+            ['nis' => '202102001', 'nisn' => '0021223344', 'nama_siswa' => 'Siswa Dummy Tiga', 'tanggal_lahir' => '2017-02-20', 'alamat' => 'Jl. Merdeka No. 3',    'jenis_kelamin' => 'L', 'kelas_id' => $kelas2->id, 'nama_wali' => 'Wali Tiga', 'no_hp_wali' => '08110000003'],
+            ['nis' => '202102002', 'nisn' => '0021223345', 'nama_siswa' => 'Siswa Dummy Empat','tanggal_lahir' => '2017-11-12', 'alamat' => 'Jl. Merdeka No. 4',    'jenis_kelamin' => 'P', 'kelas_id' => $kelas2->id, 'nama_wali' => 'Wali Empat','no_hp_wali' => '08110000004'],
+
+            // ── KELAS III ──
+            ['nis' => '202103001', 'nisn' => '0031223344', 'nama_siswa' => 'Siswa Dummy Lima', 'tanggal_lahir' => '2016-04-05', 'alamat' => 'Jl. Pahlawan No. 5',   'jenis_kelamin' => 'L', 'kelas_id' => $kelas3->id, 'nama_wali' => 'Wali Lima', 'no_hp_wali' => '08110000005'],
+            ['nis' => '202103002', 'nisn' => '0031223345', 'nama_siswa' => 'Siswa Dummy Enam', 'tanggal_lahir' => '2016-09-25', 'alamat' => 'Jl. Pahlawan No. 6',   'jenis_kelamin' => 'P', 'kelas_id' => $kelas3->id, 'nama_wali' => 'Wali Enam', 'no_hp_wali' => '08110000006'],
+
+            // ── KELAS IV ──
+            ['nis' => '202104001', 'nisn' => '0041223344', 'nama_siswa' => 'Siswa Dummy Tujuh','tanggal_lahir' => '2015-01-10', 'alamat' => 'Jl. Bangsa No. 7',     'jenis_kelamin' => 'L', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Wali Tujuh','no_hp_wali' => '08110000007'],
+            ['nis' => '202104002', 'nisn' => '0041223345', 'nama_siswa' => 'Siswa Dummy Delapan','tanggal_lahir'=> '2015-07-30', 'alamat' => 'Jl. Bangsa No. 8',     'jenis_kelamin' => 'P', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Wali Delapan','no_hp_wali'=> '08110000008'],
+
+            // ── KELAS V ──
+            ['nis' => '202105001', 'nisn' => '0051223344', 'nama_siswa' => 'Siswa Dummy Sembilan','tanggal_lahir'=>'2014-03-15','alamat' => 'Jl. Nusantara No. 9',  'jenis_kelamin' => 'L', 'kelas_id' => $kelas5->id, 'nama_wali' => 'Wali Sembilan','no_hp_wali'=>'08110000009'],
+            ['nis' => '202105002', 'nisn' => '0051223345', 'nama_siswa' => 'Siswa Dummy Sepuluh','tanggal_lahir'=>'2014-10-20','alamat' => 'Jl. Nusantara No. 10', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas5->id, 'nama_wali' => 'Wali Sepuluh','no_hp_wali'=>'08110000010'],
+
+            // ── KELAS VI ──
+            ['nis' => '202106001', 'nisn' => '0061223344', 'nama_siswa' => 'Siswa Dummy Sebelas','tanggal_lahir'=>'2013-06-01','alamat' => 'Jl. Cerdas No. 11',    'jenis_kelamin' => 'L', 'kelas_id' => $kelas6->id, 'nama_wali' => 'Wali Sebelas','no_hp_wali'=>'08110000011'],
+            ['nis' => '202106002', 'nisn' => '0061223345', 'nama_siswa' => 'Siswa Dummy Dua Belas','tanggal_lahir'=>'2013-12-15','alamat'=>'Jl. Cerdas No. 12',    'jenis_kelamin' => 'P', 'kelas_id' => $kelas6->id, 'nama_wali' => 'Wali Dua Belas','no_hp_wali'=>'08110000012'],
         ];
         foreach ($siswaData as $s) {
             Siswa::create($s);
@@ -111,7 +114,7 @@ class DatabaseSeeder extends Seeder
 
         // ── 6. JADWAL PELAJARAN ──
 
-        // Kelas 1-2: Guru Pengampu = Dewi Quraisyinta (BI, MTK, Agama Islam, P. Pancasila, Seni)
+        // Kelas 1-2: Guru Pengampu = Guru Satu (BI, MTK, Agama Islam, P. Pancasila, Seni)
         $mapelKelas12 = ['BIN', 'MTK', 'PAI', 'PPK', 'SEN'];
         $hariList = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
         foreach ([$kelas1, $kelas2] as $kls) {
@@ -127,7 +130,7 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // Kelas 3-4: Guru Pengampu = Dwi Robiatul Adewiyah (MTK, BI, Agama Islam, IPAS, Seni Rupa, B.Ing, B.Arab, P.Pancasila, PJOK)
+        // Kelas 3-4: Guru Pengampu = Guru Dua (MTK, BI, Agama Islam, IPAS, Seni Rupa, B.Ing, B.Arab, P.Pancasila, PJOK)
         $mapelKelas34 = ['MTK', 'BIN', 'PAI', 'IPAS', 'SRP', 'BIG', 'BAR', 'PPK', 'PJOK'];
         foreach ([$kelas3, $kelas4] as $kls) {
             foreach ($mapelKelas34 as $i => $kode) {
@@ -142,7 +145,7 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // Kelas 5-6: Guru Pengampu = Alfiani Wahyuningsih (MTK, BI, Agama Islam, IPAS, Mulok, Seni Rupa, B.Ing, B.Arab, P.Pancasila, PJOK)
+        // Kelas 5-6: Guru Pengampu = Guru Tiga (MTK, BI, Agama Islam, IPAS, Mulok, Seni Rupa, B.Ing, B.Arab, P.Pancasila, PJOK)
         $mapelKelas56 = ['MTK', 'BIN', 'PAI', 'IPAS', 'MLK', 'SRP', 'BIG', 'BAR', 'PPK', 'PJOK'];
         foreach ([$kelas5, $kelas6] as $kls) {
             foreach ($mapelKelas56 as $i => $kode) {
