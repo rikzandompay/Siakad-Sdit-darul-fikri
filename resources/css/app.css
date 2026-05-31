@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@plugin '@tailwindcss/forms';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -6,6 +7,94 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-inter: 'Inter', sans-serif;
+
+    /* Material Design 3 Color System */
+    --color-primary: #004532;
+    --color-primary-container: #065f46;
+    --color-on-primary: #ffffff;
+    --color-on-primary-container: #8bd6b7;
+    --color-secondary: #9b4500;
+    --color-secondary-container: #fd8a42;
+    --color-on-secondary: #ffffff;
+    --color-on-secondary-container: #682c00;
+    --color-tertiary: #652925;
+    --color-tertiary-container: #823f3a;
+    --color-error: #ba1a1a;
+    --color-error-container: #ffdad6;
+    --color-background: #f7faf6;
+    --color-on-background: #181c1a;
+    --color-surface: #f7faf6;
+    --color-on-surface: #181c1a;
+    --color-surface-variant: #e0e3df;
+    --color-on-surface-variant: #3f4944;
+    --color-outline: #6f7973;
+    --color-outline-variant: #bec9c2;
+    --color-surface-container: #ecefeb;
+    --color-surface-container-low: #f1f4f0;
+    --color-surface-container-high: #e6e9e5;
+    --color-surface-container-highest: #e0e3df;
+    --color-surface-container-lowest: #ffffff;
+    --color-surface-dim: #d8dbd7;
+    --color-surface-bright: #f7faf6;
+    --color-inverse-surface: #2d312f;
+    --color-inverse-on-surface: #eef2ed;
+    --color-inverse-primary: #8bd6b6;
+    --color-surface-tint: #1b6b51;
+
+    /* Custom Spacing */
+    --spacing-stack-sm: 0.5rem;
+    --spacing-margin-page: 2rem;
+    --spacing-stack-lg: 1.5rem;
+    --spacing-gutter: 1.5rem;
+    --spacing-stack-md: 1rem;
+    --spacing-container-max: 1280px;
+    --spacing-sidebar-width: 260px;
+
+    /* Custom Font Sizes */
+    --text-body-lg: 18px;
+    --text-body-lg--line-height: 28px;
+    --text-h2: 24px;
+    --text-h2--line-height: 32px;
+    --text-h3: 20px;
+    --text-h3--line-height: 28px;
+    --text-body-sm: 14px;
+    --text-body-sm--line-height: 20px;
+    --text-button: 14px;
+    --text-button--line-height: 20px;
+    --text-h1: 30px;
+    --text-h1--line-height: 36px;
+    --text-body-md: 16px;
+    --text-body-md--line-height: 24px;
+    --text-label-md: 14px;
+    --text-label-md--line-height: 20px;
+}
+
+/* Tailwind v4 custom utilities for design tokens used in templates */
+@utility p-margin-page {
+    padding: var(--spacing-margin-page);
+}
+@utility gap-gutter {
+    gap: var(--spacing-gutter);
+}
+@utility space-y-stack-lg {
+    & > * + * {
+        margin-top: var(--spacing-stack-lg);
+    }
+}
+@utility space-y-stack-md {
+    & > * + * {
+        margin-top: var(--spacing-stack-md);
+    }
+}
+@utility max-w-container-max {
+    max-width: var(--spacing-container-max);
+}
+@utility w-sidebar-width {
+    width: var(--spacing-sidebar-width);
+}
+@utility font-inter {
+    font-family: var(--font-inter);
 }

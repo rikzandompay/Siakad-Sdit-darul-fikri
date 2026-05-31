@@ -6,79 +6,27 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <title>@yield('title', 'SDIT Darul Fikri') - Sistem Informasi</title>
-    <!-- Preconnect to CDNs for faster loading -->
+
+    {{-- DNS Prefetch & Preconnect for external resources --}}
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+    {{-- Vite-compiled Tailwind CSS (replaces CDN Tailwind JS) --}}
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    {{-- Load fonts non-render-blocking with media="print" trick + onload swap --}}
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
+
+    {{-- Material Symbols - load async, only needed weight range --}}
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap" rel="stylesheet"></noscript>
+
+    {{-- Alpine.js - defer loading --}}
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    <script>
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#004532",
-                        "primary-container": "#065f46",
-                        "on-primary": "#ffffff",
-                        "on-primary-container": "#8bd6b7",
-                        "secondary": "#9b4500",
-                        "secondary-container": "#fd8a42",
-                        "on-secondary": "#ffffff",
-                        "on-secondary-container": "#682c00",
-                        "tertiary": "#652925",
-                        "tertiary-container": "#823f3a",
-                        "error": "#ba1a1a",
-                        "error-container": "#ffdad6",
-                        "background": "#f7faf6",
-                        "on-background": "#181c1a",
-                        "surface": "#f7faf6",
-                        "on-surface": "#181c1a",
-                        "surface-variant": "#e0e3df",
-                        "on-surface-variant": "#3f4944",
-                        "outline": "#6f7973",
-                        "outline-variant": "#bec9c2",
-                        "surface-container": "#ecefeb",
-                        "surface-container-low": "#f1f4f0",
-                        "surface-container-high": "#e6e9e5",
-                        "surface-container-highest": "#e0e3df",
-                        "surface-container-lowest": "#ffffff",
-                        "surface-dim": "#d8dbd7",
-                        "surface-bright": "#f7faf6",
-                        "inverse-surface": "#2d312f",
-                        "inverse-on-surface": "#eef2ed",
-                        "inverse-primary": "#8bd6b6",
-                        "surface-tint": "#1b6b51",
-                    },
-                    spacing: {
-                        "stack-sm": "0.5rem",
-                        "margin-page": "2rem",
-                        "stack-lg": "1.5rem",
-                        "gutter": "1.5rem",
-                        "stack-md": "1rem",
-                        "container-max": "1280px",
-                        "sidebar-width": "260px"
-                    },
-                    fontFamily: {
-                        "inter": ["Inter"],
-                    },
-                    fontSize: {
-                        "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
-                        "h2": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }],
-                        "h3": ["20px", { lineHeight: "28px", fontWeight: "600" }],
-                        "body-sm": ["14px", { lineHeight: "20px", fontWeight: "400" }],
-                        "button": ["14px", { lineHeight: "20px", fontWeight: "600" }],
-                        "h1": ["30px", { lineHeight: "36px", letterSpacing: "-0.02em", fontWeight: "700" }],
-                        "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
-                        "label-md": ["14px", { lineHeight: "20px", letterSpacing: "0.05em", fontWeight: "500" }]
-                    }
-                }
-            }
-        }
-    </script>
+
     <style>
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
