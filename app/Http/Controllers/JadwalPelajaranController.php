@@ -74,7 +74,17 @@ class JadwalPelajaranController extends Controller
         $callback = function () use ($jadwal, $kelas) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM for UTF-8
-            fputcsv($file, ['Jadwal Pelajaran Kelas ' . $kelas->nama_kelas]);
+            
+            // Header Section
+            fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
+            fputcsv($file, ['SD IT DARUL FIKRI']);
+            fputcsv($file, ['LAPORAN JADWAL PELAJARAN']);
+            fputcsv($file, []);
+            fputcsv($file, ['Kelas', ':', $kelas->nama_kelas]);
+            fputcsv($file, ['Tahun Ajaran', ':', date('Y') . '/' . (date('Y') + 1)]);
+            fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
+            fputcsv($file, []);
+
             fputcsv($file, ['Hari', 'Waktu', 'Mata Pelajaran', 'Guru Pengampu']);
             
             foreach ($jadwal as $j) {

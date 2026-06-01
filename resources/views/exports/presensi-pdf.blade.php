@@ -1,143 +1,104 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <title>Presensi {{ $kelas->nama_kelas }} - SD IT Darul Fikri</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            font-size: 11px;
-            color: #333;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 3px double #004532;
-            padding-bottom: 15px;
-        }
-
-        .header h1 {
-            font-size: 18px;
-            color: #004532;
-        }
-
-        .header h2 {
-            font-size: 14px;
-            color: #555;
-            margin-top: 4px;
-        }
-
-        .header p {
-            font-size: 10px;
-            color: #999;
-            margin-top: 6px;
-        }
-
-        .info {
-            margin-bottom: 15px;
-        }
-
-        .info span {
-            display: inline-block;
-            margin-right: 30px;
-            font-size: 11px;
-        }
-
-        .info strong {
-            color: #004532;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th {
-            background: #004532;
-            color: white;
-            padding: 8px 6px;
-            font-size: 10px;
-            text-transform: uppercase;
-        }
-
-        td {
-            padding: 6px;
-            border-bottom: 1px solid #e5e7eb;
-            text-align: center;
-        }
-
-        tr:nth-child(even) td {
-            background: #f9fafb;
-        }
-
-        td:nth-child(2),
-        td:nth-child(3) {
-            text-align: left;
-        }
-
-        .footer {
-            margin-top: 30px;
-            text-align: right;
-            font-size: 10px;
-            color: #999;
-        }
-
-        @media print {
-            body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-        }
+        @page { size: A4; margin: 2cm; }
+        body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; color: #000; line-height: 1.5; }
+        .kop-surat { text-align: center; border-bottom: 3px double #000; margin-bottom: 20px; padding-bottom: 10px; }
+        .kop-surat h1 { font-size: 18pt; margin: 0; text-transform: uppercase; font-weight: bold; }
+        .kop-surat h2 { font-size: 14pt; margin: 5px 0 0; }
+        .kop-surat p { font-size: 10pt; margin: 5px 0 0; }
+        .title { text-align: center; font-size: 14pt; font-weight: bold; margin-bottom: 20px; text-decoration: underline; text-transform: uppercase; }
+        .info-table { width: 100%; margin-bottom: 20px; font-size: 11pt; }
+        .info-table td { padding: 2px 5px; vertical-align: top; }
+        .info-table td:first-child { width: 120px; font-weight: bold; }
+        .info-table td:nth-child(2) { width: 10px; }
+        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 11pt; }
+        .data-table th, .data-table td { border: 1px solid #000; padding: 6px 8px; text-align: center; }
+        .data-table th { background-color: #f2f2f2; font-weight: bold; vertical-align: middle; }
+        .data-table td.text-left { text-align: left; }
+        .signature { width: 100%; margin-top: 40px; page-break-inside: avoid; font-size: 11pt; }
+        .signature table { width: 100%; text-align: center; }
+        .signature td { width: 50%; padding-bottom: 60px; }
+        .signature-name { font-weight: bold; text-decoration: underline; }
+        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     </style>
 </head>
-
 <body onload="window.print()">
-    <div class="header">
-        <h1>SDIT DARUL FIKRI</h1>
-        <h2>Rekap Presensi {{ $kelas->nama_kelas }}</h2>
-        <p>Periode: {{ $rentangLabel }} ({{ \Carbon\Carbon::parse($dateRange['start'])->format('d/m/Y') }} -
-            {{ \Carbon\Carbon::parse($dateRange['end'])->format('d/m/Y') }})</p>
+    <div class="kop-surat">
+        <h1>SD IT DARUL FIKRI</h1>
+        <h2>YAYASAN PENDIDIKAN DARUL FIKRI</h2>
+        <p>Alamat: Jl. Raya Pendidikan No. 1, Kota, Provinsi, Kode Pos 12345<br>Telp: (021) 1234567 | Email: info@sditdarulfikri.sch.id</p>
     </div>
-    <table>
+
+    <div class="title">LAPORAN KEHADIRAN SISWA</div>
+
+    <table class="info-table">
+        <tr>
+            <td>Kelas</td><td>:</td><td>{{ $kelas->nama_kelas }}</td>
+            <td>Tahun Ajaran</td><td>:</td><td>{{ date('Y') }}/{{ date('Y')+1 }}</td>
+        </tr>
+        <tr>
+            <td>Periode</td><td>:</td><td>{{ $rentangLabel }} ({{ \Carbon\Carbon::parse($dateRange['start'])->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($dateRange['end'])->format('d/m/Y') }})</td>
+            <td>Tanggal Cetak</td><td>:</td><td>{{ now()->translatedFormat('d F Y') }}</td>
+        </tr>
+    </table>
+
+    <table class="data-table">
         <thead>
             <tr>
-                <th>No</th>
-                <th>NIS</th>
-                <th>Nama Siswa</th>
-                <th>Hadir</th>
-                <th>Sakit</th>
-                <th>Izin</th>
-                <th>Alpa</th>
-                <th>Total</th>
+                <th rowspan="2" style="width: 5%">No</th>
+                <th rowspan="2" style="width: 15%">NIS</th>
+                <th rowspan="2" style="width: 40%">Nama Siswa</th>
+                <th colspan="4">Keterangan</th>
+                <th rowspan="2" style="width: 10%">Total</th>
+            </tr>
+            <tr>
+                <th style="width: 7%">H</th>
+                <th style="width: 7%">S</th>
+                <th style="width: 7%">I</th>
+                <th style="width: 7%">A</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($summary as $i => $row)
+            @forelse ($summary as $i => $row)
                 <tr>
                     <td>{{ $loop->iteration }}</td>
-                    <td style="text-align:left">{{ $row['siswa']->nis }}</td>
-                    <td style="text-align:left"><strong>{{ $row['siswa']->nama_siswa }}</strong></td>
+                    <td class="text-left">{{ $row['siswa']->nis }}</td>
+                    <td class="text-left">{{ $row['siswa']->nama_siswa }}</td>
                     <td>{{ $row['hadir'] }}</td>
                     <td>{{ $row['sakit'] }}</td>
                     <td>{{ $row['izin'] }}</td>
                     <td>{{ $row['alpa'] }}</td>
                     <td><strong>{{ $row['hadir'] + $row['sakit'] + $row['izin'] + $row['alpa'] }}</strong></td>
                 </tr>
-            @endforeach
+            @empty
+                <tr>
+                    <td colspan="8">Tidak ada data presensi.</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
-    <div class="footer">
-        <p>Dicetak: {{ now()->translatedFormat('d F Y, H:i') }} WIB | SDIT Darul Fikri &copy; {{ date('Y') }}</p>
+
+    <div class="signature">
+        <table>
+            <tr>
+                <td>
+                    Mengetahui,<br>Kepala Sekolah
+                    <br><br><br><br><br>
+                    <span class="signature-name">_______________________</span><br>
+                    NIP. .........................
+                </td>
+                <td>
+                    ............, {{ now()->translatedFormat('d F Y') }}<br>Guru Kelas / Mata Pelajaran
+                    <br><br><br><br><br>
+                    <span class="signature-name">{{ Auth::user()->name ?? '_______________________' }}</span><br>
+                    NIP. .........................
+                </td>
+            </tr>
+        </table>
     </div>
 </body>
-
 </html>

@@ -1,135 +1,103 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <title>Data Siswa - SDIT Darul Fikri</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            font-size: 10px;
-            /* Reduced font size to fit more columns */
-            color: #333;
-        }
-
-        @page {
-            size: landscape;
-            margin: 1cm;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 3px double #004532;
-            padding-bottom: 15px;
-        }
-
-        .header h1 {
-            font-size: 18px;
-            color: #004532;
-        }
-
-        .header h2 {
-            font-size: 14px;
-            color: #555;
-            margin-top: 4px;
-        }
-
-        .header p {
-            font-size: 10px;
-            color: #999;
-            margin-top: 6px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        th {
-            background: #004532;
-            color: white;
-            padding: 8px 6px;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        td {
-            padding: 6px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        tr:nth-child(even) td {
-            background: #f9fafb;
-        }
-
-        .footer {
-            margin-top: 30px;
-            text-align: right;
-            font-size: 10px;
-            color: #999;
-        }
-
-        @media print {
-            body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-        }
+        @page { size: A4 landscape; margin: 1.5cm; }
+        body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; line-height: 1.5; }
+        .kop-surat { text-align: center; border-bottom: 3px double #000; margin-bottom: 20px; padding-bottom: 10px; }
+        .kop-surat h1 { font-size: 18pt; margin: 0; text-transform: uppercase; font-weight: bold; }
+        .kop-surat h2 { font-size: 14pt; margin: 5px 0 0; }
+        .kop-surat p { font-size: 10pt; margin: 5px 0 0; }
+        .title { text-align: center; font-size: 14pt; font-weight: bold; margin-bottom: 20px; text-decoration: underline; text-transform: uppercase; }
+        .info-table { width: 100%; margin-bottom: 20px; font-size: 11pt; }
+        .info-table td { padding: 2px 5px; vertical-align: top; }
+        .info-table td:first-child { width: 120px; font-weight: bold; }
+        .info-table td:nth-child(2) { width: 10px; }
+        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 10pt; }
+        .data-table th, .data-table td { border: 1px solid #000; padding: 6px 4px; text-align: center; }
+        .data-table th { background-color: #f2f2f2; font-weight: bold; vertical-align: middle; }
+        .data-table td.text-left { text-align: left; }
+        .signature { width: 100%; margin-top: 40px; page-break-inside: avoid; font-size: 11pt; }
+        .signature table { width: 100%; text-align: center; }
+        .signature td { width: 50%; padding-bottom: 60px; }
+        .signature-name { font-weight: bold; text-decoration: underline; }
+        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     </style>
 </head>
-
 <body onload="window.print()">
-    <div class="header">
+    <div class="kop-surat">
         <h1>SD IT DARUL FIKRI</h1>
-        <h2>Laporan Data Siswa</h2>
-        <p>Dicetak: {{ now()->translatedFormat('d F Y, H:i') }} WIB</p>
+        <h2>YAYASAN PENDIDIKAN DARUL FIKRI</h2>
+        <p>Alamat: Jl. Raya Pendidikan No. 1, Kota, Provinsi, Kode Pos 12345<br>Telp: (021) 1234567 | Email: info@sditdarulfikri.sch.id</p>
     </div>
-    <table>
+
+    <div class="title">LAPORAN DATA SISWA</div>
+
+    <table class="info-table">
+        <tr>
+            <td>Tanggal Cetak</td><td>:</td><td>{{ now()->translatedFormat('d F Y') }}</td>
+            <td>Total Siswa</td><td>:</td><td>{{ $data->count() }} Orang</td>
+        </tr>
+    </table>
+
+    <table class="data-table">
         <thead>
             <tr>
-                <th>No</th>
-                <th>NIS</th>
-                <th>NISN</th>
-                <th>Nama Siswa</th>
-                <th>Tanggal Lahir</th>
-                <th>Alamat</th>
-                <th>Gender</th>
-                <th>Kelas</th>
-                <th>Nama Wali</th>
-                <th>No HP</th>
-                <th>Status</th>
+                <th style="width: 3%">No</th>
+                <th style="width: 8%">NIS</th>
+                <th style="width: 10%">NISN</th>
+                <th style="width: 15%">Nama Siswa</th>
+                <th style="width: 10%">Tgl Lahir</th>
+                <th style="width: 15%">Alamat</th>
+                <th style="width: 3%">L/P</th>
+                <th style="width: 5%">Kelas</th>
+                <th style="width: 12%">Nama Wali</th>
+                <th style="width: 12%">No HP</th>
+                <th style="width: 7%">Status</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($data as $i => $s)
+            @forelse ($data as $i => $s)
                 <tr>
-                    <td style="text-align:center">{{ $i + 1 }}</td>
+                    <td>{{ $i + 1 }}</td>
                     <td>{{ $s->nis }}</td>
                     <td>{{ $s->nisn }}</td>
-                    <td><strong>{{ $s->nama_siswa }}</strong></td>
+                    <td class="text-left"><strong>{{ $s->nama_siswa }}</strong></td>
                     <td>{{ $s->tanggal_lahir }}</td>
-                    <td>{{ $s->alamat ?? '-' }}</td>
-                    <td style="text-align:center">{{ $s->jenis_kelamin }}</td>
+                    <td class="text-left">{{ $s->alamat ?? '-' }}</td>
+                    <td>{{ $s->jenis_kelamin }}</td>
                     <td>{{ $s->kelas->nama_kelas ?? '-' }}</td>
-                    <td>{{ $s->nama_wali ?? '-' }}</td>
+                    <td class="text-left">{{ $s->nama_wali ?? '-' }}</td>
                     <td>{{ $s->no_hp_wali ?? '-' }}</td>
-                    <td style="text-align:center">{{ $s->status }}</td>
+                    <td>{{ $s->status }}</td>
                 </tr>
-            @endforeach
+            @empty
+                <tr>
+                    <td colspan="11">Tidak ada data siswa.</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
-    <div class="footer">
-        <p>Total: {{ $data->count() }} siswa | SDIT Darul Fikri &copy; {{ date('Y') }}</p>
+
+    <div class="signature">
+        <table>
+            <tr>
+                <td>
+                    Mengetahui,<br>Kepala Sekolah
+                    <br><br><br><br><br>
+                    <span class="signature-name">_______________________</span><br>
+                    NIP. .........................
+                </td>
+                <td>
+                    ............, {{ now()->translatedFormat('d F Y') }}<br>Admin Akademik
+                    <br><br><br><br><br>
+                    <span class="signature-name">{{ Auth::user()->name ?? '_______________________' }}</span><br>
+                    NIP. .........................
+                </td>
+            </tr>
+        </table>
     </div>
 </body>
-
 </html>

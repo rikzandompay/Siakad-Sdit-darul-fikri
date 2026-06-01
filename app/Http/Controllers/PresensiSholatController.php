@@ -236,9 +236,20 @@ class PresensiSholatController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function () use ($rekapData) {
+        $callback = function () use ($rekapData, $kelas, $jenisSholat, $bulan, $tahun) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM
+
+            // Header Section
+            fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
+            fputcsv($file, ['SD IT DARUL FIKRI']);
+            fputcsv($file, ['REKAPITULASI PRESENSI SHOLAT ' . strtoupper($jenisSholat)]);
+            fputcsv($file, []);
+            fputcsv($file, ['Kelas', ':', $kelas->nama_kelas]);
+            fputcsv($file, ['Periode', ':', \Carbon\Carbon::create($tahun, $bulan, 1)->translatedFormat('F Y')]);
+            fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
+            fputcsv($file, []);
+
             fputcsv($file, ['No', 'NIS', 'Nama Siswa', 'Hadir', 'Sakit', 'Izin', 'Alfa', 'Total']);
             $no = 1;
             foreach ($rekapData as $row) {

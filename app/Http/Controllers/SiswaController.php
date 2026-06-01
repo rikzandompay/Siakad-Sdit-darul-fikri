@@ -123,6 +123,15 @@ class SiswaController extends Controller
         $callback = function () use ($data) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            
+            // Header Section
+            fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
+            fputcsv($file, ['SD IT DARUL FIKRI']);
+            fputcsv($file, ['LAPORAN DATA SISWA']);
+            fputcsv($file, []);
+            fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
+            fputcsv($file, []);
+
             fputcsv($file, ['No', 'NIS', 'NISN', 'Nama Siswa', 'Tanggal Lahir', 'Alamat', 'Jenis Kelamin', 'Kelas', 'Nama Wali', 'No HP Wali', 'Status']);
             $no = 1;
             foreach ($data as $s) {

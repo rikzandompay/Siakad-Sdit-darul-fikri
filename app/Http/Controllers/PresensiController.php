@@ -175,9 +175,21 @@ class PresensiController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function () use ($data) {
+        $callback = function () use ($data, $kelas, $dateRange, $rentangLabel) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM for UTF-8
+            
+            // Header Section
+            fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
+            fputcsv($file, ['SD IT DARUL FIKRI']);
+            fputcsv($file, ['LAPORAN KEHADIRAN SISWA']);
+            fputcsv($file, []);
+            fputcsv($file, ['Kelas', ':', $kelas->nama_kelas]);
+            fputcsv($file, ['Periode', ':', $rentangLabel . ' (' . \Carbon\Carbon::parse($dateRange['start'])->format('d/m/Y') . ' - ' . \Carbon\Carbon::parse($dateRange['end'])->format('d/m/Y') . ')']);
+            fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
+            fputcsv($file, []);
+
+            // Data Header
             fputcsv($file, ['No', 'Tanggal', 'NIS', 'Nama Siswa', 'Mata Pelajaran', 'Status', 'Keterangan']);
             $no = 1;
             foreach ($data as $p) {
@@ -370,10 +382,23 @@ class PresensiController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function () use ($rekapData) {
+        $callback = function () use ($rekapData, $kelas, $pelajaran, $bulan, $tahun) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM
-            fputcsv($file, ['No', 'NIS', 'Nama Siswa', 'Hadir', 'Sakit', 'Izin', 'Alfa', 'Total']);
+            
+            // Header Section
+            fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
+            fputcsv($file, ['SD IT DARUL FIKRI']);
+            fputcsv($file, ['REKAPITULASI PRESENSI SISWA']);
+            fputcsv($file, []);
+            fputcsv($file, ['Kelas', ':', $kelas->nama_kelas]);
+            fputcsv($file, ['Mata Pelajaran', ':', $pelajaran ? $pelajaran->nama_pelajaran : 'Semua Mata Pelajaran']);
+            fputcsv($file, ['Bulan', ':', \Carbon\Carbon::create($tahun, $bulan, 1)->translatedFormat('F Y')]);
+            fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
+            fputcsv($file, []);
+
+            // Data Header
+            fputcsv($file, ['No', 'NIS', 'Nama Siswa', 'Hadir (H)', 'Sakit (S)', 'Izin (I)', 'Alpa (A)', 'Total']);
             $no = 1;
             foreach ($rekapData as $row) {
                 $total = $row['summary']['H'] + $row['summary']['S'] + $row['summary']['I'] + $row['summary']['A'];

@@ -197,9 +197,22 @@ class NilaiRapotController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function () use ($siswaList, $nilaiData) {
+        $callback = function () use ($siswaList, $nilaiData, $kelas, $mapel, $tahunAjaranId) {
+            $tahunAjaran = \App\Models\TahunAjaran::find($tahunAjaranId);
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            // Header Section
+            fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
+            fputcsv($file, ['SD IT DARUL FIKRI']);
+            fputcsv($file, ['LAPORAN NILAI RAPOT']);
+            fputcsv($file, []);
+            fputcsv($file, ['Kelas', ':', $kelas->nama_kelas ?? '-']);
+            fputcsv($file, ['Mata Pelajaran', ':', $mapel->nama_pelajaran ?? '-']);
+            fputcsv($file, ['Tahun Ajaran', ':', $tahunAjaran->nama_semester ?? '-']);
+            fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
+            fputcsv($file, []);
+
             fputcsv($file, ['No', 'NIS', 'Nama Siswa', 'Nilai Tugas', 'Nilai UTS', 'Nilai UAS', 'Nilai Akhir', 'Predikat']);
             $no = 1;
             foreach ($siswaList as $s) {
@@ -275,9 +288,20 @@ class NilaiRapotController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function () use ($siswaList, $mapelList, $nilaiMap) {
+        $callback = function () use ($siswaList, $mapelList, $nilaiMap, $kelas, $tahunAjaranId) {
+            $tahunAjaranAktif = \App\Models\TahunAjaran::find($tahunAjaranId);
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM for Excel
+
+            // Header Section
+            fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
+            fputcsv($file, ['SD IT DARUL FIKRI']);
+            fputcsv($file, ['REKAPITULASI NILAI SISWA']);
+            fputcsv($file, []);
+            fputcsv($file, ['Kelas', ':', $kelas->nama_kelas ?? '-']);
+            fputcsv($file, ['Tahun Ajaran', ':', $tahunAjaranAktif->nama_semester ?? '-']);
+            fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
+            fputcsv($file, []);
 
             $headerRow = ['No', 'NIS', 'Nama Siswa'];
             foreach ($mapelList as $m) {

@@ -11,10 +11,11 @@ RUN apk add --no-cache \
     libzip-dev \
     zip \
     unzip \
-    supervisor
+    supervisor \
+    postgresql-dev
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql zip gd
+# Install PHP extensions (MySQL + PostgreSQL)
+RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql zip gd
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -38,9 +39,10 @@ RUN npm run build
 # Run composer scripts
 RUN composer run-script post-autoload-dump 2>/dev/null || true
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+# Create required directories & set permissions
+RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Nginx config
 COPY docker/nginx.conf /etc/nginx/nginx.conf
