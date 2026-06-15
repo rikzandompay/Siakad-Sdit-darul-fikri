@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'gtm' => [
+        'id' => env('GTM_ID'),
+    ],
+
+    'google_analytics' => [
+        'id' => env('GA_MEASUREMENT_ID'),
+    ],
+
 ];

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html class="light" lang="id">
 <head>
+    @include('partials.analytics')
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <meta name="description" content="Login ke Sistem Informasi Akademik SDIT Darul Fikri">
@@ -30,6 +31,7 @@
     </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 flex items-center justify-center p-4">
+    @include('partials.analytics-body')
 
     <!-- Decorative Background -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">

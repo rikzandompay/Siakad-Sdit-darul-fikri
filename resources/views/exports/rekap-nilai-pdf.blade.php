@@ -136,7 +136,7 @@
 <body onload="window.print()">
     <div class="kop-surat">
         <h1>SD IT DARUL FIKRI</h1>
-        <h2>YAYASAN PENDIDIKAN DARUL FIKRI</h2>
+        <h2>LEMBAGA YAYASAN PENDIDIKAN DARUL FIKRI</h2>
         <p>Alamat: Jl. Sungai Durian Laut Kec.Sungai Raya Kabupaten Kubu Raya, Provinsi Kalimantan Barat, Kode Pos
             78391<br>Telp:
             (021) 1234567 | Email:

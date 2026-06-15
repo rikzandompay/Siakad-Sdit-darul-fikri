@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html class="light" lang="id">
 <head>
+    @include('partials.analytics')
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -38,6 +39,7 @@
     @stack('styles')
 </head>
 <body class="bg-background text-on-background antialiased font-inter text-base">
+    @include('partials.analytics-body')
 
     <!-- SideNavBar -->
     <aside class="fixed left-0 top-0 h-screen w-64 border-r border-emerald-900 bg-emerald-950 shadow-xl flex flex-col py-6 z-50">
