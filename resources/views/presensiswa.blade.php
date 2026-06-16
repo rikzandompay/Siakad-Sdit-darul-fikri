@@ -15,13 +15,13 @@
         <p class="text-gray-500 text-sm">Kelola kehadiran harian siswa {{ $kelas->nama_kelas }}</p>
     </div>
     <div class="flex items-center gap-2 flex-wrap">
-        <a href="{{ route('presensi.export.pdf', ['kelas' => $kelas->id, 'jadwal_id' => $jadwalId, 'tanggal' => $tanggal, 'rentang' => $rentang]) }}"
+        <a href="{{ route('presensi.export.pdf', ['kelas' => $kelas->id, 'jadwal_id' => $jadwalId, 'tanggal' => $tanggal]) }}"
            target="_blank"
            class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
             <span class="material-symbols-outlined text-sm text-red-500">picture_as_pdf</span>
             Export PDF
         </a>
-        <a href="{{ route('presensi.export.csv', ['kelas' => $kelas->id, 'jadwal_id' => $jadwalId, 'tanggal' => $tanggal, 'rentang' => $rentang]) }}"
+        <a href="{{ route('presensi.export.csv', ['kelas' => $kelas->id, 'jadwal_id' => $jadwalId, 'tanggal' => $tanggal]) }}"
            class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
             <span class="material-symbols-outlined text-sm text-emerald-600">table_chart</span>
             Export CSV
@@ -80,39 +80,32 @@
     </div>
 </div>
 
-<!-- Filter Bar (matching screenshot: Pilih Kelas, Mata Pelajaran, Tanggal, Rentang Waktu) -->
+<!-- Filter Bar: Pilih Kelas, Tanggal, Mata Pelajaran (auto-filter by day) -->
 <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-    <form method="GET" action="{{ route('presensi.show', $kelas->id) }}" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+    <form method="GET" action="{{ route('presensi.show', $kelas->id) }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end" id="filterForm">
         <div>
             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Pilih Kelas</label>
-            <select onchange="window.location.href='/presensi/'+this.value" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500">
+            <select onchange="window.location.href='/presensi/'+this.value+'?tanggal={{ $tanggal }}'" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500">
                 @foreach($kelasList as $k)
                     <option value="{{ $k->id }}" {{ $kelas->id == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
                 @endforeach
             </select>
         </div>
         <div>
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Tanggal</label>
+            <input name="tanggal" id="inputTanggal" type="date" value="{{ $tanggal }}" onchange="filterJadwalByDay(this.value)"
+                class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500" />
+        </div>
+        <div>
             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Mata Pelajaran</label>
-            <select name="jadwal_id" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500">
+            <select name="jadwal_id" id="selectJadwal" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500">
                 @foreach($jadwalList as $j)
-                    <option value="{{ $j->id }}" {{ $jadwalId == $j->id ? 'selected' : '' }}>
+                    <option value="{{ $j->id }}" data-hari="{{ $j->hari }}" {{ $jadwalId == $j->id ? 'selected' : '' }}>
                         {{ $j->mataPelajaran->nama_pelajaran }} ({{ $j->hari }})
                     </option>
                 @endforeach
             </select>
-        </div>
-        <div>
-            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Tanggal</label>
-            <input name="tanggal" type="date" value="{{ $tanggal }}" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500" />
-        </div>
-        <div>
-            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Rentang Waktu</label>
-            <select name="rentang" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500">
-                <option value="hari_ini" {{ $rentang == 'hari_ini' ? 'selected' : '' }}>Hari Ini</option>
-                <option value="minggu_ini" {{ $rentang == 'minggu_ini' ? 'selected' : '' }}>Minggu Ini</option>
-                <option value="bulan_ini" {{ $rentang == 'bulan_ini' ? 'selected' : '' }}>Bulan Ini</option>
-                <option value="semester_ini" {{ $rentang == 'semester_ini' ? 'selected' : '' }}>Semester Ini</option>
-            </select>
+            <p id="noJadwalMsg" class="text-xs text-amber-600 mt-1 hidden">⚠ Tidak ada jadwal pada hari ini</p>
         </div>
         <div>
             <button type="submit" class="w-full h-10 bg-emerald-900 text-white font-bold px-6 rounded-lg hover:bg-emerald-800 text-sm transition-colors flex items-center justify-center gap-2">
@@ -213,3 +206,64 @@
 </div>
 @endif
 @endsection
+
+@push('scripts')
+<script>
+    // Map nama hari Indonesia ke index JS (0=Minggu, 1=Senin, ...)
+    const hariMap = {
+        'Minggu': 0, 'Senin': 1, 'Selasa': 2, 'Rabu': 3,
+        'Kamis': 4, 'Jumat': 5, 'Sabtu': 6
+    };
+
+    function filterJadwalByDay(dateValue) {
+        if (!dateValue) return;
+
+        // Ambil nama hari dari tanggal yang dipilih
+        const date = new Date(dateValue + 'T00:00:00');
+        const dayIndex = date.getDay(); // 0=Minggu, 1=Senin, dst
+        const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const selectedDay = dayNames[dayIndex];
+
+        const select = document.getElementById('selectJadwal');
+        const options = select.querySelectorAll('option');
+        const msg = document.getElementById('noJadwalMsg');
+
+        let firstMatch = null;
+        let hasMatch = false;
+
+        options.forEach(opt => {
+            const hariOpt = opt.getAttribute('data-hari');
+            if (hariOpt === selectedDay) {
+                opt.style.display = '';
+                if (!firstMatch) {
+                    firstMatch = opt.value;
+                }
+                hasMatch = true;
+            } else {
+                opt.style.display = 'none';
+            }
+        });
+
+        // Auto-pilih option pertama yang cocok
+        if (firstMatch) {
+            select.value = firstMatch;
+        }
+
+        // Tampilkan/sembunyikan pesan peringatan
+        if (!hasMatch) {
+            msg.classList.remove('hidden');
+            select.disabled = false; // tetap bisa submit tapi semua options tersembunyi
+        } else {
+            msg.classList.add('hidden');
+        }
+    }
+
+    // Jalankan filter saat halaman load berdasarkan tanggal yang sudah ada
+    document.addEventListener('DOMContentLoaded', function() {
+        const tanggalInput = document.getElementById('inputTanggal');
+        if (tanggalInput && tanggalInput.value) {
+            filterJadwalByDay(tanggalInput.value);
+        }
+    });
+</script>
+@endpush

@@ -8,58 +8,49 @@
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">Rekapitulasi Kehadiran Siswa</h1>
-                <p class="text-gray-500 text-sm mt-1">Laporan akumulasi kehadiran siswa per bulan</p>
+                <p class="text-gray-500 text-sm mt-1">Laporan akumulasi kehadiran siswa berdasarkan rentang waktu</p>
             </div>
         </div>
 
         <!-- Filter Bar -->
         <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <form method="GET" action="{{ route('presensi.rekap') }}"
-            class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-            <div>
-                <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Pilih Kelas</label>
-                <select name="kelas_id"
-                    class="w-full border border-gray-200 text-sm rounded-lg px-4 py-2.5 bg-gray-50 uppercase shadow-sm mr-2"
-                    onchange="this.form.submit()" required>
-                    <option value="">-- Pilih Kelas --</option>
-                    @foreach ($kelasList as $kelas)
-                        <option value="{{ $kelas->id }}"
-                            {{ $selectedKelas && $selectedKelas->id == $kelas->id ? 'selected' : '' }}>
-                            {{ $kelas->nama_kelas }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Mata Pelajaran</label>
-                <select name="pelajaran_id"
-                    class="w-full border border-gray-200 text-sm rounded-lg px-4 py-2.5 bg-gray-50 uppercase shadow-sm">
-                    <option value="">-- Semua Mata Pelajaran --</option>
-                    @foreach ($mapelList as $mapel)
-                        <option value="{{ $mapel->id }}" {{ $selectedPelajaranId == $mapel->id ? 'selected' : '' }}>
-                            {{ $mapel->nama_pelajaran }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
+                class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Pilih Bulan</label>
-                    <select name="bulan"
-                        class="w-full border border-gray-200 text-sm rounded-lg px-4 py-2.5 bg-gray-50 uppercase shadow-sm">
-                        @foreach (['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] as $key => $namaBulan)
-                            <option value="{{ $key + 1 }}" {{ $bulan == $key + 1 ? 'selected' : '' }}>
-                                {{ $namaBulan }}</option>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Pilih Kelas</label>
+                    <select name="kelas_id"
+                        class="w-full border border-gray-200 text-sm rounded-lg px-4 py-2.5 bg-gray-50 uppercase shadow-sm mr-2"
+                        onchange="this.form.submit()" required>
+                        <option value="">-- Pilih Kelas --</option>
+                        @foreach ($kelasList as $kelas)
+                            <option value="{{ $kelas->id }}"
+                                {{ $selectedKelas && $selectedKelas->id == $kelas->id ? 'selected' : '' }}>
+                                {{ $kelas->nama_kelas }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Pilih Tahun</label>
-                    <select name="tahun"
-                        class="w-full border border-gray-200 text-sm rounded-lg px-4 py-2.5 bg-gray-50 uppercase shadow-sm">
-                        @for ($y = date('Y'); $y >= date('Y') - 3; $y--)
-                            <option value="{{ $y }}" {{ $tahun == $y ? 'selected' : '' }}>{{ $y }}
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Mata Pelajaran</label>
+                    <select name="pelajaran_id"
+                        class="w-full border border-gray-200 text-sm rounded-lg px-4 py-2.5 bg-gray-50 shadow-sm">
+                        <option value="">-- Semua Mata Pelajaran --</option>
+                        @foreach ($mapelList as $mapel)
+                            <option value="{{ $mapel->id }}"
+                                {{ isset($selectedPelajaranId) && $selectedPelajaranId == $mapel->id ? 'selected' : '' }}>
+                                {{ $mapel->nama_pelajaran }}
                             </option>
-                        @endfor
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Rentang Waktu</label>
+                    <select name="rentang"
+                        class="w-full border border-gray-200 text-sm rounded-lg px-4 py-2.5 bg-gray-50 uppercase shadow-sm">
+                        <option value="hari_ini" {{ $rentang == 'hari_ini' ? 'selected' : '' }}>Hari Ini</option>
+                        <option value="minggu_ini" {{ $rentang == 'minggu_ini' ? 'selected' : '' }}>Minggu Ini</option>
+                        <option value="bulan_ini" {{ $rentang == 'bulan_ini' ? 'selected' : '' }}>Bulan Ini</option>
+                        <option value="semester_ini" {{ $rentang == 'semester_ini' ? 'selected' : '' }}>Semester Ini</option>
                     </select>
                 </div>
                 <div>
@@ -78,14 +69,13 @@
                 <div class="px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div>
                         <h3 class="font-bold text-gray-900">
-                            Data Rekap - {{ $selectedKelas->nama_kelas }} 
-                            @if($selectedPelajaranId && $mapelList->firstWhere('id', $selectedPelajaranId))
+                            Data Rekap - {{ $selectedKelas->nama_kelas }}
+                            @if(isset($selectedPelajaranId) && $selectedPelajaranId && $mapelList->firstWhere('id', $selectedPelajaranId))
                                 ({{ $mapelList->firstWhere('id', $selectedPelajaranId)->nama_pelajaran }})
                             @endif
                         </h3>
                         <div class="text-sm text-gray-500 mt-1">
-                            Periode: <strong
-                                class="text-gray-900">{{ \Carbon\Carbon::create($tahun, $bulan, 1)->translatedFormat('F Y') }}</strong>
+                            Periode: <strong class="text-gray-900">{{ $periodeLabel }}</strong>
                         </div>
                     </div>
                     

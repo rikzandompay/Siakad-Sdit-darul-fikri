@@ -29,7 +29,7 @@
         <!-- Filter Bar -->
         <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <form method="GET" action="{{ route('presensi-sholat.rekap') }}"
-            class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <input type="hidden" name="jenis" value="{{ $jenisSholat }}">
                 <div>
                     <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Pilih Kelas</label>
@@ -46,23 +46,13 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Pilih Bulan</label>
-                    <select name="bulan"
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Rentang Waktu</label>
+                    <select name="rentang"
                         class="w-full border border-gray-200 text-sm rounded-lg px-4 py-2.5 bg-gray-50 uppercase shadow-sm">
-                        @foreach (['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] as $key => $namaBulan)
-                            <option value="{{ $key + 1 }}" {{ $bulan == $key + 1 ? 'selected' : '' }}>
-                                {{ $namaBulan }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Pilih Tahun</label>
-                    <select name="tahun"
-                        class="w-full border border-gray-200 text-sm rounded-lg px-4 py-2.5 bg-gray-50 uppercase shadow-sm">
-                        @for ($y = date('Y'); $y >= date('Y') - 3; $y--)
-                            <option value="{{ $y }}" {{ $tahun == $y ? 'selected' : '' }}>{{ $y }}
-                            </option>
-                        @endfor
+                        <option value="hari_ini" {{ $rentang == 'hari_ini' ? 'selected' : '' }}>Hari Ini</option>
+                        <option value="minggu_ini" {{ $rentang == 'minggu_ini' ? 'selected' : '' }}>Minggu Ini</option>
+                        <option value="bulan_ini" {{ $rentang == 'bulan_ini' ? 'selected' : '' }}>Bulan Ini</option>
+                        <option value="semester_ini" {{ $rentang == 'semester_ini' ? 'selected' : '' }}>Semester Ini</option>
                     </select>
                 </div>
                 <div>
@@ -84,8 +74,7 @@
                             Data Rekap - {{ $selectedKelas->nama_kelas }} (Sholat {{ $jenisSholat }})
                         </h3>
                         <div class="text-sm text-gray-500 mt-1">
-                            Periode: <strong
-                                class="text-gray-900">{{ \Carbon\Carbon::create($tahun, $bulan, 1)->translatedFormat('F Y') }}</strong>
+                            Periode: <strong class="text-gray-900">{{ $periodeLabel }}</strong>
                         </div>
                     </div>
                     

@@ -132,8 +132,8 @@ class PresensiSholatController extends Controller
     {
         $jenisSholat = $request->get('jenis', 'Zuhur');
         $selectedKelasId = $request->get('kelas_id');
-        $bulan = $request->get('bulan', Carbon::now()->month);
-        $tahun = $request->get('tahun', Carbon::now()->year);
+        $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
+        $rentang = $request->get('rentang', 'bulan_ini');
 
         if ($jenisSholat === 'Zuhur') {
             $kelasList = Kelas::where('wali_kelas_id', Auth::id())
@@ -147,22 +147,24 @@ class PresensiSholatController extends Controller
             $kelasList = Kelas::where('wali_kelas_id', Auth::id())->orderBy('nama_kelas')->get();
         }
 
+        $dateRange = $this->getDateRange($rentang, $tanggal);
+        $periodeLabel = $this->getPeriodeLabelWithDate($rentang, $tanggal);
+
         $rekapData = [];
         $selectedKelas = null;
 
         if ($selectedKelasId) {
             $selectedKelas = Kelas::find($selectedKelasId);
             $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
-            
+
             $presensiQuery = PresensiSholat::where('kelas_id', $selectedKelasId)
                 ->where('jenis_sholat', $jenisSholat)
-                ->whereMonth('tanggal', $bulan)
-                ->whereYear('tanggal', $tahun)
+                ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
                 ->get();
 
             foreach ($siswaList as $siswa) {
                 $siswaPresensi = $presensiQuery->where('siswa_id', $siswa->id);
-                
+
                 $rekapData[$siswa->id] = [
                     'siswa' => $siswa,
                     'summary' => [
@@ -175,27 +177,29 @@ class PresensiSholatController extends Controller
             }
         }
 
-        return view('rekap-presensi-sholat', compact('kelasList', 'selectedKelas', 'rekapData', 'bulan', 'tahun', 'jenisSholat'));
+        return view('rekap-presensi-sholat', compact('kelasList', 'selectedKelas', 'rekapData', 'tanggal', 'rentang', 'periodeLabel', 'jenisSholat'));
     }
 
     private function getRekapDataForExport(Request $request)
     {
         $jenisSholat = $request->get('jenis', 'Zuhur');
         $selectedKelasId = $request->get('kelas_id');
-        $bulan = $request->get('bulan', Carbon::now()->month);
-        $tahun = $request->get('tahun', Carbon::now()->year);
+        $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
+        $rentang = $request->get('rentang', 'bulan_ini');
 
         if (!$selectedKelasId) {
-            return ['selectedKelas' => null, 'rekapData' => [], 'jenisSholat' => $jenisSholat];
+            return ['selectedKelas' => null, 'rekapData' => [], 'jenisSholat' => $jenisSholat, 'periodeLabel' => ''];
         }
 
         $selectedKelas = Kelas::find($selectedKelasId);
         $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
-        
+
+        $dateRange = $this->getDateRange($rentang, $tanggal);
+        $periodeLabel = $this->getPeriodeLabelWithDate($rentang, $tanggal);
+
         $presensiQuery = PresensiSholat::where('kelas_id', $selectedKelasId)
             ->where('jenis_sholat', $jenisSholat)
-            ->whereMonth('tanggal', $bulan)
-            ->whereYear('tanggal', $tahun)
+            ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
             ->get();
 
         $rekapData = [];
@@ -212,15 +216,13 @@ class PresensiSholatController extends Controller
             ];
         }
 
-        return ['selectedKelas' => $selectedKelas, 'rekapData' => $rekapData, 'jenisSholat' => $jenisSholat];
+        return ['selectedKelas' => $selectedKelas, 'rekapData' => $rekapData, 'jenisSholat' => $jenisSholat, 'periodeLabel' => $periodeLabel];
     }
 
     public function exportRekapCsv(Request $request)
     {
-        $bulan = $request->get('bulan', Carbon::now()->month);
-        $tahun = $request->get('tahun', Carbon::now()->year);
         $data = $this->getRekapDataForExport($request);
-        
+
         if (!$data['selectedKelas']) {
             return redirect()->back()->with('error', 'Pilih kelas terlebih dahulu.');
         }
@@ -228,15 +230,16 @@ class PresensiSholatController extends Controller
         $kelas = $data['selectedKelas'];
         $rekapData = $data['rekapData'];
         $jenisSholat = $data['jenisSholat'];
+        $periodeLabel = $data['periodeLabel'];
 
-        $filename = 'rekap_presensi_sholat_' . $jenisSholat . '_' . str_replace(' ', '_', $kelas->nama_kelas) . '_' . $bulan . '_' . $tahun . '.csv';
+        $filename = 'rekap_presensi_sholat_' . $jenisSholat . '_' . str_replace(' ', '_', $kelas->nama_kelas) . '_' . now()->format('Ymd') . '.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function () use ($rekapData, $kelas, $jenisSholat, $bulan, $tahun) {
+        $callback = function () use ($rekapData, $kelas, $jenisSholat, $periodeLabel) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM
 
@@ -246,7 +249,7 @@ class PresensiSholatController extends Controller
             fputcsv($file, ['REKAPITULASI PRESENSI SHOLAT ' . strtoupper($jenisSholat)]);
             fputcsv($file, []);
             fputcsv($file, ['Kelas', ':', $kelas->nama_kelas]);
-            fputcsv($file, ['Periode', ':', \Carbon\Carbon::create($tahun, $bulan, 1)->translatedFormat('F Y')]);
+            fputcsv($file, ['Periode', ':', $periodeLabel]);
             fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
             fputcsv($file, []);
 
@@ -273,10 +276,8 @@ class PresensiSholatController extends Controller
 
     public function exportRekapPdf(Request $request)
     {
-        $bulan = $request->get('bulan', Carbon::now()->month);
-        $tahun = $request->get('tahun', Carbon::now()->year);
         $data = $this->getRekapDataForExport($request);
-        
+
         if (!$data['selectedKelas']) {
             return redirect()->back()->with('error', 'Pilih kelas terlebih dahulu.');
         }
@@ -284,7 +285,33 @@ class PresensiSholatController extends Controller
         $selectedKelas = $data['selectedKelas'];
         $rekapData = $data['rekapData'];
         $jenisSholat = $data['jenisSholat'];
+        $periodeLabel = $data['periodeLabel'];
 
-        return view('exports.rekap-presensi-sholat-pdf', compact('selectedKelas', 'jenisSholat', 'rekapData', 'bulan', 'tahun'));
+        return view('exports.rekap-presensi-sholat-pdf', compact('selectedKelas', 'jenisSholat', 'rekapData', 'periodeLabel'));
+    }
+
+    private function getDateRange($rentang, $tanggal = null)
+    {
+        $now = $tanggal ? Carbon::parse($tanggal) : Carbon::today();
+        return match ($rentang) {
+            'minggu_ini' => ['start' => $now->copy()->startOfWeek(), 'end' => $now->copy()->endOfWeek()],
+            'bulan_ini' => ['start' => $now->copy()->startOfMonth(), 'end' => $now->copy()->endOfMonth()],
+            'semester_ini' => [
+                'start' => $now->month >= 7 ? Carbon::create($now->year, 7, 1) : Carbon::create($now->year, 1, 1),
+                'end' => $now->month >= 7 ? Carbon::create($now->year, 12, 31) : Carbon::create($now->year, 6, 30),
+            ],
+            default => ['start' => $now->copy()->startOfDay(), 'end' => $now->copy()->endOfDay()],
+        };
+    }
+
+    private function getPeriodeLabelWithDate($rentang, $tanggal = null)
+    {
+        $now = $tanggal ? Carbon::parse($tanggal) : Carbon::today();
+        return match ($rentang) {
+            'minggu_ini' => 'Minggu ' . $now->copy()->startOfWeek()->translatedFormat('d M') . ' - ' . $now->copy()->endOfWeek()->translatedFormat('d M Y'),
+            'bulan_ini' => $now->translatedFormat('F Y'),
+            'semester_ini' => ($now->month >= 7 ? 'Semester Ganjil ' : 'Semester Genap ') . $now->year,
+            default => $now->translatedFormat('d F Y'),
+        };
     }
 }

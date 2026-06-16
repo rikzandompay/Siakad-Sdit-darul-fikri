@@ -147,12 +147,17 @@
             <td>{{ date('Y') }}/{{ date('Y') + 1 }}</td>
         </tr>
         <tr>
+            <td>Wali Kelas</td>
+            <td>:</td>
+            <td>{{ $selectedKelas->waliKelas->nama_lengkap ?? '-' }}</td>
+            <td>Periode</td>
+            <td>:</td>
+            <td>{{ $periodeLabel }}</td>
+        </tr>
+        <tr>
             <td>Mata Pelajaran</td>
             <td>:</td>
-            <td>{{ $selectedPelajaran ? $selectedPelajaran->nama_pelajaran : 'Semua Mata Pelajaran' }}</td>
-            <td>Bulan</td>
-            <td>:</td>
-            <td>{{ \Carbon\Carbon::create($tahun, $bulan, 1)->translatedFormat('F Y') }}</td>
+            <td colspan="4">{{ $selectedPelajaran ? $selectedPelajaran->nama_pelajaran : 'Semua Mata Pelajaran' }}</td>
         </tr>
     </table>
 

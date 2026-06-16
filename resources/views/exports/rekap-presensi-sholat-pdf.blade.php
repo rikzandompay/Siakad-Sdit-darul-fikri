@@ -144,7 +144,7 @@
             <td>{{ $selectedKelas->nama_kelas }}</td>
             <td>Bulan</td>
             <td>:</td>
-            <td>{{ \Carbon\Carbon::create($tahun, $bulan, 1)->translatedFormat('F Y') }}</td>
+            <td>{{ $periodeLabel }}</td>
         </tr>
         <tr>
             <td>Wali Kelas</td>
