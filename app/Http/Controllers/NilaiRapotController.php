@@ -105,16 +105,15 @@ class NilaiRapotController extends Controller
                 $nilaiMap[$nilai->siswa_id][$nilai->pelajaran_id] = $nilai->nilai_akhir;
             }
 
+            $rataRataQuery = NilaiRapot::where('tahun_ajaran_id', $tahunAjaranId)
+                ->whereIn('siswa_id', $siswaList->pluck('id'))
+                ->selectRaw('siswa_id, ROUND(AVG(nilai_akhir), 1) as avg_nilai')
+                ->groupBy('siswa_id')
+                ->pluck('avg_nilai', 'siswa_id')
+                ->toArray();
+
             foreach ($siswaList as $s) {
-                $total = 0;
-                $count = 0;
-                foreach ($mapelList as $m) {
-                    if (isset($nilaiMap[$s->id][$m->id])) {
-                        $total += $nilaiMap[$s->id][$m->id];
-                        $count++;
-                    }
-                }
-                $rataRataSiswa[$s->id] = $count > 0 ? round($total / $count, 1) : 0;
+                $rataRataSiswa[$s->id] = $rataRataQuery[$s->id] ?? 0;
             }
         }
 
@@ -310,22 +309,26 @@ class NilaiRapotController extends Controller
             $headerRow[] = 'Rata-rata';
             fputcsv($file, $headerRow);
 
+            $rataRataSiswa = NilaiRapot::where('tahun_ajaran_id', $tahunAjaranId)
+                ->whereIn('siswa_id', $siswaList->pluck('id'))
+                ->selectRaw('siswa_id, ROUND(AVG(nilai_akhir), 1) as avg_nilai')
+                ->groupBy('siswa_id')
+                ->pluck('avg_nilai', 'siswa_id')
+                ->toArray();
+
             $no = 1;
             foreach ($siswaList as $s) {
                 $row = [$no++, $s->nis, $s->nama_siswa];
-                $total = 0;
-                $count = 0;
                 foreach ($mapelList as $m) {
                     $nilai = $nilaiMap[$s->id][$m->id] ?? null;
                     if ($nilai !== null) {
                         $row[] = number_format($nilai, 1);
-                        $total += $nilai;
-                        $count++;
                     } else {
                         $row[] = '-';
                     }
                 }
-                $rataRata = $count > 0 ? round($total / $count, 1) : 0;
+                
+                $rataRata = $rataRataSiswa[$s->id] ?? 0;
                 $row[] = $rataRata > 0 ? number_format($rataRata, 1) : '-';
                 fputcsv($file, $row);
             }
@@ -356,17 +359,12 @@ class NilaiRapotController extends Controller
             $nilaiMap[$nilai->siswa_id][$nilai->pelajaran_id] = $nilai->nilai_akhir;
         }
 
-        foreach ($siswaList as $s) {
-            $total = 0;
-            $count = 0;
-            foreach ($mapelList as $m) {
-                if (isset($nilaiMap[$s->id][$m->id])) {
-                    $total += $nilaiMap[$s->id][$m->id];
-                    $count++;
-                }
-            }
-            $rataRataSiswa[$s->id] = $count > 0 ? round($total / $count, 1) : 0;
-        }
+        $rataRataSiswa = NilaiRapot::where('tahun_ajaran_id', $tahunAjaranId)
+            ->whereIn('siswa_id', $siswaList->pluck('id'))
+            ->selectRaw('siswa_id, ROUND(AVG(nilai_akhir), 1) as avg_nilai')
+            ->groupBy('siswa_id')
+            ->pluck('avg_nilai', 'siswa_id')
+            ->toArray();
 
         $selectedKelas = Kelas::find($kelasId);
         $tahunAjaranAktif = TahunAjaran::find($tahunAjaranId);

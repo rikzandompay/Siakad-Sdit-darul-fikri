@@ -25,13 +25,22 @@ class DashboardController extends Controller
 
         // Stats presensi hari ini
         $today = Carbon::today()->toDateString();
-        $presensiToday = Cache::remember("presensi_today_{$today}", 60, fn() => Presensi::where('tanggal', Carbon::today())->get());
+        $statsPresensi = Cache::remember("stats_presensi_today_{$today}", 60, fn() => 
+            Presensi::where('tanggal', Carbon::today())
+                ->selectRaw("
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status_kehadiran = 'H' THEN 1 ELSE 0 END) as hadir,
+                    SUM(CASE WHEN status_kehadiran = 'S' THEN 1 ELSE 0 END) as sakit,
+                    SUM(CASE WHEN status_kehadiran = 'I' THEN 1 ELSE 0 END) as izin,
+                    SUM(CASE WHEN status_kehadiran = 'A' THEN 1 ELSE 0 END) as alpa
+                ")->first()
+        );
         
-        $hadirCount = $presensiToday->where('status_kehadiran', 'H')->count();
-        $sakitCount = $presensiToday->where('status_kehadiran', 'S')->count();
-        $izinCount = $presensiToday->where('status_kehadiran', 'I')->count();
-        $alpaCount = $presensiToday->where('status_kehadiran', 'A')->count();
-        $totalPresensi = $presensiToday->count();
+        $totalPresensi = $statsPresensi->total ?? 0;
+        $hadirCount = $statsPresensi->hadir ?? 0;
+        $sakitCount = $statsPresensi->sakit ?? 0;
+        $izinCount = $statsPresensi->izin ?? 0;
+        $alpaCount = $statsPresensi->alpa ?? 0;
         $persenHadir = $totalPresensi > 0 ? round(($hadirCount / $totalPresensi) * 100, 1) : 0;
 
         // Jadwal mengajar guru sepekan (di-cache per user)

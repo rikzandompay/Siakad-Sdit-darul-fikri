@@ -92,14 +92,8 @@ class PresensiController extends Controller
         $izinCount = collect($existingPresensi)->filter(fn($v) => $v === 'I')->count();
         $alpaCount = collect($existingPresensi)->filter(fn($v) => $v === 'A')->count();
 
-        // Mapel list for filter - hanya yang diampu guru login
-        $mapelList = $kelas->jadwalPelajaran()
-            ->where('guru_id', $guruId)
-            ->with('mataPelajaran')
-            ->get()
-            ->pluck('mataPelajaran')
-            ->unique('id')
-            ->values();
+        // Mapel list for filter - derived from $jadwalList to save query
+        $mapelList = $jadwalList->pluck('mataPelajaran')->unique('id')->values();
 
         // Kelas list for dropdown - hanya kelas yang diampu guru login
         $kelasIdsGuru = JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique();
