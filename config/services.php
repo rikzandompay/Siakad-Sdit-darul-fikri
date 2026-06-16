@@ -43,4 +43,8 @@ return [
         'id' => env('GA_MEASUREMENT_ID'),
     ],
 
+    'secure_privacy' => [
+        'id' => env('SECURE_PRIVACY_ID'),
+    ],
+
 ];

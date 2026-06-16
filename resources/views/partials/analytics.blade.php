@@ -1,3 +1,9 @@
+@if(config('services.secure_privacy.id'))
+    <!-- Secure Privacy CMP -->
+    <script type="text/javascript" src="https://app.secureprivacy.ai/script/{{ config('services.secure_privacy.id') }}.js"></script>
+    <!-- End Secure Privacy CMP -->
+@endif
+
 @if(config('services.gtm.id'))
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
