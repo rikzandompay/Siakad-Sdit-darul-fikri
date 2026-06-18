@@ -61,7 +61,7 @@
                 <div class="h-28 bg-emerald-900 relative overflow-hidden flex items-end p-6">
                     <div>
                         <div class="bg-amber-500 text-emerald-950 font-bold px-2.5 py-0.5 rounded text-[10px] inline-block mb-2 uppercase tracking-wider">
-                            {{ $kelas->siswa_count > 0 ? 'Aktif' : 'Kosong' }}
+                            {{ $kelas->siswa_aktif_count > 0 ? 'Aktif' : 'Kosong' }}
                         </div>
                         <h3 class="text-white font-bold text-lg leading-none">{{ $kelas->nama_kelas }}</h3>
                     </div>
@@ -71,7 +71,7 @@
                     <div class="space-y-3 mb-6">
                         <div class="flex items-center justify-between text-sm">
                             <span class="text-gray-500">Total Siswa</span>
-                            <span class="font-bold text-gray-900">{{ $kelas->siswa_count }} Siswa</span>
+                            <span class="font-bold text-gray-900">{{ $kelas->siswa_aktif_count }} Siswa</span>
                         </div>
                         <div class="flex items-center justify-between text-sm">
                             <span class="text-gray-500">Wali Kelas</span>

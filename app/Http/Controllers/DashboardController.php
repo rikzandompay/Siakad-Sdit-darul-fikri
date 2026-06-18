@@ -62,9 +62,7 @@ class DashboardController extends Controller
 
         // Daftar kelas
         $kelasList = Cache::remember('kelas_list_dashboard', 60, fn() => 
-            Kelas::withCount(['siswa' => function ($q) {
-                $q->where('status', 'Aktif');
-            }])->with('waliKelas')->get()
+            Kelas::withCount('siswaAktif')->with('waliKelas')->get()
         );
 
         return view('dashboard', compact(

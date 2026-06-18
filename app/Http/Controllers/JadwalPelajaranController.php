@@ -22,6 +22,7 @@ class JadwalPelajaranController extends Controller
         ]);
 
         JadwalPelajaran::create($validated);
+        $this->clearJadwalCache($validated['guru_id'], $validated['kelas_id']);
 
         return redirect()->back()->with('success', 'Jadwal pelajaran berhasil ditambahkan!');
     }
@@ -37,15 +38,23 @@ class JadwalPelajaranController extends Controller
             'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
         ]);
 
+        $oldGuruId = $jadwal->guru_id;
+        $oldKelasId = $jadwal->kelas_id;
         $jadwal->update($validated);
+        $this->clearJadwalCache($validated['guru_id'], $validated['kelas_id']);
+        if ($oldGuruId !== $validated['guru_id'] || $oldKelasId !== $validated['kelas_id']) {
+            $this->clearJadwalCache($oldGuruId, $oldKelasId);
+        }
 
         return redirect()->back()->with('success', 'Jadwal pelajaran berhasil diperbarui!');
     }
 
     public function destroy(JadwalPelajaran $jadwal)
     {
+        $guruId = $jadwal->guru_id;
         $kelasId = $jadwal->kelas_id;
         $jadwal->delete();
+        $this->clearJadwalCache($guruId, $kelasId);
         return redirect()->back()->with('success', 'Jadwal pelajaran berhasil dihapus!');
     }
 
@@ -117,5 +126,12 @@ class JadwalPelajaranController extends Controller
             ")->orderBy('jam_mulai')->get();
 
         return view('exports.jadwal-pdf', compact('kelas', 'jadwal'));
+    }
+    private function clearJadwalCache($guruId, $kelasId)
+    {
+        \Illuminate\Support\Facades\Cache::forget("jadwal_sepekan_guru_{$guruId}");
+        \Illuminate\Support\Facades\Cache::forget("jadwal_list_guru_{$guruId}_kelas_{$kelasId}");
+        \Illuminate\Support\Facades\Cache::forget("kelas_ids_guru_{$guruId}");
+        \Illuminate\Support\Facades\Cache::forget("kelas_list_guru_{$guruId}");
     }
 }

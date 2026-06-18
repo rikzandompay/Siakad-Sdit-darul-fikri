@@ -58,6 +58,7 @@ class SiswaController extends Controller
         ]);
 
         Siswa::create($validated);
+        $this->clearSiswaCache($validated['kelas_id']);
 
         return redirect()->route('siswa.index')->with('success', 'Data siswa berhasil ditambahkan!');
     }
@@ -77,14 +78,18 @@ class SiswaController extends Controller
             'status' => 'required|in:Aktif,Lulus,Pindah',
         ]);
 
+        $oldKelasId = $siswa->getAttribute('kelas_id');
         $siswa->update($validated);
+        $this->clearSiswaCache($validated['kelas_id'], $oldKelasId);
 
         return redirect()->route('siswa.index')->with('success', 'Data siswa berhasil diperbarui!');
     }
 
     public function destroy(Siswa $siswa)
     {
+        $kelasId = $siswa->getAttribute('kelas_id');
         $siswa->delete();
+        $this->clearSiswaCache($kelasId);
         return redirect()->route('siswa.index')->with('success', 'Data siswa berhasil dihapus!');
     }
 
@@ -182,5 +187,14 @@ class SiswaController extends Controller
         $data = $query->orderBy('nama_siswa')->get();
 
         return view('exports.siswa-pdf', compact('data'));
+    }
+
+    private function clearSiswaCache($kelasId, $oldKelasId = null)
+    {
+        \Illuminate\Support\Facades\Cache::forget("siswa_aktif_kelas_{$kelasId}");
+        if ($oldKelasId) {
+            \Illuminate\Support\Facades\Cache::forget("siswa_aktif_kelas_{$oldKelasId}");
+        }
+        \Illuminate\Support\Facades\Cache::forget('total_siswa_aktif');
     }
 }

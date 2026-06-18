@@ -10,6 +10,7 @@ use App\Models\JadwalPelajaran;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class NilaiRapotController extends Controller
 {
@@ -17,24 +18,31 @@ class NilaiRapotController extends Controller
     {
         $guruId = Auth::id();
 
-        $tahunAjaranList = TahunAjaran::orderByDesc('id')->get();
+        $tahunAjaranList = Cache::remember("tahun_ajaran_list", 60, function() {
+            return TahunAjaran::orderByDesc('id')->get();
+        });
 
         $tahunAjaranId = $request->get('tahun_ajaran_id', TahunAjaran::getAktif()?->id);
         $kelasId = $request->get('kelas_id');
         $pelajaranId = $request->get('pelajaran_id');
 
-        // Hanya kelas & mapel yang diampu guru ini
-        $guruJadwalQuery = JadwalPelajaran::where('guru_id', $guruId);
+        // Hanya kelas & mapel yang diampu guru ini (di-cache untuk memotong latensi Supabase)
+        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 60, function() use ($guruId) {
+            return JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique()->toArray();
+        });
         
-        $kelasIdsGuru = (clone $guruJadwalQuery)->pluck('kelas_id')->unique();
-        $kelasList = Kelas::whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
+        $kelasList = Cache::remember("kelas_list_guru_{$guruId}", 60, function() use ($kelasIdsGuru) {
+            return Kelas::whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
+        });
 
-        if ($kelasId) {
-            $guruJadwalQuery->where('kelas_id', $kelasId);
-        }
-        
-        $mapelIdsGuru = $guruJadwalQuery->pluck('pelajaran_id')->unique();
-        $mapelList = MataPelajaran::whereIn('id', $mapelIdsGuru)->orderBy('nama_pelajaran')->get();
+        $mapelList = Cache::remember("mapel_list_guru_{$guruId}_kelas_" . ($kelasId ?? 'all'), 60, function() use ($guruId, $kelasId) {
+            $guruJadwalQuery = JadwalPelajaran::where('guru_id', $guruId);
+            if ($kelasId) {
+                $guruJadwalQuery->where('kelas_id', $kelasId);
+            }
+            $mapelIdsGuru = $guruJadwalQuery->pluck('pelajaran_id')->unique();
+            return MataPelajaran::whereIn('id', $mapelIdsGuru)->orderBy('nama_pelajaran')->get();
+        });
 
         $siswaList = collect();
         $nilaiMap = [];

@@ -148,7 +148,7 @@
                     </div>
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-gray-500">Siswa Aktif</span>
-                        <span class="font-bold text-emerald-700">{{ $kelas->siswa_count }}</span>
+                        <span class="font-bold text-emerald-700">{{ $kelas->siswa_aktif_count }}</span>
                     </div>
                 </a>
             @endforeach

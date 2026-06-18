@@ -5,16 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Kelas;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class KelasController extends Controller
 {
     public function index()
     {
-        $kelasList = Kelas::withCount(['siswa' => function ($q) {
-            $q->where('status', 'Aktif');
-        }])->with('waliKelas')->orderBy('nama_kelas')->get();
+        $kelasList = Cache::remember('kelas_list_admin', 60, function() {
+            return Kelas::withCount('siswaAktif')->with('waliKelas')->orderBy('nama_kelas')->get();
+        });
 
-        $guruList = User::orderBy('nama_lengkap')->get();
+        $guruList = Cache::remember('guru_list_all', 60, function() {
+            return User::orderBy('nama_lengkap')->get();
+        });
 
         return view('kelas.index', compact('kelasList', 'guruList'));
     }
@@ -49,6 +52,7 @@ class KelasController extends Controller
         ]);
 
         Kelas::create($validated);
+        $this->clearKelasCache();
 
         return redirect()->route('kelas.index')->with('success', 'Kelas berhasil ditambahkan!');
     }
@@ -61,6 +65,7 @@ class KelasController extends Controller
         ]);
 
         $kelas->update($validated);
+        $this->clearKelasCache();
 
         return redirect()->route('kelas.index')->with('success', 'Kelas berhasil diperbarui!');
     }
@@ -68,6 +73,14 @@ class KelasController extends Controller
     public function destroy(Kelas $kelas)
     {
         $kelas->delete();
+        $this->clearKelasCache();
         return redirect()->route('kelas.index')->with('success', 'Kelas berhasil dihapus!');
+    }
+
+    private function clearKelasCache()
+    {
+        Cache::forget('kelas_list_admin');
+        Cache::forget('kelas_list_dashboard');
+        Cache::forget('kelas_list_filter');
     }
 }

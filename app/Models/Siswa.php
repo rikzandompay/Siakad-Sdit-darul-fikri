@@ -4,6 +4,22 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * App\Models\Siswa
+ *
+ * @property int $id
+ * @property string $nis
+ * @property string $nisn
+ * @property string $nama_siswa
+ * @property string $tanggal_lahir
+ * @property string|null $alamat
+ * @property string $jenis_kelamin
+ * @property int $kelas_id
+ * @property string|null $nama_wali
+ * @property string|null $no_hp_wali
+ * @property string $status
+ * @property-read \App\Models\Kelas $kelas
+ */
 class Siswa extends Model
 {
     protected $table = 'siswa';

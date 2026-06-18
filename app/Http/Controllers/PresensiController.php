@@ -10,6 +10,7 @@ use App\Models\JadwalPelajaran;
 use App\Models\TahunAjaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class PresensiController extends Controller
@@ -22,24 +23,46 @@ class PresensiController extends Controller
         $guruId = Auth::id();
 
         // Hanya tampilkan kelas dimana guru ini punya jadwal mengajar
-        $kelasIdsGuru = JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique();
+        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 60, function() use ($guruId) {
+            return JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique()->toArray();
+        });
 
-        $kelasList = Kelas::withCount(['siswa' => fn($q) => $q->where('status', 'Aktif')])
-            ->with('waliKelas')
-            ->whereIn('id', $kelasIdsGuru)
-            ->orderBy('nama_kelas')
-            ->get();
+        $kelasList = Cache::remember("presensi_kelas_list_{$guruId}", 60, function() use ($kelasIdsGuru) {
+            return Kelas::withCount('siswaAktif')
+                ->with('waliKelas')
+                ->whereIn('id', $kelasIdsGuru)
+                ->orderBy('nama_kelas')
+                ->get();
+        });
 
         $today = Carbon::today();
+        $todayStr = $today->toDateString();
+        
         // Hanya hitung presensi dari jadwal guru ini
-        $guruJadwalIds = JadwalPelajaran::where('guru_id', $guruId)->pluck('id');
-        $presensiToday = Presensi::where('tanggal', $today)->whereIn('jadwal_id', $guruJadwalIds)->get();
-        $totalSiswaAktif = Siswa::where('status', 'Aktif')->whereIn('kelas_id', $kelasIdsGuru)->count();
-        $hadirCount = $presensiToday->where('status_kehadiran', 'H')->count();
-        $sakitCount = $presensiToday->where('status_kehadiran', 'S')->count();
-        $izinCount = $presensiToday->where('status_kehadiran', 'I')->count();
-        $alpaCount = $presensiToday->where('status_kehadiran', 'A')->count();
-        $totalPresensi = $presensiToday->count();
+        $guruJadwalIds = Cache::remember("guru_jadwal_ids_{$guruId}", 60, function() use ($guruId) {
+            return JadwalPelajaran::where('guru_id', $guruId)->pluck('id')->toArray();
+        });
+
+        $totalSiswaAktif = Cache::remember("total_siswa_aktif_guru_{$guruId}", 60, function() use ($kelasIdsGuru) {
+            return Siswa::where('status', 'Aktif')->whereIn('kelas_id', $kelasIdsGuru)->count();
+        });
+
+        $presensiStats = Cache::remember("presensi_stats_guru_{$guruId}_{$todayStr}", 60, function() use ($today, $guruJadwalIds) {
+            $presensiToday = Presensi::where('tanggal', $today)->whereIn('jadwal_id', $guruJadwalIds)->get();
+            $hadirCount = $presensiToday->where('status_kehadiran', 'H')->count();
+            $sakitCount = $presensiToday->where('status_kehadiran', 'S')->count();
+            $izinCount = $presensiToday->where('status_kehadiran', 'I')->count();
+            $alpaCount = $presensiToday->where('status_kehadiran', 'A')->count();
+            $totalPresensi = $presensiToday->count();
+            
+            return compact('hadirCount', 'sakitCount', 'izinCount', 'alpaCount', 'totalPresensi');
+        });
+
+        $hadirCount = $presensiStats['hadirCount'];
+        $sakitCount = $presensiStats['sakitCount'];
+        $izinCount = $presensiStats['izinCount'];
+        $alpaCount = $presensiStats['alpaCount'];
+        $totalPresensi = $presensiStats['totalPresensi'];
         $persenHadir = $totalPresensi > 0 ? round(($hadirCount / $totalPresensi) * 100, 1) : 0;
 
         return view('presensikelas', compact(
@@ -55,21 +78,25 @@ class PresensiController extends Controller
     {
         $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
         $jadwalId = $request->get('jadwal_id');
-
-        $siswa = $kelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
-
         $guruId = Auth::id();
 
-        // Ambil jadwal kelas ini - hanya yang diampu guru login
-        $jadwalList = $kelas->jadwalPelajaran()
-            ->where('guru_id', $guruId)
-            ->with('mataPelajaran', 'guru')
-            ->orderByRaw("
-                CASE hari
-                    WHEN 'Senin' THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu' THEN 3
-                    WHEN 'Kamis' THEN 4 WHEN 'Jumat' THEN 5 WHEN 'Sabtu' THEN 6
-                END
-            ")->orderBy('jam_mulai')->get();
+        // Cache daftar siswa aktif kelas ini
+        $siswa = Cache::remember("siswa_aktif_kelas_{$kelas->id}", 60, function() use ($kelas) {
+            return $kelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
+        });
+
+        // Cache jadwal kelas ini - hanya yang diampu guru login
+        $jadwalList = Cache::remember("jadwal_list_guru_{$guruId}_kelas_{$kelas->id}", 60, function() use ($kelas, $guruId) {
+            return $kelas->jadwalPelajaran()
+                ->where('guru_id', $guruId)
+                ->with('mataPelajaran', 'guru')
+                ->orderByRaw("
+                    CASE hari
+                        WHEN 'Senin' THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu' THEN 3
+                        WHEN 'Kamis' THEN 4 WHEN 'Jumat' THEN 5 WHEN 'Sabtu' THEN 6
+                    END
+                ")->orderBy('jam_mulai')->get();
+        });
 
         // Auto-select jadwal berdasarkan hari dari tanggal yang dipilih
         $hariTanggal = Carbon::parse($tanggal)->translatedFormat('l'); // Nama hari dalam Bahasa Indonesia
@@ -107,9 +134,14 @@ class PresensiController extends Controller
         // Mapel list for filter - derived from $jadwalList to save query
         $mapelList = $jadwalList->pluck('mataPelajaran')->unique('id')->values();
 
-        // Kelas list for dropdown - hanya kelas yang diampu guru login
-        $kelasIdsGuru = JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique();
-        $kelasList = Kelas::whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
+        // Kelas list for dropdown - hanya kelas yang diampu guru login (di-cache)
+        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 60, function() use ($guruId) {
+            return JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique()->toArray();
+        });
+        
+        $kelasList = Cache::remember("kelas_list_guru_{$guruId}", 60, function() use ($kelasIdsGuru) {
+            return Kelas::whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
+        });
 
         return view('presensiswa', compact(
             'kelas', 'siswa', 'jadwalList', 'mapelList', 'kelasList', 'tanggal', 'jadwalId',
@@ -148,6 +180,12 @@ class PresensiController extends Controller
         }
 
         $jadwal = JadwalPelajaran::find($validated['jadwal_id']);
+        
+        // Invalidate cache
+        $guruId = Auth::id();
+        $todayStr = $tanggalObj->toDateString();
+        Cache::forget("presensi_stats_guru_{$guruId}_{$todayStr}");
+        Cache::forget("stats_presensi_today_{$todayStr}");
 
         return redirect()->route('presensi.show', [
             'kelas' => $jadwal->kelas_id,
