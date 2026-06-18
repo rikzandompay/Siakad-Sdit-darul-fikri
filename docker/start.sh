@@ -22,10 +22,8 @@ touch /var/www/html/storage/logs/laravel.log
 chown www-data:www-data /var/www/html/storage/logs/laravel.log
 chmod 664 /var/www/html/storage/logs/laravel.log
 
-# Clear and cache Laravel configs for production
-php artisan config:cache || echo "⚠️ Config cache failed, continuing..."
-php artisan route:cache || echo "⚠️ Route cache failed, continuing..."
-php artisan view:cache || echo "⚠️ View cache failed, continuing..."
+# Cache all Laravel optimizations for production (config, routes, views, events)
+php artisan optimize || echo "⚠️ Optimize failed, continuing..."
 
 # Run migrations gracefully so they don't crash the container if DB isn't ready
 php artisan migrate --force || echo "⚠️ Migrations failed, continuing anyway..."

@@ -14,8 +14,17 @@ RUN apk add --no-cache \
     supervisor \
     postgresql-dev
 
-# Install PHP extensions (MySQL + PostgreSQL)
-RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql zip gd
+# Install PHP extensions (MySQL + PostgreSQL + OPcache for performance)
+RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql zip gd opcache
+
+# Configure OPcache for production
+RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.memory_consumption=128" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.interned_strings_buffer=8" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.max_accelerated_files=10000" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.save_comments=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.fast_shutdown=1" >> /usr/local/etc/php/conf.d/opcache.ini
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
