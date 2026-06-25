@@ -23,11 +23,11 @@ class PresensiController extends Controller
         $guruId = Auth::id();
 
         // Hanya tampilkan kelas dimana guru ini punya jadwal mengajar
-        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 60, function() use ($guruId) {
+        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 300, function() use ($guruId) {
             return JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique()->toArray();
         });
 
-        $kelasList = Cache::remember("presensi_kelas_list_{$guruId}", 60, function() use ($kelasIdsGuru) {
+        $kelasList = Cache::remember("presensi_kelas_list_{$guruId}", 300, function() use ($kelasIdsGuru) {
             return Kelas::withCount('siswaAktif')
                 ->with('waliKelas')
                 ->whereIn('id', $kelasIdsGuru)
@@ -39,11 +39,11 @@ class PresensiController extends Controller
         $todayStr = $today->toDateString();
         
         // Hanya hitung presensi dari jadwal guru ini
-        $guruJadwalIds = Cache::remember("guru_jadwal_ids_{$guruId}", 60, function() use ($guruId) {
+        $guruJadwalIds = Cache::remember("guru_jadwal_ids_{$guruId}", 300, function() use ($guruId) {
             return JadwalPelajaran::where('guru_id', $guruId)->pluck('id')->toArray();
         });
 
-        $totalSiswaAktif = Cache::remember("total_siswa_aktif_guru_{$guruId}", 60, function() use ($kelasIdsGuru) {
+        $totalSiswaAktif = Cache::remember("total_siswa_aktif_guru_{$guruId}", 300, function() use ($kelasIdsGuru) {
             return Siswa::where('status', 'Aktif')->whereIn('kelas_id', $kelasIdsGuru)->count();
         });
 
@@ -81,12 +81,12 @@ class PresensiController extends Controller
         $guruId = Auth::id();
 
         // Cache daftar siswa aktif kelas ini
-        $siswa = Cache::remember("siswa_aktif_kelas_{$kelas->id}", 60, function() use ($kelas) {
+        $siswa = Cache::remember("siswa_aktif_kelas_{$kelas->id}", 300, function() use ($kelas) {
             return $kelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
         });
 
-        // Cache jadwal kelas ini - hanya yang diampu guru login
-        $jadwalList = Cache::remember("jadwal_list_guru_{$guruId}_kelas_{$kelas->id}", 60, function() use ($kelas, $guruId) {
+        // Cache jadwal kelas ini - hanya yang diampu guru login (5 menit)
+        $jadwalList = Cache::remember("jadwal_list_guru_{$guruId}_kelas_{$kelas->id}", 300, function() use ($kelas, $guruId) {
             return $kelas->jadwalPelajaran()
                 ->where('guru_id', $guruId)
                 ->with('mataPelajaran', 'guru')
@@ -135,11 +135,11 @@ class PresensiController extends Controller
         $mapelList = $jadwalList->pluck('mataPelajaran')->unique('id')->values();
 
         // Kelas list for dropdown - hanya kelas yang diampu guru login (di-cache)
-        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 60, function() use ($guruId) {
+        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 300, function() use ($guruId) {
             return JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique()->toArray();
         });
         
-        $kelasList = Cache::remember("kelas_list_guru_{$guruId}", 60, function() use ($kelasIdsGuru) {
+        $kelasList = Cache::remember("kelas_list_guru_{$guruId}", 300, function() use ($kelasIdsGuru) {
             return Kelas::whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
         });
 
@@ -298,9 +298,13 @@ class PresensiController extends Controller
         $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
         $rentang = $request->get('rentang', 'bulan_ini');
 
-        // Hanya kelas dimana guru ini punya jadwal
-        $kelasIdsGuru = JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique();
-        $kelasList = Kelas::with('waliKelas')->whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
+        // Hanya kelas dimana guru ini punya jadwal (di-cache)
+        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 300, function() use ($guruId) {
+            return JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique();
+        });
+        $kelasList = Cache::remember("rekap_kelas_list_guru_{$guruId}", 300, function() use ($kelasIdsGuru) {
+            return Kelas::with('waliKelas')->whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
+        });
 
         // Hanya mapel yang diajarkan oleh guru ini
         $jadwalQuery = JadwalPelajaran::where('guru_id', $guruId);

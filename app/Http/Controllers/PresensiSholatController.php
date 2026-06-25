@@ -22,7 +22,7 @@ class PresensiSholatController extends Controller
         $today = Carbon::today();
         $todayStr = $today->toDateString();
 
-        $kelasList = Cache::remember("sholat_kelas_list_guru_{$guruId}_jenis_{$jenisSholat}", 60, function() use ($jenisSholat, $guruId) {
+        $kelasList = Cache::remember("sholat_kelas_list_guru_{$guruId}_jenis_{$jenisSholat}", 300, function() use ($jenisSholat, $guruId) {
             if ($jenisSholat === 'Zuhur') {
                 // Kelas 3-6 setiap hari, hanya wali kelas
                 return Kelas::withCount('siswaAktif')
@@ -46,7 +46,7 @@ class PresensiSholatController extends Controller
 
         // Stats hari ini - filter by teacher's classes (di-cache untuk performa)
         $kelasIds = $kelasList->pluck('id');
-        $stats = Cache::remember("sholat_presensi_stats_guru_{$guruId}_jenis_{$jenisSholat}_{$todayStr}", 60, function() use ($today, $jenisSholat, $kelasIds) {
+        $stats = Cache::remember("sholat_presensi_stats_guru_{$guruId}_jenis_{$jenisSholat}_{$todayStr}", 120, function() use ($today, $jenisSholat, $kelasIds) {
             $presensiToday = PresensiSholat::where('tanggal', $today)
                 ->where('jenis_sholat', $jenisSholat)
                 ->whereIn('kelas_id', $kelasIds)

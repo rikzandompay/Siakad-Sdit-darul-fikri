@@ -133,5 +133,9 @@ class JadwalPelajaranController extends Controller
         \Illuminate\Support\Facades\Cache::forget("jadwal_list_guru_{$guruId}_kelas_{$kelasId}");
         \Illuminate\Support\Facades\Cache::forget("kelas_ids_guru_{$guruId}");
         \Illuminate\Support\Facades\Cache::forget("kelas_list_guru_{$guruId}");
+        \Illuminate\Support\Facades\Cache::forget("presensi_kelas_list_{$guruId}");
+        \Illuminate\Support\Facades\Cache::forget("guru_jadwal_ids_{$guruId}");
+        \Illuminate\Support\Facades\Cache::forget("total_siswa_aktif_guru_{$guruId}");
+        \Illuminate\Support\Facades\Cache::forget("rekap_kelas_list_guru_{$guruId}");
     }
 }

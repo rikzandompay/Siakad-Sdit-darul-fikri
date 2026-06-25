@@ -11,11 +11,11 @@ class KelasController extends Controller
 {
     public function index()
     {
-        $kelasList = Cache::remember('kelas_list_admin', 60, function() {
+        $kelasList = Cache::remember('kelas_list_admin', 300, function() {
             return Kelas::withCount('siswaAktif')->with('waliKelas')->orderBy('nama_kelas')->get();
         });
 
-        $guruList = Cache::remember('guru_list_all', 60, function() {
+        $guruList = Cache::remember('guru_list_all', 300, function() {
             return User::orderBy('nama_lengkap')->get();
         });
 

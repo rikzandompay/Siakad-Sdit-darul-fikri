@@ -37,7 +37,7 @@ class SiswaController extends Controller
         }
 
         $siswa = $query->orderBy('nama_siswa')->paginate(15)->withQueryString();
-        $kelasList = \Illuminate\Support\Facades\Cache::remember('kelas_list_filter', 60, fn() => Kelas::orderBy('nama_kelas')->get());
+        $kelasList = \Illuminate\Support\Facades\Cache::remember('kelas_list_filter', 300, fn() => Kelas::orderBy('nama_kelas')->get());
 
         return view('datasiswa', compact('siswa', 'kelasList'));
     }

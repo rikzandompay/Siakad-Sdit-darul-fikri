@@ -6,6 +6,7 @@ use App\Models\TahunAjaran;
 use App\Models\MataPelajaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 
 class PengaturanController extends Controller
@@ -13,8 +14,8 @@ class PengaturanController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $tahunAjaranList = TahunAjaran::orderByDesc('id')->get();
-        $mapelList = MataPelajaran::orderBy('nama_pelajaran')->get();
+        $tahunAjaranList = Cache::remember('tahun_ajaran_list', 300, fn() => TahunAjaran::orderByDesc('id')->get());
+        $mapelList = Cache::remember('mapel_list_all', 300, fn() => MataPelajaran::orderBy('nama_pelajaran')->get());
 
         return view('pengaturan', compact('user', 'tahunAjaranList', 'mapelList'));
     }
@@ -75,6 +76,8 @@ class PengaturanController extends Controller
             $ta->setSemesterAktif();
         }
 
+        $this->clearTahunAjaranCache();
+
         return redirect()->route('pengaturan.index')->with('success', 'Tahun ajaran berhasil ditambahkan!');
     }
 
@@ -97,18 +100,22 @@ class PengaturanController extends Controller
             $tahunAjaran->setSemesterAktif();
         }
 
+        $this->clearTahunAjaranCache();
+
         return redirect()->route('pengaturan.index')->with('success', 'Tahun ajaran berhasil diperbarui!');
     }
 
     public function setAktifTahunAjaran(TahunAjaran $tahunAjaran)
     {
         $tahunAjaran->setSemesterAktif();
+        $this->clearTahunAjaranCache();
         return redirect()->route('pengaturan.index')->with('success', 'Tahun ajaran aktif berhasil diubah!');
     }
 
     public function destroyTahunAjaran(TahunAjaran $tahunAjaran)
     {
         $tahunAjaran->delete();
+        $this->clearTahunAjaranCache();
         return redirect()->route('pengaturan.index')->with('success', 'Tahun ajaran berhasil dihapus!');
     }
 
@@ -121,6 +128,7 @@ class PengaturanController extends Controller
         ]);
 
         MataPelajaran::create($validated);
+        $this->clearMapelCache();
 
         return redirect()->route('pengaturan.index')->with('success', 'Mata pelajaran berhasil ditambahkan!');
     }
@@ -133,6 +141,7 @@ class PengaturanController extends Controller
         ]);
 
         $mapel->update($validated);
+        $this->clearMapelCache();
 
         return redirect()->route('pengaturan.index')->with('success', 'Mata pelajaran berhasil diperbarui!');
     }
@@ -140,6 +149,18 @@ class PengaturanController extends Controller
     public function destroyMapel(MataPelajaran $mapel)
     {
         $mapel->delete();
+        $this->clearMapelCache();
         return redirect()->route('pengaturan.index')->with('success', 'Mata pelajaran berhasil dihapus!');
+    }
+
+    private function clearTahunAjaranCache(): void
+    {
+        Cache::forget('tahun_ajaran_list');
+        Cache::forget('tahun_aktif');
+    }
+
+    private function clearMapelCache(): void
+    {
+        Cache::forget('mapel_list_all');
     }
 }

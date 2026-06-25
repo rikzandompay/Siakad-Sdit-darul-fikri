@@ -18,7 +18,7 @@ class NilaiRapotController extends Controller
     {
         $guruId = Auth::id();
 
-        $tahunAjaranList = Cache::remember("tahun_ajaran_list", 60, function() {
+        $tahunAjaranList = Cache::remember("tahun_ajaran_list", 300, function() {
             return TahunAjaran::orderByDesc('id')->get();
         });
 
@@ -27,15 +27,15 @@ class NilaiRapotController extends Controller
         $pelajaranId = $request->get('pelajaran_id');
 
         // Hanya kelas & mapel yang diampu guru ini (di-cache untuk memotong latensi Supabase)
-        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 60, function() use ($guruId) {
+        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 300, function() use ($guruId) {
             return JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique()->toArray();
         });
         
-        $kelasList = Cache::remember("kelas_list_guru_{$guruId}", 60, function() use ($kelasIdsGuru) {
+        $kelasList = Cache::remember("kelas_list_guru_{$guruId}", 300, function() use ($kelasIdsGuru) {
             return Kelas::whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
         });
 
-        $mapelList = Cache::remember("mapel_list_guru_{$guruId}_kelas_" . ($kelasId ?? 'all'), 60, function() use ($guruId, $kelasId) {
+        $mapelList = Cache::remember("mapel_list_guru_{$guruId}_kelas_" . ($kelasId ?? 'all'), 300, function() use ($guruId, $kelasId) {
             $guruJadwalQuery = JadwalPelajaran::where('guru_id', $guruId);
             if ($kelasId) {
                 $guruJadwalQuery->where('kelas_id', $kelasId);
@@ -85,8 +85,8 @@ class NilaiRapotController extends Controller
 
     public function rekap(Request $request)
     {
-        $tahunAjaranList = TahunAjaran::orderByDesc('id')->get();
-        $kelasList = Kelas::orderBy('nama_kelas')->get();
+        $tahunAjaranList = Cache::remember('tahun_ajaran_list', 300, fn() => TahunAjaran::orderByDesc('id')->get());
+        $kelasList = Cache::remember('kelas_list_all_ordered', 300, fn() => Kelas::orderBy('nama_kelas')->get());
 
         // Menggunakan TahunAjar::where jika getAktif tidak jalan, tapi kita asumsikan getAktif() exists seperti di index()
         $tahunAjaranId = $request->get('tahun_ajaran_id', TahunAjaran::where('status_aktif', 'Y')->value('id'));

@@ -12,7 +12,8 @@ RUN apk add --no-cache \
     zip \
     unzip \
     supervisor \
-    postgresql-dev
+    postgresql-dev \
+    redis
 
 # Install PHP extensions (MySQL + PostgreSQL + OPcache for performance)
 RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql zip gd opcache

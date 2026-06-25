@@ -18,10 +18,10 @@ class DashboardController extends Controller
     {
         $userId = Auth::id();
         
-        // Cache stats for 60 seconds to drastically reduce database roundtrips
-        $totalSiswa = Cache::remember('total_siswa_aktif', 60, fn() => Siswa::where('status', 'Aktif')->count());
-        $totalKelas = Cache::remember('total_kelas', 60, fn() => Kelas::count());
-        $tahunAktif = Cache::remember('tahun_aktif', 60, fn() => TahunAjaran::getAktif());
+        // Cache stats for 5 minutes - Redis makes this nearly instant
+        $totalSiswa = Cache::remember('total_siswa_aktif', 300, fn() => Siswa::where('status', 'Aktif')->count());
+        $totalKelas = Cache::remember('total_kelas', 300, fn() => Kelas::count());
+        $tahunAktif = Cache::remember('tahun_aktif', 300, fn() => TahunAjaran::getAktif());
 
         // Stats presensi hari ini
         $today = Carbon::today()->toDateString();
@@ -44,8 +44,8 @@ class DashboardController extends Controller
         $alpaCount = $statsPresensi['alpa'] ?? 0;
         $persenHadir = $totalPresensi > 0 ? round(($hadirCount / $totalPresensi) * 100, 1) : 0;
 
-        // Jadwal mengajar guru sepekan (di-cache per user)
-        $jadwalSepekan = Cache::remember("jadwal_sepekan_guru_{$userId}", 60, fn() => 
+        // Jadwal mengajar guru sepekan (di-cache per user, 5 menit)
+        $jadwalSepekan = Cache::remember("jadwal_sepekan_guru_{$userId}", 300, fn() => 
             JadwalPelajaran::where('guru_id', $userId)
                 ->with(['kelas', 'mataPelajaran'])
                 ->orderByRaw("
@@ -60,8 +60,8 @@ class DashboardController extends Controller
                 ")->orderBy('jam_mulai')->get()
         );
 
-        // Daftar kelas
-        $kelasList = Cache::remember('kelas_list_dashboard', 60, fn() => 
+        // Daftar kelas (5 menit)
+        $kelasList = Cache::remember('kelas_list_dashboard', 300, fn() => 
             Kelas::withCount('siswaAktif')->with('waliKelas')->get()
         );
 

@@ -1,47 +1,49 @@
 @startuml SisforSinta_UseCase
+left to right direction
+
 skinparam backgroundColor #FFFFFF
 skinparam usecaseBackgroundColor #B4D7FF
 skinparam usecaseBorderColor #4A90E2
-skinparam usecaseArrowColor #4A90E2
 skinparam actorBackgroundColor #FFFFFF
 skinparam actorBorderColor #000000
 skinparam defaultFontColor #000000
 skinparam defaultFontName Arial
 skinparam defaultFontSize 11
 
-title Sistem Informasi Akademik SisforSinta\n(SDIT Darul Fikri)
-
-actor "Admin" as Admin
+' Aktor Kiri
 actor "Guru" as Guru
+actor "Wali Kelas" as WaliKelas
+
+' Aktor Kanan
 actor "Kepala Sekolah" as KepalaSekolah
 
-usecase "Kelola Data Siswa" as UC_DataSiswa
-usecase "Kelola Data Guru & Staf" as UC_DataGuru
-usecase "Kelola Tahun Ajaran" as UC_TahunAjaran
-usecase "Kelola Mata Pelajaran" as UC_MataPelajaran
-usecase "Kelola Jadwal Akademik" as UC_JadwalAkademik
-usecase "Tetapkan Guru Pengampu" as UC_GuruPengampu
-usecase "Catat Presensi Kehadiran" as UC_Presensi
-usecase "Catat Presensi Sholat" as UC_PresensiSholat
-usecase "Input Nilai Rapot" as UC_NilaiRapot
-usecase "Pantau Dashboard Aktivitas" as UC_Dashboard
-usecase "Buat & Ekspor Laporan" as UC_Laporan
-usecase "Kelola Hak Akses" as UC_HakAkses
+rectangle "Sistem Informasi Akademik Darul Fikri" {
+    usecase "Mengolah Data Siswa" as UC_DataSiswa
+    usecase "Mengolah Mata Pelajaran" as UC_MataPelajaran
+    usecase "Mengolah Jadwal Akademik" as UC_JadwalAkademik
 
-Admin --> UC_DataSiswa
-Admin --> UC_DataGuru
-Admin --> UC_TahunAjaran
-Admin --> UC_MataPelajaran
-Admin --> UC_JadwalAkademik
-Admin --> UC_GuruPengampu
-Admin --> UC_HakAkses
+    usecase "Mengolah Data Presensi Kehadiran" as UC_Presensi
+    usecase "Mengolah Data Presensi Sholat" as UC_PresensiSholat
+    usecase "Mengolah Data Nilai Rapot" as UC_NilaiRapot
+    
+    usecase "Menghasilkan Laporan" as UC_Laporan
+}
 
-Guru --> UC_Presensi
-Guru --> UC_PresensiSholat
-Guru --> UC_NilaiRapot
+' Relasi Aktor Kiri -- Use Case
+Guru -- UC_DataSiswa
+Guru -- UC_MataPelajaran
+Guru -- UC_JadwalAkademik
 
-KepalaSekolah --> UC_Dashboard
-KepalaSekolah --> UC_Laporan
-KepalaSekolah --> UC_NilaiRapot
+WaliKelas -- UC_Presensi
+WaliKelas -- UC_PresensiSholat
+WaliKelas -- UC_NilaiRapot
+WaliKelas -- UC_Laporan
+
+' Relasi Use Case -- Aktor Kanan
+UC_Laporan -- KepalaSekolah
+UC_DataSiswa -- KepalaSekolah
+UC_MataPelajaran -- KepalaSekolah
+UC_JadwalAkademik -- KepalaSekolah
+UC_NilaiRapot -- KepalaSekolah
 
 @enduml
