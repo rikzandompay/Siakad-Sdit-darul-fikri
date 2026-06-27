@@ -8,11 +8,13 @@
         <h2 class="font-bold text-2xl text-emerald-900">Manajemen Kelas</h2>
         <p class="text-sm text-gray-500">Kelola data kelas dan jadwal pelajaran</p>
     </div>
+    @if(auth()->user()->isAdmin())
     <button onclick="document.getElementById('modal-tambah-kelas').classList.remove('hidden')"
         class="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-lg font-bold text-sm hover:bg-amber-600 transition-colors shadow-sm">
         <span class="material-symbols-outlined text-sm">add</span>
         Tambah Kelas
     </button>
+    @endif
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
@@ -42,6 +44,7 @@
                         Presensi
                     </a>
                 </div>
+                @if(auth()->user()->isAdmin())
                 <div class="flex gap-2">
                     <button onclick="openEditKelas({{ json_encode($kelas) }})" class="flex-1 text-xs text-gray-500 hover:text-emerald-700 py-1 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">Edit</button>
                     <form method="POST" action="{{ route('kelas.destroy', $kelas->id) }}" onsubmit="return confirm('Yakin hapus kelas ini?')" class="flex-1">
@@ -49,6 +52,7 @@
                         <button type="submit" class="w-full text-xs text-gray-500 hover:text-red-600 py-1 border border-gray-200 rounded-lg hover:bg-red-50 transition-colors">Hapus</button>
                     </form>
                 </div>
+                @endif
             </div>
         </div>
     @endforeach

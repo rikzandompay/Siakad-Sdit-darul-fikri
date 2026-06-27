@@ -76,8 +76,10 @@
             <span class="material-symbols-outlined text-blue-600">calendar_today</span>
             Tahun Ajaran
         </h3>
+        @if(auth()->user()->isAdmin())
         <button onclick="document.getElementById('modal-ta').classList.remove('hidden')"
             class="px-4 py-2 bg-emerald-900 text-white rounded-lg text-xs font-bold hover:bg-emerald-800">+ Tambah</button>
+        @endif
     </div>
     <div class="overflow-x-auto">
         <table class="w-full text-left">
@@ -86,7 +88,9 @@
                     <th class="px-6 py-3">No</th>
                     <th class="px-6 py-3">Nama Semester</th>
                     <th class="px-6 py-3 text-center">Status</th>
+                    @if(auth()->user()->isAdmin())
                     <th class="px-6 py-3 text-center">Aksi</th>
+                    @endif
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
@@ -98,14 +102,19 @@
                             @if($ta->status_aktif == 'Y')
                                 <span class="px-2 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">AKTIF</span>
                             @else
+                                @if(auth()->user()->isAdmin())
                                 <form method="POST" action="{{ route('pengaturan.tahun-ajaran.aktif', $ta->id) }}" class="inline">
                                     @csrf @method('PUT')
                                     <button type="submit" class="px-2 py-1 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-full hover:bg-emerald-100 hover:text-emerald-800 transition-colors">
                                         Set Aktif
                                     </button>
                                 </form>
+                                @else
+                                <span class="px-2 py-1 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-full">TIDAK AKTIF</span>
+                                @endif
                             @endif
                         </td>
+                        @if(auth()->user()->isAdmin())
                         <td class="px-6 py-3 text-center">
                             <button onclick="document.getElementById('modal-ta-edit-{{ $ta->id }}').classList.remove('hidden')" class="text-gray-400 hover:text-blue-600 transition-colors mr-2">
                                 <span class="material-symbols-outlined text-sm">edit</span>
@@ -118,6 +127,8 @@
                                     </button>
                                 </form>
                             @endif
+                        </td>
+                        @endif
 
                             <!-- Modal Edit Tahun Ajaran -->
                             <div id="modal-ta-edit-{{ $ta->id }}" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm text-left">
@@ -176,8 +187,10 @@
             <span class="material-symbols-outlined text-purple-600">menu_book</span>
             Mata Pelajaran
         </h3>
+        @if(auth()->user()->isAdmin())
         <button onclick="document.getElementById('modal-mapel').classList.remove('hidden')"
             class="px-4 py-2 bg-emerald-900 text-white rounded-lg text-xs font-bold hover:bg-emerald-800">+ Tambah</button>
+        @endif
     </div>
     <div class="overflow-x-auto">
         <table class="w-full text-left">
@@ -186,7 +199,9 @@
                     <th class="px-6 py-3">No</th>
                     <th class="px-6 py-3">Kode</th>
                     <th class="px-6 py-3">Nama Mata Pelajaran</th>
+                    @if(auth()->user()->isAdmin())
                     <th class="px-6 py-3 text-center">Aksi</th>
+                    @endif
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
@@ -195,6 +210,7 @@
                         <td class="px-6 py-3 text-sm text-gray-400">{{ $index + 1 }}</td>
                         <td class="px-6 py-3 text-sm font-mono font-bold text-gray-600">{{ $m->kode_pelajaran }}</td>
                         <td class="px-6 py-3 font-medium text-gray-900">{{ $m->nama_pelajaran }}</td>
+                        @if(auth()->user()->isAdmin())
                         <td class="px-6 py-3 text-center">
                             <form method="POST" action="{{ route('pengaturan.mapel.destroy', $m->id) }}" onsubmit="return confirm('Hapus mata pelajaran ini?')" class="inline">
                                 @csrf @method('DELETE')
@@ -203,6 +219,7 @@
                                 </button>
                             </form>
                         </td>
+                        @endif
                     </tr>
                 @endforeach
             </tbody>

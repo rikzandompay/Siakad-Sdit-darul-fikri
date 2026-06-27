@@ -71,11 +71,13 @@
                 <span class="material-symbols-outlined text-sm">picture_as_pdf</span>
                 PDF
             </a>
+            @if(auth()->user()->isAdmin())
             <button onclick="document.getElementById('modal-tambah-jadwal').classList.remove('hidden')"
                 class="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg font-bold text-sm hover:bg-amber-600 transition-colors shadow-sm">
                 <span class="material-symbols-outlined text-sm">add</span>
                 Tambah Jadwal
             </button>
+            @endif
         </div>
     </div>
     <div class="overflow-x-auto">
@@ -86,7 +88,9 @@
                     <th class="px-8 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">Waktu</th>
                     <th class="px-8 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">Mata Pelajaran</th>
                     <th class="px-8 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">Guru Pengampu</th>
+                    @if(auth()->user()->isAdmin())
                     <th class="px-8 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b text-center">Aksi</th>
+                    @endif
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
@@ -109,6 +113,7 @@
                             </div>
                         </td>
                         <td class="px-8 py-4 text-sm text-gray-700">{{ $jadwal->guru->nama_lengkap ?? $jadwal->guru->name }}</td>
+                        @if(auth()->user()->isAdmin())
                         <td class="px-8 py-4 text-center">
                             <div class="flex items-center justify-center gap-1">
                                 <button onclick="openEditModal({{ json_encode($jadwal) }})"
@@ -123,10 +128,11 @@
                                 </form>
                             </div>
                         </td>
+                        @endif
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-8 py-12 text-center text-gray-400">Belum ada jadwal pelajaran</td>
+                        <td colspan="{{ auth()->user()->isAdmin() ? '5' : '4' }}" class="px-8 py-12 text-center text-gray-400">Belum ada jadwal pelajaran</td>
                     </tr>
                 @endforelse
             </tbody>

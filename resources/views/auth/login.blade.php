@@ -153,9 +153,8 @@
                 </button>
             </form>
 
-            <div class="login-footer">
-                <p>Default: <code>ahmad</code> / <code>guru1234</code></p>
-            </div>
+
+
         </div>
 
         {{-- Footer --}}

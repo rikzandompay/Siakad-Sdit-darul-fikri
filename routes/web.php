@@ -13,7 +13,7 @@ use App\Http\Controllers\PresensiSholatController;
 
 // ── AUTH ROUTES ──
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // ── PROTECTED ROUTES ──
@@ -26,21 +26,26 @@ Route::middleware('auth')->group(function () {
     Route::get('/siswa', [SiswaController::class, 'index'])->name('siswa.index');
     Route::get('/siswa/export/csv', [SiswaController::class, 'exportCsv'])->name('siswa.export.csv');
     Route::get('/siswa/export/pdf', [SiswaController::class, 'exportPdf'])->name('siswa.export.pdf');
-    Route::post('/siswa', [SiswaController::class, 'store'])->name('siswa.store');
-    Route::put('/siswa/{siswa}', [SiswaController::class, 'update'])->name('siswa.update');
-    Route::delete('/siswa/{siswa}', [SiswaController::class, 'destroy'])->name('siswa.destroy');
+    Route::middleware('is_admin')->group(function () {
+        Route::post('/siswa', [SiswaController::class, 'store'])->name('siswa.store');
+        Route::put('/siswa/{siswa}', [SiswaController::class, 'update'])->name('siswa.update');
+        Route::delete('/siswa/{siswa}', [SiswaController::class, 'destroy'])->name('siswa.destroy');
+    });
 
     // Kelas CRUD
     Route::get('/kelas', [KelasController::class, 'index'])->name('kelas.index');
     Route::get('/kelas/{kelas}', [KelasController::class, 'show'])->name('kelas.show');
-    Route::post('/kelas', [KelasController::class, 'store'])->name('kelas.store');
-    Route::put('/kelas/{kelas}', [KelasController::class, 'update'])->name('kelas.update');
-    Route::delete('/kelas/{kelas}', [KelasController::class, 'destroy'])->name('kelas.destroy');
+    Route::middleware('is_admin')->group(function () {
+        Route::post('/kelas', [KelasController::class, 'store'])->name('kelas.store');
+        Route::put('/kelas/{kelas}', [KelasController::class, 'update'])->name('kelas.update');
+        Route::delete('/kelas/{kelas}', [KelasController::class, 'destroy'])->name('kelas.destroy');
+    });
 
-    // Jadwal Pelajaran
-    Route::post('/jadwal', [JadwalPelajaranController::class, 'store'])->name('jadwal.store');
-    Route::put('/jadwal/{jadwal}', [JadwalPelajaranController::class, 'update'])->name('jadwal.update');
-    Route::delete('/jadwal/{jadwal}', [JadwalPelajaranController::class, 'destroy'])->name('jadwal.destroy');
+    Route::middleware('is_admin')->group(function () {
+        Route::post('/jadwal', [JadwalPelajaranController::class, 'store'])->name('jadwal.store');
+        Route::put('/jadwal/{jadwal}', [JadwalPelajaranController::class, 'update'])->name('jadwal.update');
+        Route::delete('/jadwal/{jadwal}', [JadwalPelajaranController::class, 'destroy'])->name('jadwal.destroy');
+    });
     Route::get('/jadwal/{kelas}/export/csv', [JadwalPelajaranController::class, 'exportCsv'])->name('jadwal.export.csv');
     Route::get('/jadwal/{kelas}/export/pdf', [JadwalPelajaranController::class, 'exportPdf'])->name('jadwal.export.pdf');
 
@@ -68,16 +73,17 @@ Route::middleware('auth')->group(function () {
     Route::put('/pengaturan/profil', [PengaturanController::class, 'updateProfil'])->name('pengaturan.profil.update');
     Route::put('/pengaturan/password', [PengaturanController::class, 'updatePassword'])->name('pengaturan.password.update');
 
-    // Pengaturan - Tahun Ajaran
-    Route::post('/pengaturan/tahun-ajaran', [PengaturanController::class, 'storeTahunAjaran'])->name('pengaturan.tahun-ajaran.store');
-    Route::put('/pengaturan/tahun-ajaran/{tahunAjaran}', [PengaturanController::class, 'updateTahunAjaran'])->name('pengaturan.tahun-ajaran.update');
-    Route::put('/pengaturan/tahun-ajaran/{tahunAjaran}/aktif', [PengaturanController::class, 'setAktifTahunAjaran'])->name('pengaturan.tahun-ajaran.aktif');
-    Route::delete('/pengaturan/tahun-ajaran/{tahunAjaran}', [PengaturanController::class, 'destroyTahunAjaran'])->name('pengaturan.tahun-ajaran.destroy');
+    // Pengaturan - Tahun Ajaran & Mata Pelajaran (Admin Only)
+    Route::middleware('is_admin')->group(function () {
+        Route::post('/pengaturan/tahun-ajaran', [PengaturanController::class, 'storeTahunAjaran'])->name('pengaturan.tahun-ajaran.store');
+        Route::put('/pengaturan/tahun-ajaran/{tahunAjaran}', [PengaturanController::class, 'updateTahunAjaran'])->name('pengaturan.tahun-ajaran.update');
+        Route::put('/pengaturan/tahun-ajaran/{tahunAjaran}/aktif', [PengaturanController::class, 'setAktifTahunAjaran'])->name('pengaturan.tahun-ajaran.aktif');
+        Route::delete('/pengaturan/tahun-ajaran/{tahunAjaran}', [PengaturanController::class, 'destroyTahunAjaran'])->name('pengaturan.tahun-ajaran.destroy');
 
-    // Pengaturan - Mata Pelajaran
-    Route::post('/pengaturan/mapel', [PengaturanController::class, 'storeMapel'])->name('pengaturan.mapel.store');
-    Route::put('/pengaturan/mapel/{mapel}', [PengaturanController::class, 'updateMapel'])->name('pengaturan.mapel.update');
-    Route::delete('/pengaturan/mapel/{mapel}', [PengaturanController::class, 'destroyMapel'])->name('pengaturan.mapel.destroy');
+        Route::post('/pengaturan/mapel', [PengaturanController::class, 'storeMapel'])->name('pengaturan.mapel.store');
+        Route::put('/pengaturan/mapel/{mapel}', [PengaturanController::class, 'updateMapel'])->name('pengaturan.mapel.update');
+        Route::delete('/pengaturan/mapel/{mapel}', [PengaturanController::class, 'destroyMapel'])->name('pengaturan.mapel.destroy');
+    });
 
     // Presensi Sholat
     Route::get('/presensi-sholat', [PresensiSholatController::class, 'index'])->name('presensi-sholat.index');

@@ -44,4 +44,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(JadwalPelajaran::class, 'guru_id');
     }
+
+    public function isAdmin()
+    {
+        // Hanya Dewi Quraisyinta (username: sinta) yang merupakan admin
+        return strtolower($this->username) === 'sinta' || str_contains(strtolower($this->nama_lengkap), 'dewi quraisyinta');
+    }
 }

@@ -24,11 +24,13 @@
                 <span class="material-symbols-outlined text-sm text-emerald-600">table_chart</span>
                 Export CSV
             </a>
+            @if(auth()->user()->isAdmin())
             <button onclick="document.getElementById('modal-tambah').classList.remove('hidden')"
                 class="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-lg font-bold text-sm hover:bg-amber-600 transition-colors shadow-sm">
                 <span class="material-symbols-outlined text-sm">person_add</span>
                 Tambah Siswa
             </button>
+            @endif
         </div>
     </div>
 
@@ -127,8 +129,10 @@
                         <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">Wali</th>
                         <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b text-center">
                             Status</th>
+                        @if(auth()->user()->isAdmin())
                         <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b text-center">
                             Aksi</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -163,6 +167,7 @@
                                     {{ $s->status }}
                                 </span>
                             </td>
+                            @if(auth()->user()->isAdmin())
                             <td class="px-6 py-4 text-center">
                                 <div class="flex items-center justify-center gap-1">
                                     <button onclick="openEditModal({{ json_encode($s) }})"
@@ -181,10 +186,11 @@
                                     </form>
                                 </div>
                             </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center text-gray-400">
+                            <td colspan="{{ auth()->user()->isAdmin() ? '8' : '7' }}" class="px-6 py-12 text-center text-gray-400">
                                 <span class="material-symbols-outlined text-4xl mb-2">person_off</span>
                                 <p class="font-medium">Tidak ada data siswa yang cocok</p>
                                 @if (request()->hasAny(['search', 'kelas_id', 'jenis_kelamin', 'status']))
