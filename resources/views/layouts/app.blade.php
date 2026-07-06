@@ -59,6 +59,14 @@
                 <span class="material-symbols-outlined">dashboard</span>
                 <span class="font-medium text-sm">Dashboard</span>
             </a>
+            @if(Auth::user()->isAdmin())
+            <a class="flex items-center gap-3 px-6 py-3 transition-colors duration-200
+                {{ request()->routeIs('guru.*') ? 'bg-emerald-900/50 text-amber-500 border-l-4 border-amber-500' : 'text-emerald-100/70 hover:text-white hover:bg-emerald-900/30' }}"
+                href="{{ route('guru.index') }}">
+                <span class="material-symbols-outlined">badge</span>
+                <span class="font-medium text-sm">Data Guru</span>
+            </a>
+            @endif
             <a class="flex items-center gap-3 px-6 py-3 transition-colors duration-200
                 {{ request()->routeIs('siswa.*') ? 'bg-emerald-900/50 text-amber-500 border-l-4 border-amber-500' : 'text-emerald-100/70 hover:text-white hover:bg-emerald-900/30' }}"
                 href="{{ route('siswa.index') }}">

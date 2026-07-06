@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GuruController;
 use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\KelasController;
 use App\Http\Controllers\JadwalPelajaranController;
@@ -21,6 +22,16 @@ Route::middleware('auth')->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Guru CRUD + Export (Admin Only)
+    Route::middleware('is_admin')->group(function () {
+        Route::get('/guru', [GuruController::class, 'index'])->name('guru.index');
+        Route::get('/guru/export/csv', [GuruController::class, 'exportCsv'])->name('guru.export.csv');
+        Route::get('/guru/export/pdf', [GuruController::class, 'exportPdf'])->name('guru.export.pdf');
+        Route::post('/guru', [GuruController::class, 'store'])->name('guru.store');
+        Route::put('/guru/{guru}', [GuruController::class, 'update'])->name('guru.update');
+        Route::delete('/guru/{guru}', [GuruController::class, 'destroy'])->name('guru.destroy');
+    });
 
     // Siswa CRUD + Export
     Route::get('/siswa', [SiswaController::class, 'index'])->name('siswa.index');

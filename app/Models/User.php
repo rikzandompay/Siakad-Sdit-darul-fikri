@@ -16,8 +16,10 @@ class User extends Authenticatable
         'password',
         'nip',
         'nama_lengkap',
+        'jenis_kelamin',
         'username',
         'no_hp',
+        'status',
         'foto_profil',
     ];
 

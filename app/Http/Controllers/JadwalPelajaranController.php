@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
-use App\Models\MataPelajaran;
-use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class JadwalPelajaranController extends Controller
 {
@@ -55,6 +55,7 @@ class JadwalPelajaranController extends Controller
         $kelasId = $jadwal->kelas_id;
         $jadwal->delete();
         $this->clearJadwalCache($guruId, $kelasId);
+
         return redirect()->back()->with('success', 'Jadwal pelajaran berhasil dihapus!');
     }
 
@@ -73,7 +74,7 @@ class JadwalPelajaranController extends Controller
                 END
             ")->orderBy('jam_mulai')->get();
 
-        $filename = 'jadwal_pelajaran_kelas_' . str_replace(' ', '_', $kelas->nama_kelas) . '_' . now()->format('Ymd_His') . '.csv';
+        $filename = 'jadwal_pelajaran_kelas_'.str_replace(' ', '_', $kelas->nama_kelas).'_'.now()->format('Ymd_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -82,24 +83,24 @@ class JadwalPelajaranController extends Controller
 
         $callback = function () use ($jadwal, $kelas) {
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM for UTF-8
-            
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM for UTF-8
+
             // Header Section
             fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
             fputcsv($file, ['SD IT DARUL FIKRI']);
             fputcsv($file, ['LAPORAN JADWAL PELAJARAN']);
             fputcsv($file, []);
             fputcsv($file, ['Kelas', ':', $kelas->nama_kelas]);
-            fputcsv($file, ['Tahun Ajaran', ':', date('Y') . '/' . (date('Y') + 1)]);
+            fputcsv($file, ['Tahun Ajaran', ':', date('Y').'/'.(date('Y') + 1)]);
             fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
             fputcsv($file, []);
 
             fputcsv($file, ['Hari', 'Waktu', 'Mata Pelajaran', 'Guru Pengampu']);
-            
+
             foreach ($jadwal as $j) {
                 fputcsv($file, [
                     $j->hari,
-                    \Carbon\Carbon::parse($j->jam_mulai)->format('H:i') . ' - ' . \Carbon\Carbon::parse($j->jam_selesai)->format('H:i'),
+                    Carbon::parse($j->jam_mulai)->format('H:i').' - '.Carbon::parse($j->jam_selesai)->format('H:i'),
                     $j->mataPelajaran->nama_pelajaran ?? '-',
                     $j->guru->nama_lengkap ?? $j->guru->name ?? '-',
                 ]);
@@ -127,15 +128,16 @@ class JadwalPelajaranController extends Controller
 
         return view('exports.jadwal-pdf', compact('kelas', 'jadwal'));
     }
+
     private function clearJadwalCache($guruId, $kelasId)
     {
-        \Illuminate\Support\Facades\Cache::forget("jadwal_sepekan_guru_{$guruId}");
-        \Illuminate\Support\Facades\Cache::forget("jadwal_list_guru_{$guruId}_kelas_{$kelasId}");
-        \Illuminate\Support\Facades\Cache::forget("kelas_ids_guru_{$guruId}");
-        \Illuminate\Support\Facades\Cache::forget("kelas_list_guru_{$guruId}");
-        \Illuminate\Support\Facades\Cache::forget("presensi_kelas_list_{$guruId}");
-        \Illuminate\Support\Facades\Cache::forget("guru_jadwal_ids_{$guruId}");
-        \Illuminate\Support\Facades\Cache::forget("total_siswa_aktif_guru_{$guruId}");
-        \Illuminate\Support\Facades\Cache::forget("rekap_kelas_list_guru_{$guruId}");
+        Cache::forget("jadwal_sepekan_guru_{$guruId}");
+        Cache::forget("jadwal_list_guru_{$guruId}_kelas_{$kelasId}");
+        Cache::forget("kelas_ids_guru_{$guruId}");
+        Cache::forget("kelas_list_guru_{$guruId}");
+        Cache::forget("presensi_kelas_list_{$guruId}");
+        Cache::forget("guru_jadwal_ids_{$guruId}");
+        Cache::forget("total_siswa_aktif_guru_{$guruId}");
+        Cache::forget("rekap_kelas_list_guru_{$guruId}");
     }
 }
