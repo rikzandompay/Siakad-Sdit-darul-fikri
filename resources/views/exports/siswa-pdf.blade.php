@@ -6,8 +6,8 @@
     <title>Data Siswa - SDIT Darul Fikri</title>
     <style>
         @page {
-            size: A4 landscape;
-            margin: 1.5cm;
+            size: A4 portrait;
+            margin: 1cm;
         }
 
         body {
@@ -108,7 +108,7 @@
 
         .signature td {
             width: 50%;
-            padding-bottom: 60px;
+            vertical-align: top;
         }
 
         .signature-name {
@@ -190,17 +190,22 @@
     <div class="signature">
         <table>
             <tr>
-                <td>
+                <td style="padding-bottom: 70px;">
                     Mengetahui,<br>Kepala Sekolah
-                    <br><br><br><br><br>
-                    <br><b>Dewi Quraisyinta<br>
-                        <span class="signature-name">_______________________</span><br>
-                        NIP. .........................
+                </td>
+                <td style="padding-bottom: 70px;">
+                    ............, {{ now()->translatedFormat('d F Y') }}<br>Admin Akademik
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <b>Dewi Quraisyinta</b><br>
+                    <span class="signature-name">_______________________</span><br>
+                    NIP. .........................
                 </td>
                 <td>
-                    ............, {{ now()->translatedFormat('d F Y') }}<br>Admin Akademik
-                    <br><br><br><br><br>
-                    <span class="signature-name">{{ Auth::user()->name ?? '_______________________' }}</span><br>
+                    <b>{{ Auth::user()->name ?? '_______________________' }}</b><br>
+                    <span class="signature-name">_______________________</span><br>
                     NIP. .........................
                 </td>
             </tr>

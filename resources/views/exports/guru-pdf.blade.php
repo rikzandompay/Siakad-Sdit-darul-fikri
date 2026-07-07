@@ -6,15 +6,15 @@
     <title>Data Guru - SDIT Darul Fikri</title>
     <style>
         @page {
-            size: A4 landscape;
-            margin: 1.5cm;
+            size: A4 portrait;
+            margin: 1cm;
         }
 
         body {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 11pt;
+            font-size: 9pt;
             color: #000;
-            line-height: 1.5;
+            line-height: 1.25;
         }
 
         .kop-surat {
@@ -37,8 +37,8 @@
         }
 
         .kop-surat p {
-            font-size: 10pt;
-            margin: 5px 0 0;
+            font-size: 8pt;
+            margin: 4px 0 0;
         }
 
         .title {
@@ -72,16 +72,19 @@
 
         .data-table {
             width: 100%;
+            table-layout: fixed;
             border-collapse: collapse;
-            margin-bottom: 30px;
-            font-size: 10pt;
+            margin-bottom: 18px;
+            font-size: 7.2pt;
         }
 
         .data-table th,
         .data-table td {
             border: 1px solid #000;
-            padding: 6px 4px;
+            padding: 3px 2px;
             text-align: center;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
 
         .data-table th {
@@ -96,9 +99,9 @@
 
         .signature {
             width: 100%;
-            margin-top: 40px;
+            margin-top: 24px;
             page-break-inside: avoid;
-            font-size: 11pt;
+            font-size: 9pt;
         }
 
         .signature table {
@@ -108,7 +111,7 @@
 
         .signature td {
             width: 50%;
-            padding-bottom: 60px;
+            vertical-align: top;
         }
 
         .signature-name {
@@ -184,17 +187,22 @@
     <div class="signature">
         <table>
             <tr>
-                <td>
+                <td style="padding-bottom: 70px;">
                     Mengetahui,<br>Kepala Sekolah
-                    <br><br><br><br><br>
-                    <br><b>Dewi Quraisyinta<br>
-                        <span class="signature-name">_______________________</span><br>
-                        NIP. .........................
+                </td>
+                <td style="padding-bottom: 70px;">
+                    ............, {{ now()->translatedFormat('d F Y') }}<br>Admin Akademik
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <b>Dewi Quraisyinta</b><br>
+                    <span class="signature-name">_______________________</span><br>
+                    NIP. .........................
                 </td>
                 <td>
-                    ............, {{ now()->translatedFormat('d F Y') }}<br>Admin Akademik
-                    <br><br><br><br><br>
-                    <span class="signature-name">{{ Auth::user()->name ?? '_______________________' }}</span><br>
+                    <b>{{ Auth::user()->name ?? '_______________________' }}</b><br>
+                    <span class="signature-name">_______________________</span><br>
                     NIP. .........................
                 </td>
             </tr>

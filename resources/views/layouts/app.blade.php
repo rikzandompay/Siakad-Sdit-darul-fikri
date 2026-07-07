@@ -37,11 +37,12 @@
     </style>
     @stack('styles')
 </head>
-<body class="bg-background text-on-background antialiased font-inter text-base">
+<body class="bg-background text-on-background antialiased font-inter text-base max-md:overflow-x-hidden" x-data="{ sidebarOpen: false }">
     @include('partials.analytics-body')
 
     <!-- SideNavBar -->
-    <aside class="fixed left-0 top-0 h-screen w-64 border-r border-emerald-900 bg-emerald-950 shadow-xl flex flex-col py-6 z-50">
+    <aside class="fixed left-0 top-0 h-screen w-64 border-r border-emerald-900 bg-emerald-950 shadow-xl flex flex-col py-6 z-50 transition-transform duration-300 ease-in-out max-md:-translate-x-full"
+        :class="sidebarOpen ? 'max-md:translate-x-0' : ''">
         <div class="px-6 mb-8 flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center">
                 <span class="material-symbols-outlined text-emerald-950" style="font-variation-settings: 'FILL' 1;">school</span>
@@ -153,9 +154,14 @@
     </aside>
 
     <!-- TopNavBar -->
-    <header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 flex items-center justify-between px-8 z-40 shadow-sm">
+    <header class="fixed top-0 right-0 w-full md:w-[calc(100%-16rem)] h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 flex items-center justify-between px-4 md:px-8 z-40 shadow-sm transition-transform duration-300 ease-in-out"
+        :class="sidebarOpen ? 'max-md:translate-x-64' : ''">
         <div class="flex items-center gap-4">
-            <h2 class="text-emerald-800 font-bold text-sm">@yield('page-title', 'Dashboard')</h2>
+            <!-- Mobile Hamburger Toggle -->
+            <button @click="sidebarOpen = !sidebarOpen" class="md:hidden text-emerald-800 p-2 -ml-2 rounded-lg hover:bg-emerald-50 focus:outline-none flex items-center justify-center">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            <h2 class="text-emerald-800 font-bold text-sm truncate">@yield('page-title', 'Dashboard')</h2>
         </div>
         <div class="flex items-center gap-6">
             <div class="flex items-center gap-3 pl-6 border-l border-gray-200">
@@ -171,7 +177,8 @@
     </header>
 
     <!-- Main Content -->
-    <main class="ml-64 mt-16 p-margin-page min-h-screen">
+    <main class="ml-0 md:ml-64 mt-16 p-4 md:p-margin-page min-h-screen transition-transform duration-300 ease-in-out"
+        :class="sidebarOpen ? 'max-md:translate-x-64' : ''">
         <div class="max-w-container-max mx-auto space-y-stack-lg">
             {{-- Flash Messages --}}
             @if(session('success'))

@@ -99,20 +99,20 @@
                         </div>
                         @php $currentHari = $jadwal->hari; @endphp
                     @endif
-                    <div class="flex items-center gap-6 px-8 py-4 hover:bg-gray-50 transition-colors">
-                        <div class="w-20 text-center">
+                    <div class="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 px-4 md:px-8 py-4 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-4 md:w-20 md:block md:text-center">
                             <p class="text-sm font-bold text-emerald-800">
                                 {{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}</p>
                             <p class="text-xs text-gray-400">
                                 {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</p>
                         </div>
-                        <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                        <div class="hidden md:block w-2 h-2 rounded-full bg-amber-500"></div>
                         <div class="flex-1">
                             <p class="font-medium text-gray-900">{{ $jadwal->mataPelajaran->nama_pelajaran ?? '-' }}</p>
                             <p class="text-xs text-gray-500">{{ $jadwal->kelas->nama_kelas ?? '-' }}</p>
                         </div>
                         <a href="{{ route('presensi.show', $jadwal->kelas_id) }}?jadwal_id={{ $jadwal->id }}"
-                            class="px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg hover:bg-emerald-100 transition-colors">
+                            class="px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg hover:bg-emerald-100 transition-colors text-center mt-2 md:mt-0 w-full md:w-auto">
                             Mulai Presensi
                         </a>
                     </div>

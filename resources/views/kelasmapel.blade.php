@@ -60,9 +60,9 @@
 
 <!-- Schedule Table -->
 <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-    <div class="px-8 py-6 border-b border-gray-100 flex justify-between items-center">
+    <div class="px-4 md:px-8 py-6 border-b border-gray-100 flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4">
         <h3 class="font-bold text-lg text-gray-900">Rincian Jadwal Pelajaran Mingguan</h3>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
             <a href="{{ route('jadwal.export.csv', $kelas->id) }}" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-50 transition-colors shadow-sm">
                 <span class="material-symbols-outlined text-sm">download</span>
                 CSV
