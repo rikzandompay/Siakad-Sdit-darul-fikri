@@ -7,53 +7,53 @@
     <style>
         @page {
             size: A4;
-            margin: 2cm;
+            margin: 1.5cm;
         }
 
         body {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
+            font-size: 9pt;
             color: #000;
-            line-height: 1.5;
+            line-height: 1.4;
         }
 
         .kop-surat {
             text-align: center;
             border-bottom: 3px double #000;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
         }
 
         .kop-surat h1 {
-            font-size: 18pt;
+            font-size: 16pt;
             margin: 0;
             text-transform: uppercase;
             font-weight: bold;
         }
 
         .kop-surat h2 {
-            font-size: 14pt;
-            margin: 5px 0 0;
+            font-size: 12pt;
+            margin: 3px 0 0;
         }
 
         .kop-surat p {
-            font-size: 10pt;
-            margin: 5px 0 0;
+            font-size: 9pt;
+            margin: 3px 0 0;
         }
 
         .title {
             text-align: center;
-            font-size: 14pt;
+            font-size: 12pt;
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             text-decoration: underline;
             text-transform: uppercase;
         }
 
         .info-table {
             width: 100%;
-            margin-bottom: 20px;
-            font-size: 11pt;
+            margin-bottom: 15px;
+            font-size: 10pt;
         }
 
         .info-table td {
@@ -73,14 +73,14 @@
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 30px;
-            font-size: 11pt;
+            margin-bottom: 20px;
+            font-size: 8pt;
         }
 
         .data-table th,
         .data-table td {
             border: 1px solid #000;
-            padding: 6px 8px;
+            padding: 3px 4px;
             text-align: center;
         }
 
@@ -118,11 +118,16 @@
             font-weight: bold;
         }
 
+        .highlight {
+            background: #f0fdf4;
+            font-weight: bold;
+        }
+
         .signature {
             width: 100%;
-            margin-top: 40px;
+            margin-top: 30px;
             page-break-inside: avoid;
-            font-size: 11pt;
+            font-size: 10pt;
         }
 
         .signature table {
@@ -132,7 +137,7 @@
 
         .signature td {
             width: 50%;
-            padding-bottom: 60px;
+            padding-bottom: 50px;
         }
 
         .signature-name {
@@ -183,31 +188,66 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th style="width: 5%">No</th>
-                <th style="width: 15%">NIS</th>
-                <th style="width: 30%">Nama Siswa</th>
-                <th style="width: 10%">Tugas (30%)</th>
-                <th style="width: 10%">UTS (30%)</th>
-                <th style="width: 10%">UAS (40%)</th>
-                <th style="width: 10%">Nilai Akhir</th>
-                <th style="width: 10%">Predikat</th>
+                <th rowspan="2" style="width: 3%">No</th>
+                <th rowspan="2" style="width: 8%">NIS</th>
+                <th rowspan="2" style="width: 12%">Nama Siswa</th>
+                <th colspan="6" style="background: #d1fae5;">BAB 1</th>
+                <th colspan="6" style="background: #d1fae5;">BAB 2</th>
+                <th colspan="6" style="background: #d1fae5;">BAB 3</th>
+                <th colspan="6" style="background: #d1fae5;">BAB 4</th>
+                <th rowspan="2" style="background: #065f46; color: white;">Formatif (50%)</th>
+                <th rowspan="2" style="background: #7c3aed; color: white;">SAS (30%)</th>
+                <th rowspan="2" style="background: #d97706; color: white;">Kehadiran</th>
+                <th colspan="2" style="background: #fee2e2;">Pengurang</th>
+                <th rowspan="2" style="background: #1f2937; color: white;">Nilai Rapor</th>
+                <th rowspan="2" style="background: #f3f4f6;">Predikat</th>
+            </tr>
+            <tr>
+                @for($bab = 1; $bab <= 4; $bab++)
+                    <th style="font-size: 7pt;">TP1</th>
+                    <th style="font-size: 7pt;">TP2</th>
+                    <th style="font-size: 7pt;">TP3</th>
+                    <th style="font-size: 7pt;">TP4</th>
+                    <th style="font-size: 7pt;">UH</th>
+                    <th style="background: #a7f3d0; font-size: 7pt;">Rata²</th>
+                @endfor
+                <th style="font-size: 7pt;">-</th>
+                <th style="font-size: 7pt;">-</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($siswaList as $i => $s)
                 @php
                     $n = $nilaiData[$s->id] ?? null;
-                    $na = $n ? $n->nilai_akhir : 0;
-                    $predikat = \App\Models\NilaiRapot::getPredikat($na);
+                    $formatifData = $n ? $n->formatif_data : \App\Models\NilaiRapot::getDefaultFormatifData();
+                    if (is_string($formatifData)) {
+                        $formatifData = json_decode($formatifData, true);
+                    }
+                    $formatifData = $formatifData ?: \App\Models\NilaiRapot::getDefaultFormatifData();
+                    $babAverages = $n ? $n->getBabAverages() : [];
+                    $formatifTotal = $n ? $n->getFormatifTotal() : 0;
+                    $nilaiRapor = $n ? $n->nilai_rapor : 0;
+                    $predikat = \App\Models\NilaiRapot::getPredikat($nilaiRapor);
                 @endphp
                 <tr>
                     <td>{{ $i + 1 }}</td>
                     <td class="text-left">{{ $s->nis }}</td>
                     <td class="text-left"><strong>{{ $s->nama_siswa }}</strong></td>
-                    <td>{{ $n ? number_format($n->nilai_tugas, 1) : '0.0' }}</td>
-                    <td>{{ $n ? number_format($n->nilai_uts, 1) : '0.0' }}</td>
-                    <td>{{ $n ? number_format($n->nilai_uas, 1) : '0.0' }}</td>
-                    <td><strong>{{ number_format($na, 1) }}</strong></td>
+                    @for($bab = 1; $bab <= 4; $bab++)
+                        @php $babKey = "bab{$bab}"; @endphp
+                        <td>{{ $formatifData[$babKey]['tp1'] ?? 0 }}</td>
+                        <td>{{ $formatifData[$babKey]['tp2'] ?? 0 }}</td>
+                        <td>{{ $formatifData[$babKey]['tp3'] ?? 0 }}</td>
+                        <td>{{ $formatifData[$babKey]['tp4'] ?? 0 }}</td>
+                        <td>{{ $formatifData[$babKey]['uh'] ?? 0 }}</td>
+                        <td class="highlight">{{ number_format($babAverages[$babKey] ?? 0, 1) }}</td>
+                    @endfor
+                    <td class="highlight" style="background: #d1fae5;">{{ number_format($formatifTotal, 1) }}</td>
+                    <td>{{ $n ? number_format($n->sas, 1) : '0.0' }}</td>
+                    <td>{{ $n ? number_format($n->kehadiran, 1) : '0.0' }}</td>
+                    <td>{{ $n ? number_format($n->pengurang_tidaktelat, 1) : '0.0' }}</td>
+                    <td>{{ $n ? number_format($n->pengurang_menyontek, 1) : '0.0' }}</td>
+                    <td class="highlight" style="background: #e5e7eb;">{{ number_format($nilaiRapor, 1) }}</td>
                     <td class="grade-{{ strtolower($predikat) }}">{{ $predikat }}</td>
                 </tr>
             @endforeach
@@ -224,7 +264,7 @@
                     NIP. .........................
                 </td>
                 <td>
-                    Mengetahui,<br>Kepala Sekolah
+                    ............, {{ now()->translatedFormat('d F Y') }}<br>Guru Mata Pelajaran
                     <br><br><br><br><br>
                     <br><b>Dewi Quraisyinta<br>
                         <span class="signature-name">_______________________</span><br>

@@ -9,9 +9,9 @@
             <div class="flex items-center gap-2 text-sm text-gray-500">
                 <span>Akademik</span>
                 <span class="material-symbols-outlined text-xs">chevron_right</span>
-                <span class="text-emerald-800 font-medium">Data Guru</span>
+                <span class="text-blue-600 font-medium">Data Guru</span>
             </div>
-            <h2 class="font-bold text-2xl text-emerald-900">Manajemen Data Guru</h2>
+            <h2 class="font-bold text-2xl text-blue-600">Manajemen Data Guru</h2>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
             <a href="{{ route('guru.export.pdf', request()->query()) }}" target="_blank"
@@ -21,7 +21,7 @@
             </a>
             <a href="{{ route('guru.export.csv', request()->query()) }}"
                 class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-                <span class="material-symbols-outlined text-sm text-emerald-600">table_chart</span>
+                <span class="material-symbols-outlined text-sm text-blue-600">table_chart</span>
                 Export CSV
             </a>
             <button onclick="document.getElementById('modal-tambah').classList.remove('hidden')"
@@ -39,11 +39,11 @@
             <div class="md:col-span-1">
                 <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Cari</label>
                 <input name="search" value="{{ request('search') }}" type="text" placeholder="Nama / NIP..."
-                    class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
             </div>
             <div>
                 <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Gender</label>
-                <select name="jenis_kelamin" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                <select name="jenis_kelamin" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200">
                     <option value="">Semua</option>
                     <option value="L" {{ request('jenis_kelamin') === 'L' ? 'selected' : '' }}>Laki-laki</option>
                     <option value="P" {{ request('jenis_kelamin') === 'P' ? 'selected' : '' }}>Perempuan</option>
@@ -51,7 +51,7 @@
             </div>
             <div>
                 <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Status</label>
-                <select name="status" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                <select name="status" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200">
                     <option value="">Semua</option>
                     <option value="Aktif" {{ request('status') === 'Aktif' ? 'selected' : '' }}>Aktif</option>
                     <option value="Pensiun" {{ request('status') === 'Pensiun' ? 'selected' : '' }}>Pensiun</option>
@@ -60,7 +60,7 @@
             </div>
             <div>
                 <button type="submit"
-                    class="w-full bg-emerald-900 text-white px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2">
+                    class="w-full bg-blue-500 text-gray-900 px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-blue-500 transition-colors flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-sm">filter_list</span> Filter
                 </button>
             </div>
@@ -72,11 +72,11 @@
         <div class="flex items-center gap-2 flex-wrap">
             <span class="text-xs text-gray-500 font-medium">Filter aktif:</span>
             @if (request('search'))
-                <span class="px-2 py-1 bg-emerald-100 text-emerald-800 text-[11px] rounded-full font-medium">Cari:
+                <span class="px-2 py-1 bg-blue-100 text-blue-700 text-[11px] rounded-full font-medium">Cari:
                     "{{ request('search') }}"</span>
             @endif
             @if (request('jenis_kelamin'))
-                <span class="px-2 py-1 bg-blue-100 text-blue-800 text-[11px] rounded-full font-medium">{{ request('jenis_kelamin') == 'L' ? 'Laki-laki' : 'Perempuan' }}</span>
+                <span class="px-2 py-1 bg-blue-100 text-blue-700 text-[11px] rounded-full font-medium">{{ request('jenis_kelamin') == 'L' ? 'Laki-laki' : 'Perempuan' }}</span>
             @endif
             @if (request('status'))
                 <span class="px-2 py-1 bg-purple-100 text-purple-800 text-[11px] rounded-full font-medium">{{ request('status') }}</span>
@@ -120,8 +120,15 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div
-                                        class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
-                                        {{ strtoupper(substr($g->name, 0, 2)) }}
+                                        class="w-8 h-8 rounded-full {{ $g->jenis_kelamin == 'L' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }} flex items-center justify-center text-xs font-bold">
+                                        @php
+                                            $words = explode(' ', $g->nama_lengkap ?? $g->name);
+                                            $initials = '';
+                                            foreach (array_slice($words, 0, 2) as $word) {
+                                                $initials .= strtoupper(substr($word, 0, 1));
+                                            }
+                                        @endphp
+                                        {{ $initials }}
                                     </div>
                                     <div>
                                         <span class="font-medium text-gray-900">{{ $g->nama_lengkap ?? $g->name }}</span>
@@ -133,7 +140,7 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-center">
                                 @if($g->jenis_kelamin)
-                                <span class="px-2 py-0.5 rounded text-xs font-bold {{ $g->jenis_kelamin == 'L' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700' }}">
+                                <span class="px-2 py-0.5 rounded text-xs font-bold {{ $g->jenis_kelamin == 'L' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-700' }}">
                                     {{ $g->jenis_kelamin }}
                                 </span>
                                 @else
@@ -143,7 +150,7 @@
                             <td class="px-6 py-4 text-sm text-gray-700">{{ $g->username ?? '-' }}</td>
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $g->email }}</td>
                             <td class="px-6 py-4 text-center">
-                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase {{ $g->status == 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800' }}">
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase {{ $g->status == 'Aktif' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-800' }}">
                                     {{ $g->status ?? 'Aktif' }}
                                 </span>
                             </td>
@@ -153,7 +160,7 @@
                                         Admin
                                     </span>
                                 @else
-                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-blue-100 text-blue-700">
                                         Guru
                                     </span>
                                 @endif
@@ -161,7 +168,7 @@
                             <td class="px-6 py-4 text-center">
                                 <div class="flex items-center justify-center gap-1">
                                     <button onclick="openEditModal({{ json_encode($g) }})"
-                                        class="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                        class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                         title="Edit">
                                         <span class="material-symbols-outlined text-lg">edit</span>
                                     </button>
@@ -186,7 +193,7 @@
                                 <p class="font-medium">Tidak ada data guru yang cocok</p>
                                 @if (request()->hasAny(['search', 'jenis_kelamin', 'status']))
                                     <a href="{{ route('guru.index') }}"
-                                        class="text-emerald-600 text-sm hover:underline mt-2 inline-block">Reset filter</a>
+                                        class="text-blue-600 text-sm hover:underline mt-2 inline-block">Reset filter</a>
                                 @endif
                             </td>
                         </tr>
@@ -218,18 +225,18 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">NIP</label>
                         <input name="nip" type="text" placeholder="Opsional"
-                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Lengkap *</label>
                         <input name="nama_lengkap" required type="text"
-                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Jenis Kelamin *</label>
-                        <select name="jenis_kelamin" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                        <select name="jenis_kelamin" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200">
                             <option value="L">Laki-laki</option>
                             <option value="P">Perempuan</option>
                         </select>
@@ -237,25 +244,25 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Username *</label>
                         <input name="username" required type="text" placeholder="Untuk login"
-                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Email *</label>
                         <input name="email" required type="email"
-                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">No HP</label>
                         <input name="no_hp" type="text" placeholder="Opsional"
-                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Status *</label>
-                        <select name="status" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                        <select name="status" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200">
                             <option value="Aktif">Aktif</option>
                             <option value="Pensiun">Pensiun</option>
                             <option value="Pindah">Pindah</option>
@@ -266,13 +273,13 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Password *</label>
                     <input name="password" required type="password" placeholder="Minimal 6 karakter"
-                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                 </div>
                 <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                     <button type="button" onclick="document.getElementById('modal-tambah').classList.add('hidden')"
                         class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">Batal</button>
                     <button type="submit"
-                        class="px-6 py-2.5 bg-emerald-900 text-white rounded-lg text-sm font-bold hover:bg-emerald-800">Simpan</button>
+                        class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold hover:bg-blue-500">Simpan</button>
                 </div>
             </form>
         </div>
@@ -295,18 +302,18 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">NIP</label>
                         <input id="edit-nip" name="nip" type="text"
-                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Lengkap *</label>
                         <input id="edit-nama-lengkap" name="nama_lengkap" required type="text"
-                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Jenis Kelamin *</label>
-                        <select id="edit-jk" name="jenis_kelamin" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                        <select id="edit-jk" name="jenis_kelamin" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200">
                             <option value="L">Laki-laki</option>
                             <option value="P">Perempuan</option>
                         </select>
@@ -314,25 +321,25 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Username *</label>
                         <input id="edit-username" name="username" required type="text"
-                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Email *</label>
                         <input id="edit-email" name="email" required type="email"
-                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">No HP</label>
                         <input id="edit-no-hp" name="no_hp" type="text"
-                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                            class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Status *</label>
-                        <select id="edit-status" name="status" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                        <select id="edit-status" name="status" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200">
                             <option value="Aktif">Aktif</option>
                             <option value="Pensiun">Pensiun</option>
                             <option value="Pindah">Pindah</option>
@@ -343,13 +350,13 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Password <span class="text-gray-400 normal-case font-normal">(Kosongkan jika tidak ingin mengubah)</span></label>
                     <input id="edit-password" name="password" type="password" placeholder="Minimal 6 karakter"
-                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                 </div>
                 <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                     <button type="button" onclick="document.getElementById('modal-edit').classList.add('hidden')"
                         class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">Batal</button>
                     <button type="submit"
-                        class="px-6 py-2.5 bg-emerald-900 text-white rounded-lg text-sm font-bold hover:bg-emerald-800">Perbarui</button>
+                        class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold hover:bg-blue-500">Perbarui</button>
                 </div>
             </form>
         </div>

@@ -3,14 +3,14 @@
 @section('page-title', 'Pengaturan')
 
 @section('content')
-<h2 class="font-bold text-2xl text-emerald-900">Pengaturan Sistem</h2>
+<h2 class="font-bold text-2xl text-blue-600">Pengaturan Sistem</h2>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
     <!-- Profil Guru -->
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div class="px-6 py-5 border-b border-gray-100 bg-gray-50/50">
             <h3 class="font-bold text-gray-900 flex items-center gap-2">
-                <span class="material-symbols-outlined text-emerald-700">person</span>
+                <span class="material-symbols-outlined text-blue-600">person</span>
                 Profil Guru
             </h3>
         </div>
@@ -18,24 +18,24 @@
             @csrf @method('PUT')
             <div>
                 <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Lengkap</label>
-                <input name="nama_lengkap" value="{{ $user->nama_lengkap }}" type="text" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                <input name="nama_lengkap" value="{{ $user->nama_lengkap }}" type="text" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Email</label>
-                <input name="email" value="{{ $user->email }}" type="email" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                <input name="email" value="{{ $user->email }}" type="email" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-600 uppercase mb-1">NIP</label>
-                    <input name="nip" value="{{ $user->nip }}" type="text" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    <input name="nip" value="{{ $user->nip }}" type="text" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-600 uppercase mb-1">No HP</label>
-                    <input name="no_hp" value="{{ $user->no_hp }}" type="text" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    <input name="no_hp" value="{{ $user->no_hp }}" type="text" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
                 </div>
             </div>
             <div class="flex justify-end pt-2">
-                <button type="submit" class="px-6 py-2.5 bg-emerald-900 text-white rounded-lg text-sm font-bold hover:bg-emerald-800">Simpan Profil</button>
+                <button type="submit" class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold hover:bg-blue-500">Simpan Profil</button>
             </div>
         </form>
     </div>
@@ -52,15 +52,15 @@
             @csrf @method('PUT')
             <div>
                 <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Password Lama</label>
-                <input name="current_password" type="password" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                <input name="current_password" type="password" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Password Baru</label>
-                <input name="password" type="password" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                <input name="password" type="password" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Konfirmasi Password Baru</label>
-                <input name="password_confirmation" type="password" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                <input name="password_confirmation" type="password" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
             </div>
             <div class="flex justify-end pt-2">
                 <button type="submit" class="px-6 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-bold hover:bg-amber-600">Ganti Password</button>
@@ -78,7 +78,7 @@
         </h3>
         @if(auth()->user()->isAdmin())
         <button onclick="document.getElementById('modal-ta').classList.remove('hidden')"
-            class="px-4 py-2 bg-emerald-900 text-white rounded-lg text-xs font-bold hover:bg-emerald-800">+ Tambah</button>
+            class="px-4 py-2 bg-blue-500 text-gray-900 rounded-lg text-xs font-bold hover:bg-blue-500">+ Tambah</button>
         @endif
     </div>
     <div class="overflow-x-auto">
@@ -100,12 +100,12 @@
                         <td class="px-6 py-3 font-medium text-gray-900">{{ $ta->nama_semester }}</td>
                         <td class="px-6 py-3 text-center">
                             @if($ta->status_aktif == 'Y')
-                                <span class="px-2 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">AKTIF</span>
+                                <span class="px-2 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">AKTIF</span>
                             @else
                                 @if(auth()->user()->isAdmin())
                                 <form method="POST" action="{{ route('pengaturan.tahun-ajaran.aktif', $ta->id) }}" class="inline">
                                     @csrf @method('PUT')
-                                    <button type="submit" class="px-2 py-1 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-full hover:bg-emerald-100 hover:text-emerald-800 transition-colors">
+                                    <button type="submit" class="px-2 py-1 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-full hover:bg-blue-500 hover:text-blue-600 transition-colors">
                                         Set Aktif
                                     </button>
                                 </form>
@@ -167,7 +167,7 @@
                                         </div>
                                         <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                                             <button type="button" onclick="document.getElementById('modal-ta-edit-{{ $ta->id }}').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600">Batal</button>
-                                            <button type="submit" class="px-6 py-2.5 bg-emerald-900 text-white rounded-lg text-sm font-bold">Simpan Perubahan</button>
+                                            <button type="submit" class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold">Simpan Perubahan</button>
                                         </div>
                                     </form>
                                 </div>
@@ -189,7 +189,7 @@
         </h3>
         @if(auth()->user()->isAdmin())
         <button onclick="document.getElementById('modal-mapel').classList.remove('hidden')"
-            class="px-4 py-2 bg-emerald-900 text-white rounded-lg text-xs font-bold hover:bg-emerald-800">+ Tambah</button>
+            class="px-4 py-2 bg-blue-500 text-gray-900 rounded-lg text-xs font-bold hover:bg-blue-500">+ Tambah</button>
         @endif
     </div>
     <div class="overflow-x-auto">
@@ -259,7 +259,7 @@
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onclick="document.getElementById('modal-ta').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600">Batal</button>
-                <button type="submit" class="px-6 py-2.5 bg-emerald-900 text-white rounded-lg text-sm font-bold">Simpan</button>
+                <button type="submit" class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold">Simpan</button>
             </div>
         </form>
     </div>
@@ -288,7 +288,7 @@
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onclick="document.getElementById('modal-mapel').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600">Batal</button>
-                <button type="submit" class="px-6 py-2.5 bg-emerald-900 text-white rounded-lg text-sm font-bold">Simpan</button>
+                <button type="submit" class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold">Simpan</button>
             </div>
         </form>
     </div>

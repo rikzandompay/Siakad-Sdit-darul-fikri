@@ -7,15 +7,15 @@
 <div class="flex items-center justify-between">
     <div class="space-y-1">
         <div class="flex items-center gap-2 text-sm text-gray-500">
-            <a href="{{ route('kelas.index') }}" class="hover:text-emerald-700">Kelas & Mapel</a>
+            <a href="{{ route('kelas.index') }}" class="hover:text-blue-600">Kelas & Mapel</a>
             <span class="material-symbols-outlined text-xs">chevron_right</span>
-            <span class="text-emerald-800 font-medium">{{ $kelas->nama_kelas }}</span>
+            <span class="text-blue-600 font-medium">{{ $kelas->nama_kelas }}</span>
         </div>
         <div class="flex items-center gap-4">
             <a href="{{ route('kelas.index') }}" class="p-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
                 <span class="material-symbols-outlined">arrow_back</span>
             </a>
-            <h2 class="font-bold text-2xl text-emerald-900">Jadwal Pelajaran {{ $kelas->nama_kelas }}</h2>
+            <h2 class="font-bold text-2xl text-blue-600">Jadwal Pelajaran {{ $kelas->nama_kelas }}</h2>
         </div>
     </div>
 </div>
@@ -23,8 +23,8 @@
 <!-- Header Info -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
     <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-3">
-        <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-            <span class="material-symbols-outlined text-emerald-700">person</span>
+        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+            <span class="material-symbols-outlined text-blue-600">person</span>
         </div>
         <div>
             <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Wali Kelas</p>
@@ -42,19 +42,19 @@
     </div>
     <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-3">
         <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <span class="material-symbols-outlined text-blue-700">book</span>
+            <span class="material-symbols-outlined text-blue-600">book</span>
         </div>
         <div>
             <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Mata Pelajaran</p>
             <p class="font-bold text-gray-900">{{ $kelas->jadwalPelajaran->unique('pelajaran_id')->count() }} Subjek</p>
         </div>
     </div>
-    <div class="bg-emerald-900 p-6 rounded-xl shadow-sm space-y-3 relative overflow-hidden">
+    <div class="bg-blue-500 p-6 rounded-xl shadow-sm space-y-3 relative overflow-hidden">
         <div class="relative z-10">
-            <p class="text-xs text-emerald-100/70 uppercase font-bold tracking-wider">Total Jadwal</p>
+            <p class="text-xs text-blue-600/70 uppercase font-bold tracking-wider">Total Jadwal</p>
             <p class="font-bold text-white text-xl">{{ $kelas->jadwalPelajaran->count() }} Sesi/Minggu</p>
         </div>
-        <span class="material-symbols-outlined absolute -bottom-4 -right-4 text-emerald-800 text-8xl opacity-30">calendar_today</span>
+        <span class="material-symbols-outlined absolute -bottom-4 -right-4 text-blue-600 text-8xl opacity-30">calendar_today</span>
     </div>
 </div>
 
@@ -97,7 +97,7 @@
                 @php $currentHari = ''; @endphp
                 @forelse($kelas->jadwalPelajaran as $jadwal)
                     <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-8 py-4 font-semibold text-emerald-800">
+                        <td class="px-8 py-4 font-semibold text-blue-600">
                             @if($jadwal->hari !== $currentHari)
                                 {{ $jadwal->hari }}
                                 @php $currentHari = $jadwal->hari; @endphp
@@ -117,7 +117,7 @@
                         <td class="px-8 py-4 text-center">
                             <div class="flex items-center justify-center gap-1">
                                 <button onclick="openEditModal({{ json_encode($jadwal) }})"
-                                    class="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Edit">
+                                    class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
                                     <span class="material-symbols-outlined text-sm">edit</span>
                                 </button>
                                 <form method="POST" action="{{ route('jadwal.destroy', $jadwal->id) }}" onsubmit="return confirm('Hapus jadwal ini?')" class="inline">
@@ -188,7 +188,7 @@
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onclick="document.getElementById('modal-tambah-jadwal').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600">Batal</button>
-                <button type="submit" class="px-6 py-2.5 bg-emerald-900 text-white rounded-lg text-sm font-bold">Simpan</button>
+                <button type="submit" class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold">Simpan</button>
             </div>
         </form>
     </div>
@@ -242,7 +242,7 @@
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onclick="document.getElementById('modal-edit-jadwal').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600">Batal</button>
-                <button type="submit" class="px-6 py-2.5 bg-emerald-900 text-white rounded-lg text-sm font-bold hover:bg-emerald-800">Perbarui</button>
+                <button type="submit" class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold hover:bg-blue-500">Perbarui</button>
             </div>
         </form>
     </div>

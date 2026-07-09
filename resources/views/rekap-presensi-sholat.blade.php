@@ -15,12 +15,12 @@
         <!-- Toggle Jenis Sholat -->
         <div class="flex items-center gap-3 mb-6">
             <a href="{{ route('presensi-sholat.rekap', array_merge(request()->query(), ['jenis' => 'Zuhur'])) }}"
-               class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == 'Zuhur' ? 'bg-emerald-900 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
+               class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == 'Zuhur' ? 'bg-blue-500 text-gray-900 shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
                 <span class="material-symbols-outlined text-sm align-middle mr-1">mosque</span>
                 Sholat Zuhur
             </a>
             <a href="{{ route('presensi-sholat.rekap', array_merge(request()->query(), ['jenis' => 'Dhuha'])) }}"
-               class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == 'Dhuha' ? 'bg-emerald-900 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
+               class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == 'Dhuha' ? 'bg-blue-500 text-gray-900 shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
                 <span class="material-symbols-outlined text-sm align-middle mr-1">wb_sunny</span>
                 Sholat Dhuha
             </a>
@@ -57,7 +57,7 @@
                 </div>
                 <div>
                     <button type="submit"
-                        class="w-full bg-emerald-900 text-white rounded-lg px-6 py-2.5 text-sm font-bold shadow-sm hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2">
+                        class="w-full bg-blue-500 text-gray-900 rounded-lg px-6 py-2.5 text-sm font-bold shadow-sm hover:bg-blue-500 transition-colors flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-sm">search</span>
                         Tampilkan Rekap
                     </button>
@@ -85,7 +85,7 @@
                                 <span class="material-symbols-outlined text-sm">picture_as_pdf</span> PDF
                             </a>
                             <a href="{{ route('presensi-sholat.rekap.export.csv', request()->all()) }}" target="_blank"
-                                class="flex-1 md:flex-none flex items-center justify-center gap-1.5 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-emerald-100 transition-colors border border-emerald-100">
+                                class="flex-1 md:flex-none flex items-center justify-center gap-1.5 bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-500 transition-colors border border-blue-200">
                                 <span class="material-symbols-outlined text-sm">csv</span> CSV
                             </a>
                         </div>
@@ -93,13 +93,13 @@
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <span class="material-symbols-outlined text-gray-400 text-sm">search</span>
                             </div>
-                            <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari Nama / NIS..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none">
+                            <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari Nama / NIS..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all outline-none">
                         </div>
                     </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm whitespace-nowrap">
-                        <thead class="bg-emerald-900 text-white">
+                        <thead class="bg-blue-500 text-gray-900">
                             <tr>
                                 <th class="px-6 py-4 font-bold uppercase tracking-wider w-16">No</th>
                                 <th class="px-6 py-4 font-bold uppercase tracking-wider">NIS</th>
@@ -116,13 +116,13 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @forelse($rekapData as $data)
-                                <tr class="hover:bg-emerald-50/50 transition-colors">
+                                <tr class="hover:bg-blue-50/50 transition-colors">
                                     <td class="px-6 py-4 text-gray-500">{{ $loop->iteration }}</td>
                                     <td class="px-6 py-4 font-medium text-gray-600">{{ $data['siswa']->nis }}</td>
                                     <td class="px-6 py-4">
                                         <div class="font-bold text-gray-900">{{ $data['siswa']->nama_siswa }}</div>
                                     </td>
-                                    <td class="px-6 py-4 text-center font-bold text-emerald-600 bg-emerald-50/30">
+                                    <td class="px-6 py-4 text-center font-bold text-blue-600 bg-blue-50/30">
                                         {{ $data['summary']['H'] }}
                                     </td>
                                     <td class="px-6 py-4 text-center font-bold text-amber-500 bg-amber-50/30">
@@ -154,10 +154,10 @@
                 </div>
             </div>
         @else
-            <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-8 text-center text-emerald-800">
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-8 text-center text-blue-600">
                 <span class="material-symbols-outlined text-4xl mb-3 opacity-50">touch_app</span>
                 <h3 class="text-lg font-bold">Pilih Kelas</h3>
-                <p class="text-emerald-700/70 mt-1">Silakan pilih kelas, bulan, dan tahun pada filter di atas untuk melihat
+                <p class="text-blue-600/70 mt-1">Silakan pilih kelas, bulan, dan tahun pada filter di atas untuk melihat
                     rekap kehadiran sholat siswa.</p>
             </div>
         @endif

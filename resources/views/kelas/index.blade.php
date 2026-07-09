@@ -5,7 +5,7 @@
 @section('content')
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
     <div class="space-y-1">
-        <h2 class="font-bold text-2xl text-emerald-900">Manajemen Kelas</h2>
+        <h2 class="font-bold text-2xl text-blue-600">Manajemen Kelas</h2>
         <p class="text-sm text-gray-500">Kelola data kelas dan jadwal pelajaran</p>
     </div>
     @if(auth()->user()->isAdmin())
@@ -20,12 +20,12 @@
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
     @foreach($kelasList as $kelas)
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-            <div class="h-28 bg-emerald-900 relative overflow-hidden flex items-end p-6">
-                <div>
-                    <h3 class="text-white font-bold text-lg leading-none">{{ $kelas->nama_kelas }}</h3>
-                    <p class="text-emerald-200/70 text-xs mt-1">{{ $kelas->waliKelas?->nama_lengkap ?? 'Belum ada wali' }}</p>
+            <div class="h-28 bg-white border-b border-gray-100 relative overflow-hidden flex items-end p-6">
+                <div class="relative z-10">
+                    <h3 class="text-blue-600 font-bold text-lg leading-none">{{ $kelas->nama_kelas }}</h3>
+                    <p class="text-gray-500 text-xs mt-1">{{ $kelas->waliKelas?->nama_lengkap ?? 'Belum ada wali' }}</p>
                 </div>
-                <span class="material-symbols-outlined absolute -bottom-4 -right-4 text-emerald-800 text-8xl opacity-30">class</span>
+                <span class="material-symbols-outlined absolute -bottom-4 -right-4 text-gray-100 text-8xl opacity-50">class</span>
             </div>
             <div class="p-6 space-y-4">
                 <div class="flex items-center justify-between text-sm">
@@ -34,7 +34,7 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <a href="{{ route('kelas.show', $kelas->id) }}"
-                        class="bg-emerald-900 hover:bg-emerald-950 text-white font-bold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-sm">visibility</span>
                         Detail
                     </a>
@@ -46,7 +46,7 @@
                 </div>
                 @if(auth()->user()->isAdmin())
                 <div class="flex gap-2">
-                    <button onclick="openEditKelas({{ json_encode($kelas) }})" class="flex-1 text-xs text-gray-500 hover:text-emerald-700 py-1 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">Edit</button>
+                    <button onclick="openEditKelas({{ json_encode($kelas) }})" class="flex-1 text-xs text-gray-500 hover:text-blue-600 py-1 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">Edit</button>
                     <form method="POST" action="{{ route('kelas.destroy', $kelas->id) }}" onsubmit="return confirm('Yakin hapus kelas ini?')" class="flex-1">
                         @csrf @method('DELETE')
                         <button type="submit" class="w-full text-xs text-gray-500 hover:text-red-600 py-1 border border-gray-200 rounded-lg hover:bg-red-50 transition-colors">Hapus</button>
@@ -71,11 +71,11 @@
             @csrf
             <div>
                 <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Kelas *</label>
-                <input name="nama_kelas" required type="text" placeholder="contoh: Kelas 1-A" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                <input name="nama_kelas" required type="text" placeholder="contoh: Kelas 1-A" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Wali Kelas</label>
-                <select name="wali_kelas_id" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                <select name="wali_kelas_id" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200">
                     <option value="">-- Pilih Wali Kelas --</option>
                     @foreach($guruList as $guru)
                         <option value="{{ $guru->id }}">{{ $guru->nama_lengkap ?? $guru->name }}</option>
@@ -84,7 +84,7 @@
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onclick="document.getElementById('modal-tambah-kelas').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">Batal</button>
-                <button type="submit" class="px-6 py-2.5 bg-emerald-900 text-white rounded-lg text-sm font-bold hover:bg-emerald-800">Simpan</button>
+                <button type="submit" class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold hover:bg-blue-500">Simpan</button>
             </div>
         </form>
     </div>
@@ -103,11 +103,11 @@
             @csrf @method('PUT')
             <div>
                 <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Kelas *</label>
-                <input id="edit-kelas-nama" name="nama_kelas" required type="text" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                <input id="edit-kelas-nama" name="nama_kelas" required type="text" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Wali Kelas</label>
-                <select id="edit-kelas-wali" name="wali_kelas_id" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                <select id="edit-kelas-wali" name="wali_kelas_id" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200">
                     <option value="">-- Pilih Wali Kelas --</option>
                     @foreach($guruList as $guru)
                         <option value="{{ $guru->id }}">{{ $guru->nama_lengkap ?? $guru->name }}</option>
@@ -116,7 +116,7 @@
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onclick="document.getElementById('modal-edit-kelas').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">Batal</button>
-                <button type="submit" class="px-6 py-2.5 bg-emerald-900 text-white rounded-lg text-sm font-bold hover:bg-emerald-800">Perbarui</button>
+                <button type="submit" class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold hover:bg-blue-500">Perbarui</button>
             </div>
         </form>
     </div>

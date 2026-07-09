@@ -26,7 +26,7 @@ class NilaiRapotController extends Controller
         $kelasId = $request->get('kelas_id');
         $pelajaranId = $request->get('pelajaran_id');
 
-        // Hanya kelas & mapel yang diampu guru ini (di-cache untuk memotong latensi Supabase)
+        // Hanya kelas & mapel yang diampu guru ini
         $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 300, function() use ($guruId) {
             return JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique()->toArray();
         });
@@ -63,11 +63,11 @@ class NilaiRapotController extends Controller
             $nilaiMap = $existingNilai->toArray();
 
             if ($existingNilai->count() > 0) {
-                $nilaiAkhirValues = $existingNilai->pluck('nilai_akhir');
-                $stats['rata_rata'] = round($nilaiAkhirValues->avg(), 1);
-                $stats['nilai_tertinggi'] = $nilaiAkhirValues->max();
-                $stats['perlu_remedial'] = $nilaiAkhirValues->filter(fn($v) => $v < 75)->count();
-                $stats['tuntas'] = $nilaiAkhirValues->filter(fn($v) => $v >= 75)->count();
+                $nilaiRaporValues = $existingNilai->pluck('nilai_rapor');
+                $stats['rata_rata'] = round($nilaiRaporValues->avg(), 1);
+                $stats['nilai_tertinggi'] = $nilaiRaporValues->max();
+                $stats['perlu_remedial'] = $nilaiRaporValues->filter(fn($v) => $v < 75)->count();
+                $stats['tuntas'] = $nilaiRaporValues->filter(fn($v) => $v >= 75)->count();
             }
         }
 
@@ -88,7 +88,6 @@ class NilaiRapotController extends Controller
         $tahunAjaranList = Cache::remember('tahun_ajaran_list', 300, fn() => TahunAjaran::orderByDesc('id')->get());
         $kelasList = Cache::remember('kelas_list_all_ordered', 300, fn() => Kelas::orderBy('nama_kelas')->get());
 
-        // Menggunakan TahunAjar::where jika getAktif tidak jalan, tapi kita asumsikan getAktif() exists seperti di index()
         $tahunAjaranId = $request->get('tahun_ajaran_id', TahunAjaran::where('status_aktif', 'Y')->value('id'));
         $kelasId = $request->get('kelas_id');
 
@@ -110,12 +109,12 @@ class NilaiRapotController extends Controller
                 ->get();
 
             foreach ($existingNilai as $nilai) {
-                $nilaiMap[$nilai->siswa_id][$nilai->pelajaran_id] = $nilai->nilai_akhir;
+                $nilaiMap[$nilai->siswa_id][$nilai->pelajaran_id] = $nilai->nilai_rapor;
             }
 
             $rataRataQuery = NilaiRapot::where('tahun_ajaran_id', $tahunAjaranId)
                 ->whereIn('siswa_id', $siswaList->pluck('id'))
-                ->selectRaw('siswa_id, ROUND(AVG(nilai_akhir), 1) as avg_nilai')
+                ->selectRaw('siswa_id, ROUND(AVG(nilai_rapor), 1) as avg_nilai')
                 ->groupBy('siswa_id')
                 ->pluck('avg_nilai', 'siswa_id')
                 ->toArray();
@@ -135,6 +134,9 @@ class NilaiRapotController extends Controller
         ));
     }
 
+    /**
+     * Batch Update - Store all nilai in one request
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -142,16 +144,55 @@ class NilaiRapotController extends Controller
             'pelajaran_id' => 'required|exists:mata_pelajaran,id',
             'nilai' => 'required|array',
             'nilai.*.siswa_id' => 'required|exists:siswa,id',
-            'nilai.*.nilai_tugas' => 'required|numeric|min:0|max:100',
-            'nilai.*.nilai_uts' => 'required|numeric|min:0|max:100',
-            'nilai.*.nilai_uas' => 'required|numeric|min:0|max:100',
+            // Formatif data - 4 BABs with TP1-4 and UH each
+            'nilai.*.formatif' => 'required|array',
+            'nilai.*.formatif.bab1' => 'required|array',
+            'nilai.*.formatif.bab1.tp1' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab1.tp2' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab1.tp3' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab1.tp4' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab1.uh' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab2' => 'required|array',
+            'nilai.*.formatif.bab2.tp1' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab2.tp2' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab2.tp3' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab2.tp4' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab2.uh' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab3' => 'required|array',
+            'nilai.*.formatif.bab3.tp1' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab3.tp2' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab3.tp3' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab3.tp4' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab3.uh' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab4' => 'required|array',
+            'nilai.*.formatif.bab4.tp1' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab4.tp2' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab4.tp3' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab4.tp4' => 'required|numeric|min:0|max:100',
+            'nilai.*.formatif.bab4.uh' => 'required|numeric|min:0|max:100',
+            // SAS - 0 to 100
+            'nilai.*.sas' => 'required|numeric|min:0|max:100',
+            // Kehadiran - 0 to 20
+            'nilai.*.kehadiran' => 'required|numeric|min:0|max:20',
+            // Pengurang - optional, default 0
+            'nilai.*.pengurang_tidaktelat' => 'nullable|numeric|min:0|max:100',
+            'nilai.*.pengurang_menyontek' => 'nullable|numeric|min:0|max:100',
         ]);
 
         foreach ($validated['nilai'] as $data) {
-            $nilaiAkhir = NilaiRapot::hitungNilaiAkhir(
-                $data['nilai_tugas'],
-                $data['nilai_uts'],
-                $data['nilai_uas']
+            $formatifData = $data['formatif'];
+            $sas = $data['sas'];
+            $kehadiran = $data['kehadiran'];
+            $pengurangTidaktelat = $data['pengurang_tidaktelat'] ?? 0;
+            $pengurangMenyontek = $data['pengurang_menyontek'] ?? 0;
+
+            // Calculate nilai_rapor using model method
+            $nilaiRapor = NilaiRapot::calculateNilaiRapor(
+                $formatifData,
+                $sas,
+                $kehadiran,
+                $pengurangTidaktelat,
+                $pengurangMenyontek
             );
 
             NilaiRapot::updateOrCreate(
@@ -161,10 +202,12 @@ class NilaiRapotController extends Controller
                     'pelajaran_id' => $validated['pelajaran_id'],
                 ],
                 [
-                    'nilai_tugas' => $data['nilai_tugas'],
-                    'nilai_uts' => $data['nilai_uts'],
-                    'nilai_uas' => $data['nilai_uas'],
-                    'nilai_akhir' => $nilaiAkhir,
+                    'formatif_data' => $formatifData,
+                    'sas' => $sas,
+                    'kehadiran' => $kehadiran,
+                    'pengurang_tidaktelat' => $pengurangTidaktelat,
+                    'pengurang_menyontek' => $pengurangMenyontek,
+                    'nilai_rapor' => $nilaiRapor,
                 ]
             );
         }
@@ -173,7 +216,7 @@ class NilaiRapotController extends Controller
             'tahun_ajaran_id' => $validated['tahun_ajaran_id'],
             'pelajaran_id' => $validated['pelajaran_id'],
             'kelas_id' => Siswa::find($validated['nilai'][0]['siswa_id'])?->kelas_id,
-        ])->with('success', 'Nilai berhasil disimpan!');
+        ])->with('success', 'Rekap nilai berhasil disimpan!');
     }
 
     /**
@@ -220,20 +263,58 @@ class NilaiRapotController extends Controller
             fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
             fputcsv($file, []);
 
-            fputcsv($file, ['No', 'NIS', 'Nama Siswa', 'Nilai Tugas', 'Nilai UTS', 'Nilai UAS', 'Nilai Akhir', 'Predikat']);
+            // Detailed Header
+            $headerRow = ['No', 'NIS', 'Nama Siswa'];
+            // BAB headers
+            for ($i = 1; $i <= 4; $i++) {
+                $headerRow[] = "BAB{$i} TP1";
+                $headerRow[] = "BAB{$i} TP2";
+                $headerRow[] = "BAB{$i} TP3";
+                $headerRow[] = "BAB{$i} TP4";
+                $headerRow[] = "BAB{$i} UH";
+                $headerRow[] = "BAB{$i} Rata-rata";
+            }
+            $headerRow[] = 'Formatif Total (50%)';
+            $headerRow[] = 'SAS (30%)';
+            $headerRow[] = 'Kehadiran';
+            $headerRow[] = 'Pengurang';
+            $headerRow[] = 'Nilai Rapor';
+            $headerRow[] = 'Predikat';
+            fputcsv($file, $headerRow);
+
             $no = 1;
             foreach ($siswaList as $s) {
                 $n = $nilaiData[$s->id] ?? null;
-                fputcsv($file, [
-                    $no++,
-                    $s->nis,
-                    $s->nama_siswa,
-                    $n ? $n->nilai_tugas : 0,
-                    $n ? $n->nilai_uts : 0,
-                    $n ? $n->nilai_uas : 0,
-                    $n ? $n->nilai_akhir : 0,
-                    $n ? NilaiRapot::getPredikat($n->nilai_akhir) : 'D',
-                ]);
+                $row = [$no++, $s->nis, $s->nama_siswa];
+                
+                $formatifData = $n ? $n->formatif_data : NilaiRapot::getDefaultFormatifData();
+                if (is_string($formatifData)) {
+                    $formatifData = json_decode($formatifData, true);
+                }
+                $formatifData = $formatifData ?: NilaiRapot::getDefaultFormatifData();
+                
+                $babAverages = $n ? $n->getBabAverages() : [];
+                
+                // Add BAB data
+                for ($i = 1; $i <= 4; $i++) {
+                    $babKey = "bab{$i}";
+                    $babData = $formatifData[$babKey] ?? [];
+                    $row[] = $babData['tp1'] ?? 0;
+                    $row[] = $babData['tp2'] ?? 0;
+                    $row[] = $babData['tp3'] ?? 0;
+                    $row[] = $babData['tp4'] ?? 0;
+                    $row[] = $babData['uh'] ?? 0;
+                    $row[] = $babAverages[$babKey] ?? 0;
+                }
+                
+                $row[] = $n ? $n->getFormatifTotal() : 0;
+                $row[] = $n ? $n->sas : 0;
+                $row[] = $n ? $n->kehadiran : 0;
+                $row[] = $n ? $n->getTotalPengurang() : 0;
+                $row[] = $n ? $n->nilai_rapor : 0;
+                $row[] = $n ? NilaiRapot::getPredikat($n->nilai_rapor) : 'D';
+                
+                fputcsv($file, $row);
             }
             fclose($file);
         };
@@ -284,7 +365,7 @@ class NilaiRapotController extends Controller
 
         $nilaiMap = [];
         foreach ($existingNilai as $nilai) {
-            $nilaiMap[$nilai->siswa_id][$nilai->pelajaran_id] = $nilai->nilai_akhir;
+            $nilaiMap[$nilai->siswa_id][$nilai->pelajaran_id] = $nilai->nilai_rapor;
         }
 
         $kelas = Kelas::find($kelasId);
@@ -319,7 +400,7 @@ class NilaiRapotController extends Controller
 
             $rataRataSiswa = NilaiRapot::where('tahun_ajaran_id', $tahunAjaranId)
                 ->whereIn('siswa_id', $siswaList->pluck('id'))
-                ->selectRaw('siswa_id, ROUND(AVG(nilai_akhir), 1) as avg_nilai')
+                ->selectRaw('siswa_id, ROUND(AVG(nilai_rapor), 1) as avg_nilai')
                 ->groupBy('siswa_id')
                 ->pluck('avg_nilai', 'siswa_id')
                 ->toArray();
@@ -364,12 +445,12 @@ class NilaiRapotController extends Controller
         $nilaiMap = [];
         $rataRataSiswa = [];
         foreach ($existingNilai as $nilai) {
-            $nilaiMap[$nilai->siswa_id][$nilai->pelajaran_id] = $nilai->nilai_akhir;
+            $nilaiMap[$nilai->siswa_id][$nilai->pelajaran_id] = $nilai->nilai_rapor;
         }
 
         $rataRataSiswa = NilaiRapot::where('tahun_ajaran_id', $tahunAjaranId)
             ->whereIn('siswa_id', $siswaList->pluck('id'))
-            ->selectRaw('siswa_id, ROUND(AVG(nilai_akhir), 1) as avg_nilai')
+            ->selectRaw('siswa_id, ROUND(AVG(nilai_rapor), 1) as avg_nilai')
             ->groupBy('siswa_id')
             ->pluck('avg_nilai', 'siswa_id')
             ->toArray();

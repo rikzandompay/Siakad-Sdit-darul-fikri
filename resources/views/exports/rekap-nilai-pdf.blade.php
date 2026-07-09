@@ -6,7 +6,7 @@
     <title>Rekap Nilai Siswa - {{ $selectedKelas->nama_kelas }}</title>
     <style>
         @page {
-            size: A4 landscape;
+            size: A4;
             margin: 1.5cm;
         }
 

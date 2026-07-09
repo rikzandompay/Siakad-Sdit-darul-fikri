@@ -7,11 +7,11 @@
 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
     <div>
         <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <a href="{{ route('presensi-sholat.index', ['jenis' => $jenisSholat]) }}" class="hover:text-emerald-700">Sholat {{ $jenisSholat }}</a>
+            <a href="{{ route('presensi-sholat.index', ['jenis' => $jenisSholat]) }}" class="hover:text-blue-600">Sholat {{ $jenisSholat }}</a>
             <span class="material-symbols-outlined text-xs">chevron_right</span>
-            <span class="text-emerald-800 font-medium">{{ $kelas->nama_kelas }}</span>
+            <span class="text-blue-600 font-medium">{{ $kelas->nama_kelas }}</span>
         </div>
-        <h2 class="font-bold text-2xl text-emerald-900">Presensi Sholat {{ $jenisSholat }}</h2>
+        <h2 class="font-bold text-2xl text-blue-600">Presensi Sholat {{ $jenisSholat }}</h2>
         <p class="text-gray-500 text-sm">Kelola kehadiran sholat {{ $jenisSholat }} siswa {{ $kelas->nama_kelas }}</p>
     </div>
     <div class="flex items-center gap-2 flex-wrap">
@@ -29,19 +29,19 @@
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
     <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                <span class="material-symbols-outlined text-emerald-600" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <div class="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
+                <span class="material-symbols-outlined text-blue-600" style="font-variation-settings: 'FILL' 1;">check_circle</span>
             </div>
-            <span class="text-sm font-bold text-emerald-700">Hadir</span>
+            <span class="text-sm font-bold text-blue-600">Hadir</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $hadirCount }}</p>
     </div>
     <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
                 <span class="material-symbols-outlined text-blue-600" style="font-variation-settings: 'FILL' 1;">medical_services</span>
             </div>
-            <span class="text-sm font-bold text-blue-700">Sakit</span>
+            <span class="text-sm font-bold text-blue-600">Sakit</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $sakitCount }}</p>
     </div>
@@ -71,7 +71,7 @@
         <input type="hidden" name="jenis" value="{{ $jenisSholat }}">
         <div>
             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Pilih Kelas</label>
-            <select onchange="window.location.href='/presensi-sholat/'+this.value+'?jenis={{ $jenisSholat }}'" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500">
+            <select onchange="window.location.href='/presensi-sholat/'+this.value+'?jenis={{ $jenisSholat }}'" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-blue-500 focus:border-blue-200">
                 @foreach($kelasList as $k)
                     <option value="{{ $k->id }}" {{ $kelas->id == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
                 @endforeach
@@ -79,10 +79,10 @@
         </div>
         <div>
             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Tanggal</label>
-            <input name="tanggal" type="date" value="{{ $tanggal }}" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-emerald-500 focus:border-emerald-500" />
+            <input name="tanggal" type="date" value="{{ $tanggal }}" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-blue-500 focus:border-blue-200" />
         </div>
         <div>
-            <button type="submit" class="w-full h-10 bg-emerald-900 text-white font-bold px-6 rounded-lg hover:bg-emerald-800 text-sm transition-colors flex items-center justify-center gap-2">
+            <button type="submit" class="w-full h-10 bg-blue-500 text-gray-900 font-bold px-6 rounded-lg hover:bg-blue-500 text-sm transition-colors flex items-center justify-center gap-2">
                 <span class="material-symbols-outlined text-sm">filter_list</span>
                 Filter Data
             </button>
@@ -101,7 +101,7 @@
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
             <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-emerald-700">mosque</span>
+                <span class="material-symbols-outlined text-blue-600">mosque</span>
                 <h3 class="font-bold text-gray-900">Daftar Kehadiran Sholat {{ $jenisSholat }}</h3>
             </div>
             <span class="text-sm text-gray-500">{{ $siswa->count() }} Siswa</span>
@@ -124,14 +124,14 @@
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">{{ $s->nis }}</td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-full {{ $s->jenis_kelamin == 'L' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }} flex items-center justify-center font-bold text-xs">
+                                    <div class="w-9 h-9 rounded-full {{ $s->jenis_kelamin == 'L' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }} flex items-center justify-center font-bold text-xs">
                                         {{ $s->initials }}
                                     </div>
                                     <span class="font-medium text-gray-900">{{ $s->nama_siswa }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <span class="px-2 py-0.5 rounded text-xs font-bold {{ $s->jenis_kelamin == 'L' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700' }}">{{ $s->jenis_kelamin }}</span>
+                                <span class="px-2 py-0.5 rounded text-xs font-bold {{ $s->jenis_kelamin == 'L' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-700' }}">{{ $s->jenis_kelamin }}</span>
                             </td>
                             <td class="px-6 py-4">
                                 <input type="hidden" name="presensi[{{ $index }}][siswa_id]" value="{{ $s->id }}">
@@ -143,8 +143,8 @@
                                                 {{ $currentStatus == $code ? 'checked' : '' }}>
                                             <span class="block px-4 py-2 rounded-lg text-[11px] font-bold transition-all border
                                                 peer-checked:border-transparent peer-checked:text-white peer-checked:shadow-md
-                                                @if($code == 'H') peer-checked:bg-emerald-600 border-gray-200 text-gray-500 hover:bg-emerald-50
-                                                @elseif($code == 'S') peer-checked:bg-blue-600 border-gray-200 text-gray-500 hover:bg-blue-50
+                                                @if($code == 'H') peer-checked:bg-blue-500 border-gray-200 text-gray-500 hover:bg-blue-50
+                                                @elseif($code == 'S') peer-checked:bg-blue-500 border-gray-200 text-gray-500 hover:bg-blue-50
                                                 @elseif($code == 'I') peer-checked:bg-amber-500 border-gray-200 text-gray-500 hover:bg-amber-50
                                                 @else peer-checked:bg-red-600 border-gray-200 text-gray-500 hover:bg-red-50
                                                 @endif">
