@@ -137,7 +137,7 @@
 
         .signature td {
             width: 50%;
-            padding-bottom: 50px;
+            vertical-align: top;
         }
 
         .signature-name {
@@ -203,7 +203,7 @@
                 <th rowspan="2" style="background: #f3f4f6;">Predikat</th>
             </tr>
             <tr>
-                @for($bab = 1; $bab <= 4; $bab++)
+                @for ($bab = 1; $bab <= 4; $bab++)
                     <th style="font-size: 7pt;">TP1</th>
                     <th style="font-size: 7pt;">TP2</th>
                     <th style="font-size: 7pt;">TP3</th>
@@ -233,7 +233,7 @@
                     <td>{{ $i + 1 }}</td>
                     <td class="text-left">{{ $s->nis }}</td>
                     <td class="text-left"><strong>{{ $s->nama_siswa }}</strong></td>
-                    @for($bab = 1; $bab <= 4; $bab++)
+                    @for ($bab = 1; $bab <= 4; $bab++)
                         @php $babKey = "bab{$bab}"; @endphp
                         <td>{{ $formatifData[$babKey]['tp1'] ?? 0 }}</td>
                         <td>{{ $formatifData[$babKey]['tp2'] ?? 0 }}</td>
@@ -257,18 +257,23 @@
     <div class="signature">
         <table>
             <tr>
-                <td>
+                <td style="padding-bottom: 70px;">
                     Mengetahui,<br>Kepala Sekolah
-                    <br><br><br><br><br>
+                </td>
+                <td style="padding-bottom: 70px;">
+                    {{ now()->translatedFormat('d F Y') }}<br>Wali Kelas
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <b>Dewi Quraisyinta</b><br>
                     <span class="signature-name">_______________________</span><br>
                     NIP. .........................
                 </td>
                 <td>
-                    ............, {{ now()->translatedFormat('d F Y') }}<br>Guru Mata Pelajaran
-                    <br><br><br><br><br>
-                    <br><b>Dewi Quraisyinta<br>
-                        <span class="signature-name">_______________________</span><br>
-                        NIP. .........................
+                    <b>{{ $kelas->waliKelas->nama_lengkap ?? '_______________________' }}</b><br>
+                    <span class="signature-name">_______________________</span><br>
+                    NIP. .........................
                 </td>
             </tr>
         </table>

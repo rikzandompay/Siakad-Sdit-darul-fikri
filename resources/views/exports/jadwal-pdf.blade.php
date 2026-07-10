@@ -113,7 +113,7 @@
 
         .signature td {
             width: 50%;
-            padding-bottom: 60px;
+            vertical-align: top;
         }
 
         .signature-name {
@@ -196,18 +196,22 @@
     <div class="signature">
         <table>
             <tr>
-                <td>
+                <td style="padding-bottom: 70px;">
                     Mengetahui,<br>Kepala Sekolah
-                    <br><br><br><br><br>
-                    <br><b>Dewi Quraisyinta<br>
-                        <span class="signature-name">_______________________</span><br>
-                        NIP. .........................
+                </td>
+                <td style="padding-bottom: 70px;">
+                    ............, {{ now()->translatedFormat('d F Y') }}<br>Wali Kelas
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <b>Dewi Quraisyinta</b><br>
+                    <span class="signature-name">_______________________</span><br>
+                    NIP. .........................
                 </td>
                 <td>
-                    ............, {{ now()->translatedFormat('d F Y') }}<br>Wali Kelas
-                    <br><br><br><br><br>
-                    <span
-                        class="signature-name">{{ $kelas->waliKelas->nama_lengkap ?? '_______________________' }}</span><br>
+                    <b>{{ $kelas->waliKelas->nama_lengkap ?? '_______________________' }}</b><br>
+                    <span class="signature-name">_______________________</span><br>
                     NIP. .........................
                 </td>
             </tr>

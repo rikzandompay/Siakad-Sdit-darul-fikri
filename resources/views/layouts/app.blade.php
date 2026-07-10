@@ -219,7 +219,7 @@
                     <p class="text-xs text-gray-500">Guru</p>
                 </div>
                 <div
-                    class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 font-bold border-2 border-blue-50">
+                    class="w-10 h-10 shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 font-bold border-2 border-blue-50">
                     {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
                 </div>
             </div>

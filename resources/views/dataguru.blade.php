@@ -120,7 +120,7 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div
-                                        class="w-8 h-8 rounded-full {{ $g->jenis_kelamin == 'L' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }} flex items-center justify-center text-xs font-bold">
+                                        class="w-8 h-8 shrink-0 rounded-full {{ $g->jenis_kelamin == 'L' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }} flex items-center justify-center text-xs font-bold">
                                         @php
                                             $words = explode(' ', $g->nama_lengkap ?? $g->name);
                                             $initials = '';

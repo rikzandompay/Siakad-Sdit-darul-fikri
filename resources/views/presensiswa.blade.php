@@ -149,7 +149,7 @@
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">{{ $s->nis }}</td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-full {{ $s->jenis_kelamin == 'L' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }} flex items-center justify-center font-bold text-xs">
+                                    <div class="w-9 h-9 shrink-0 rounded-full {{ $s->jenis_kelamin == 'L' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }} flex items-center justify-center font-bold text-xs">
                                         {{ $s->initials }}
                                     </div>
                                     <span class="font-medium text-gray-900">{{ $s->nama_siswa }}</span>
