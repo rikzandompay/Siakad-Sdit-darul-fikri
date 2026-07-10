@@ -85,11 +85,24 @@ class NilaiRapotController extends Controller
 
     public function rekap(Request $request)
     {
+        $user = Auth::user();
         $tahunAjaranList = Cache::remember('tahun_ajaran_list', 300, fn() => TahunAjaran::orderByDesc('id')->get());
-        $kelasList = Cache::remember('kelas_list_all_ordered', 300, fn() => Kelas::orderBy('nama_kelas')->get());
+        
+        if ($user->isAdmin()) {
+            $kelasList = Cache::remember('kelas_list_all_ordered', 300, fn() => Kelas::orderBy('nama_kelas')->get());
+        } else {
+            $kelasList = Kelas::where('wali_kelas_id', $user->id)->orderBy('nama_kelas')->get();
+        }
 
         $tahunAjaranId = $request->get('tahun_ajaran_id', TahunAjaran::where('status_aktif', 'Y')->value('id'));
         $kelasId = $request->get('kelas_id');
+
+        if (!$user->isAdmin() && $kelasId) {
+            $isWaliKelas = $kelasList->contains('id', $kelasId);
+            if (!$isWaliKelas) {
+                $kelasId = null; 
+            }
+        }
 
         $siswaList = collect();
         $mapelList = collect();
@@ -350,11 +363,19 @@ class NilaiRapotController extends Controller
 
     public function exportRekapCsv(Request $request)
     {
+        $user = Auth::user();
         $tahunAjaranId = $request->get('tahun_ajaran_id');
         $kelasId = $request->get('kelas_id');
 
         if (!$kelasId || !$tahunAjaranId) {
             return redirect()->route('nilai.rekap')->with('error', 'Pilih filter terlebih dahulu.');
+        }
+
+        if (!$user->isAdmin()) {
+            $isWaliKelas = Kelas::where('id', $kelasId)->where('wali_kelas_id', $user->id)->exists();
+            if (!$isWaliKelas) {
+                return redirect()->route('nilai.rekap')->with('error', 'Anda tidak memiliki akses ke kelas ini.');
+            }
         }
 
         $siswaList = Siswa::where('kelas_id', $kelasId)->where('status', 'Aktif')->orderBy('nama_siswa')->get();
@@ -429,11 +450,19 @@ class NilaiRapotController extends Controller
 
     public function exportRekapPdf(Request $request)
     {
+        $user = Auth::user();
         $tahunAjaranId = $request->get('tahun_ajaran_id');
         $kelasId = $request->get('kelas_id');
 
         if (!$kelasId || !$tahunAjaranId) {
             return redirect()->route('nilai.rekap')->with('error', 'Pilih filter terlebih dahulu.');
+        }
+
+        if (!$user->isAdmin()) {
+            $isWaliKelas = Kelas::where('id', $kelasId)->where('wali_kelas_id', $user->id)->exists();
+            if (!$isWaliKelas) {
+                return redirect()->route('nilai.rekap')->with('error', 'Anda tidak memiliki akses ke kelas ini.');
+            }
         }
 
         $siswaList = Siswa::where('kelas_id', $kelasId)->where('status', 'Aktif')->orderBy('nama_siswa')->get();
