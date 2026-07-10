@@ -6,7 +6,8 @@
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}?v=2">
+    <link rel="shortcut icon" href="{{ asset('images/logo.png') }}?v=2">
     <title>@yield('title', 'SDIT Darul Fikri') - Sistem Informasi</title>
 
     {{-- DNS Prefetch & Preconnect for external resources --}}

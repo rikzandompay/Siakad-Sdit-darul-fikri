@@ -5,7 +5,8 @@
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <meta name="description" content="Login ke Sistem Informasi Akademik SDIT Darul Fikri">
-    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}?v=2">
+    <link rel="shortcut icon" href="{{ asset('images/logo.png') }}?v=2">
     <title>Login - SDIT Darul Fikri</title>
 
     {{-- Preconnect to font origins --}}
