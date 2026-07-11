@@ -126,13 +126,20 @@
 </head>
 
 <body onload="window.print()">
-    <div class="kop-surat">
-        <h1>SD IT DARUL FIKRI</h1>
-        <h2>YAYASAN PENDIDIKAN DARUL FIKRI</h2>
-        <p>Alamat: Jl. Sungai Durian Laut Kec.Sungai Raya Kabupaten Kubu Raya, Provinsi Kalimantan Barat, Kode Pos
-            78391<br>Telp:
-            (021) 1234567 | Email:
-            info@sditdarulfikri.sch.id</p>
+        <div class="kop-surat">
+        <table style="width: 100%; border-collapse: collapse; border: none; margin: 0; padding: 0;">
+            <tr>
+                <td style="width: 15%; text-align: center; vertical-align: middle; border: none; padding: 0;">
+                    <img src="{{ asset('Lgo.png') }}" alt="Logo" style="width: 80px;">
+                </td>
+                <td style="width: 70%; text-align: center; border: none; padding: 0;">
+                    <h1 style="font-size: 18pt; margin: 0; text-transform: uppercase; font-weight: bold;">SD IT DARUL FIKRI</h1>
+                    <h2 style="font-size: 14pt; margin: 5px 0 0;">YAYASAN PENDIDIKAN DARUL FIKRI</h2>
+                    <p style="font-size: 8pt; margin: 4px 0 0;">Alamat: Jl. Sungai Durian Laut Kec.Sungai Raya Kabupaten Kubu Raya, Provinsi Kalimantan Barat, Kode Pos 78391<br>Telp: (021) 1234567 | Email: info@sditdarulfikri.sch.id</p>
+                </td>
+                <td style="width: 15%; border: none; padding: 0;"></td>
+            </tr>
+        </table>
     </div>
 
     <div class="title">REKAPITULASI PRESENSI SISWA</div>
