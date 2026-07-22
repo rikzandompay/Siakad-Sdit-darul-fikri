@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class NilaiRapot extends Model
 {
@@ -59,8 +58,9 @@ class NilaiRapot extends Model
      */
     public static function calculateBabAverage(array $babData): float
     {
-        $sum = ($babData['tp1'] ?? 0) + ($babData['tp2'] ?? 0) + 
+        $sum = ($babData['tp1'] ?? 0) + ($babData['tp2'] ?? 0) +
                ($babData['tp3'] ?? 0) + ($babData['tp4'] ?? 0) + ($babData['uh'] ?? 0);
+
         return round($sum / 5, 2);
     }
 
@@ -79,7 +79,7 @@ class NilaiRapot extends Model
                 $babAverages[] = 0;
             }
         }
-        
+
         return round(array_sum($babAverages) / 4, 2);
     }
 
@@ -88,17 +88,17 @@ class NilaiRapot extends Model
      * Formula: (Formatif Total × 0.50) + (SAS × 0.30) + Kehadiran - Total Pengurang
      */
     public static function calculateNilaiRapor(
-        array $formatifData, 
-        float $sas, 
-        float $kehadiran, 
-        float $pengurangTidaktelat = 0, 
+        array $formatifData,
+        float $sas,
+        float $kehadiran,
+        float $pengurangTidaktelat = 0,
         float $pengurangMenyontek = 0
     ): float {
         $formatifTotal = self::calculateFormatifTotal($formatifData);
         $totalPengurang = $pengurangTidaktelat + $pengurangMenyontek;
-        
+
         $nilaiRapor = ($formatifTotal * 0.50) + ($sas * 0.30) + $kehadiran - $totalPengurang;
-        
+
         // Ensure nilai_rapor is between 0 and 100
         return round(max(0, min(100, $nilaiRapor)), 2);
     }
@@ -113,14 +113,14 @@ class NilaiRapot extends Model
             $formatifData = json_decode($formatifData, true);
         }
         $formatifData = $formatifData ?: self::getDefaultFormatifData();
-        
+
         $averages = [];
-        
+
         for ($i = 1; $i <= 4; $i++) {
             $babKey = "bab{$i}";
             $averages[$babKey] = self::calculateBabAverage($formatifData[$babKey] ?? []);
         }
-        
+
         return $averages;
     }
 
@@ -134,7 +134,7 @@ class NilaiRapot extends Model
             $formatifData = json_decode($formatifData, true);
         }
         $formatifData = $formatifData ?: self::getDefaultFormatifData();
-        
+
         return self::calculateFormatifTotal($formatifData);
     }
 
@@ -151,10 +151,23 @@ class NilaiRapot extends Model
      */
     public static function getPredikat($nilaiRapor): string
     {
-        if ($nilaiRapor >= 85) return 'A';
-        if ($nilaiRapor >= 75) return 'B';
-        if ($nilaiRapor >= 65) return 'C';
-        return 'D';
+        if ($nilaiRapor >= 85) {
+            return 'A';
+        }
+        if ($nilaiRapor >= 75) {
+            return 'B';
+        }
+        if ($nilaiRapor >= 65) {
+            return 'C';
+        }
+        if ($nilaiRapor >= 55) {
+            return 'D';
+        }
+        if ($nilaiRapor >= 45) {
+            return 'E';
+        }
+
+        return 'F';
     }
 
     public function getPredikatAttribute(): string

@@ -2,23 +2,48 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\NilaiRapot;
-use App\Models\TahunAjaran;
+use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
-use App\Models\JadwalPelajaran;
+use App\Models\NilaiRapot;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
 class NilaiRapotController extends Controller
 {
+    protected function ensureTeacherCanAccessKelas(int $kelasId): void
+    {
+        $guruId = Auth::id();
+        $hasAccess = JadwalPelajaran::where('guru_id', $guruId)
+            ->where('kelas_id', $kelasId)
+            ->exists();
+
+        if (!$hasAccess) {
+            abort(403, 'Anda tidak memiliki akses ke kelas ini.');
+        }
+    }
+
+    protected function ensureTeacherCanAccessPelajaran(int $pelajaranId, int $kelasId): void
+    {
+        $guruId = Auth::id();
+        $hasAccess = JadwalPelajaran::where('guru_id', $guruId)
+            ->where('kelas_id', $kelasId)
+            ->where('pelajaran_id', $pelajaranId)
+            ->exists();
+
+        if (!$hasAccess) {
+            abort(403, 'Anda tidak memiliki akses untuk menginput nilai di kelas dan mata pelajaran ini.');
+        }
+    }
+
     public function index(Request $request)
     {
         $guruId = Auth::id();
 
-        $tahunAjaranList = Cache::remember("tahun_ajaran_list", 300, function() {
+        $tahunAjaranList = Cache::remember('tahun_ajaran_list', 300, function () {
             return TahunAjaran::orderByDesc('id')->get();
         });
 
@@ -27,20 +52,21 @@ class NilaiRapotController extends Controller
         $pelajaranId = $request->get('pelajaran_id');
 
         // Hanya kelas & mapel yang diampu guru ini
-        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 300, function() use ($guruId) {
+        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 300, function () use ($guruId) {
             return JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique()->toArray();
         });
-        
-        $kelasList = Cache::remember("kelas_list_guru_{$guruId}", 300, function() use ($kelasIdsGuru) {
+
+        $kelasList = Cache::remember("kelas_list_guru_{$guruId}", 300, function () use ($kelasIdsGuru) {
             return Kelas::whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
         });
 
-        $mapelList = Cache::remember("mapel_list_guru_{$guruId}_kelas_" . ($kelasId ?? 'all'), 300, function() use ($guruId, $kelasId) {
+        $mapelList = Cache::remember("mapel_list_guru_{$guruId}_kelas_".($kelasId ?? 'all'), 300, function () use ($guruId, $kelasId) {
             $guruJadwalQuery = JadwalPelajaran::where('guru_id', $guruId);
             if ($kelasId) {
                 $guruJadwalQuery->where('kelas_id', $kelasId);
             }
             $mapelIdsGuru = $guruJadwalQuery->pluck('pelajaran_id')->unique();
+
             return MataPelajaran::whereIn('id', $mapelIdsGuru)->orderBy('nama_pelajaran')->get();
         });
 
@@ -49,6 +75,7 @@ class NilaiRapotController extends Controller
         $stats = ['rata_rata' => 0, 'nilai_tertinggi' => 0, 'perlu_remedial' => 0, 'tuntas' => 0];
 
         if ($kelasId && $pelajaranId && $tahunAjaranId) {
+            $this->ensureTeacherCanAccessKelas($kelasId);
             $siswaList = Siswa::where('kelas_id', $kelasId)
                 ->where('status', 'Aktif')
                 ->orderBy('nama_siswa')
@@ -66,8 +93,8 @@ class NilaiRapotController extends Controller
                 $nilaiRaporValues = $existingNilai->pluck('nilai_rapor');
                 $stats['rata_rata'] = round($nilaiRaporValues->avg(), 1);
                 $stats['nilai_tertinggi'] = $nilaiRaporValues->max();
-                $stats['perlu_remedial'] = $nilaiRaporValues->filter(fn($v) => $v < 75)->count();
-                $stats['tuntas'] = $nilaiRaporValues->filter(fn($v) => $v >= 75)->count();
+                $stats['perlu_remedial'] = $nilaiRaporValues->filter(fn ($v) => $v < 75)->count();
+                $stats['tuntas'] = $nilaiRaporValues->filter(fn ($v) => $v >= 75)->count();
             }
         }
 
@@ -86,10 +113,10 @@ class NilaiRapotController extends Controller
     public function rekap(Request $request)
     {
         $user = Auth::user();
-        $tahunAjaranList = Cache::remember('tahun_ajaran_list', 300, fn() => TahunAjaran::orderByDesc('id')->get());
-        
+        $tahunAjaranList = Cache::remember('tahun_ajaran_list', 300, fn () => TahunAjaran::orderByDesc('id')->get());
+
         if ($user->isAdmin()) {
-            $kelasList = Cache::remember('kelas_list_all_ordered', 300, fn() => Kelas::orderBy('nama_kelas')->get());
+            $kelasList = Cache::remember('kelas_list_all_ordered', 300, fn () => Kelas::orderBy('nama_kelas')->get());
         } else {
             $kelasList = Kelas::where('wali_kelas_id', $user->id)->orderBy('nama_kelas')->get();
         }
@@ -97,16 +124,16 @@ class NilaiRapotController extends Controller
         $tahunAjaranId = $request->get('tahun_ajaran_id', TahunAjaran::where('status_aktif', 'Y')->value('id'));
         $kelasId = $request->get('kelas_id');
 
-        if (!$user->isAdmin() && $kelasId) {
+        if (! $user->isAdmin() && $kelasId) {
             $isWaliKelas = $kelasList->contains('id', $kelasId);
-            if (!$isWaliKelas) {
-                $kelasId = null; 
+            if (! $isWaliKelas) {
+                abort(403, 'Anda tidak memiliki akses ke kelas ini.');
             }
         }
 
         $siswaList = collect();
         $mapelList = collect();
-        $nilaiMap = []; 
+        $nilaiMap = [];
         $rataRataSiswa = [];
 
         if ($kelasId && $tahunAjaranId) {
@@ -114,7 +141,7 @@ class NilaiRapotController extends Controller
                 ->where('status', 'Aktif')
                 ->orderBy('nama_siswa')
                 ->get();
-                
+
             $mapelList = MataPelajaran::orderBy('nama_pelajaran')->get();
 
             $existingNilai = NilaiRapot::where('tahun_ajaran_id', $tahunAjaranId)
@@ -192,6 +219,11 @@ class NilaiRapotController extends Controller
             'nilai.*.pengurang_menyontek' => 'nullable|numeric|min:0|max:100',
         ]);
 
+        $firstKelasId = Siswa::find($validated['nilai'][0]['siswa_id'])?->kelas_id;
+        if ($firstKelasId) {
+            $this->ensureTeacherCanAccessPelajaran($validated['pelajaran_id'], $firstKelasId);
+        }
+
         foreach ($validated['nilai'] as $data) {
             $formatifData = $data['formatif'];
             $sas = $data['sas'];
@@ -241,9 +273,11 @@ class NilaiRapotController extends Controller
         $kelasId = $request->get('kelas_id');
         $pelajaranId = $request->get('pelajaran_id');
 
-        if (!$kelasId || !$pelajaranId || !$tahunAjaranId) {
+        if (! $kelasId || ! $pelajaranId || ! $tahunAjaranId) {
             return redirect()->route('nilai.index')->with('error', 'Pilih filter terlebih dahulu.');
         }
+
+        $this->ensureTeacherCanAccessKelas($kelasId);
 
         $siswaList = Siswa::where('kelas_id', $kelasId)->where('status', 'Aktif')->orderBy('nama_siswa')->get();
         $nilaiData = NilaiRapot::where('tahun_ajaran_id', $tahunAjaranId)
@@ -253,7 +287,7 @@ class NilaiRapotController extends Controller
 
         $mapel = MataPelajaran::find($pelajaranId);
         $kelas = Kelas::find($kelasId);
-        $filename = 'nilai_' . str_replace(' ', '_', $kelas->nama_kelas ?? '') . '_' . ($mapel->kode_pelajaran ?? '') . '_' . now()->format('Ymd') . '.csv';
+        $filename = 'nilai_'.str_replace(' ', '_', $kelas->nama_kelas ?? '').'_'.($mapel->kode_pelajaran ?? '').'_'.now()->format('Ymd').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -261,9 +295,9 @@ class NilaiRapotController extends Controller
         ];
 
         $callback = function () use ($siswaList, $nilaiData, $kelas, $mapel, $tahunAjaranId) {
-            $tahunAjaran = \App\Models\TahunAjaran::find($tahunAjaranId);
+            $tahunAjaran = TahunAjaran::find($tahunAjaranId);
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // Header Section
             fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
@@ -299,15 +333,15 @@ class NilaiRapotController extends Controller
             foreach ($siswaList as $s) {
                 $n = $nilaiData[$s->id] ?? null;
                 $row = [$no++, $s->nis, $s->nama_siswa];
-                
+
                 $formatifData = $n ? $n->formatif_data : NilaiRapot::getDefaultFormatifData();
                 if (is_string($formatifData)) {
                     $formatifData = json_decode($formatifData, true);
                 }
                 $formatifData = $formatifData ?: NilaiRapot::getDefaultFormatifData();
-                
+
                 $babAverages = $n ? $n->getBabAverages() : [];
-                
+
                 // Add BAB data
                 for ($i = 1; $i <= 4; $i++) {
                     $babKey = "bab{$i}";
@@ -319,14 +353,14 @@ class NilaiRapotController extends Controller
                     $row[] = $babData['uh'] ?? 0;
                     $row[] = $babAverages[$babKey] ?? 0;
                 }
-                
+
                 $row[] = $n ? $n->getFormatifTotal() : 0;
                 $row[] = $n ? $n->sas : 0;
                 $row[] = $n ? $n->kehadiran : 0;
                 $row[] = $n ? $n->getTotalPengurang() : 0;
                 $row[] = $n ? $n->nilai_rapor : 0;
-                $row[] = $n ? NilaiRapot::getPredikat($n->nilai_rapor) : 'D';
-                
+                $row[] = $n ? NilaiRapot::getPredikat($n->nilai_rapor) : 'F';
+
                 fputcsv($file, $row);
             }
             fclose($file);
@@ -344,9 +378,11 @@ class NilaiRapotController extends Controller
         $kelasId = $request->get('kelas_id');
         $pelajaranId = $request->get('pelajaran_id');
 
-        if (!$kelasId || !$pelajaranId || !$tahunAjaranId) {
+        if (! $kelasId || ! $pelajaranId || ! $tahunAjaranId) {
             return redirect()->route('nilai.index')->with('error', 'Pilih filter terlebih dahulu.');
         }
+
+        $this->ensureTeacherCanAccessKelas($kelasId);
 
         $siswaList = Siswa::where('kelas_id', $kelasId)->where('status', 'Aktif')->orderBy('nama_siswa')->get();
         $nilaiData = NilaiRapot::where('tahun_ajaran_id', $tahunAjaranId)
@@ -367,13 +403,13 @@ class NilaiRapotController extends Controller
         $tahunAjaranId = $request->get('tahun_ajaran_id');
         $kelasId = $request->get('kelas_id');
 
-        if (!$kelasId || !$tahunAjaranId) {
+        if (! $kelasId || ! $tahunAjaranId) {
             return redirect()->route('nilai.rekap')->with('error', 'Pilih filter terlebih dahulu.');
         }
 
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             $isWaliKelas = Kelas::where('id', $kelasId)->where('wali_kelas_id', $user->id)->exists();
-            if (!$isWaliKelas) {
+            if (! $isWaliKelas) {
                 return redirect()->route('nilai.rekap')->with('error', 'Anda tidak memiliki akses ke kelas ini.');
             }
         }
@@ -390,7 +426,7 @@ class NilaiRapotController extends Controller
         }
 
         $kelas = Kelas::find($kelasId);
-        $filename = 'rekap_nilai_' . str_replace(' ', '_', $kelas->nama_kelas ?? '') . '_' . now()->format('Ymd') . '.csv';
+        $filename = 'rekap_nilai_'.str_replace(' ', '_', $kelas->nama_kelas ?? '').'_'.now()->format('Ymd').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -398,9 +434,9 @@ class NilaiRapotController extends Controller
         ];
 
         $callback = function () use ($siswaList, $mapelList, $nilaiMap, $kelas, $tahunAjaranId) {
-            $tahunAjaranAktif = \App\Models\TahunAjaran::find($tahunAjaranId);
+            $tahunAjaranAktif = TahunAjaran::find($tahunAjaranId);
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM for Excel
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM for Excel
 
             // Header Section
             fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
@@ -437,7 +473,7 @@ class NilaiRapotController extends Controller
                         $row[] = '-';
                     }
                 }
-                
+
                 $rataRata = $rataRataSiswa[$s->id] ?? 0;
                 $row[] = $rataRata > 0 ? number_format($rataRata, 1) : '-';
                 fputcsv($file, $row);
@@ -454,13 +490,13 @@ class NilaiRapotController extends Controller
         $tahunAjaranId = $request->get('tahun_ajaran_id');
         $kelasId = $request->get('kelas_id');
 
-        if (!$kelasId || !$tahunAjaranId) {
+        if (! $kelasId || ! $tahunAjaranId) {
             return redirect()->route('nilai.rekap')->with('error', 'Pilih filter terlebih dahulu.');
         }
 
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             $isWaliKelas = Kelas::where('id', $kelasId)->where('wali_kelas_id', $user->id)->exists();
-            if (!$isWaliKelas) {
+            if (! $isWaliKelas) {
                 return redirect()->route('nilai.rekap')->with('error', 'Anda tidak memiliki akses ke kelas ini.');
             }
         }
@@ -488,7 +524,7 @@ class NilaiRapotController extends Controller
         $tahunAjaranAktif = TahunAjaran::find($tahunAjaranId);
 
         return view('exports.rekap-nilai-pdf', compact(
-            'siswaList', 'mapelList', 'nilaiMap', 'rataRataSiswa', 
+            'siswaList', 'mapelList', 'nilaiMap', 'rataRataSiswa',
             'selectedKelas', 'tahunAjaranAktif'
         ));
     }

@@ -15,6 +15,30 @@ use Carbon\Carbon;
 
 class PresensiController extends Controller
 {
+    protected function ensureTeacherCanAccessKelas(int $kelasId): void
+    {
+        $guruId = Auth::id();
+        $hasAccess = JadwalPelajaran::where('guru_id', $guruId)
+            ->where('kelas_id', $kelasId)
+            ->exists();
+
+        if (!$hasAccess) {
+            abort(403, 'Anda tidak memiliki akses ke kelas ini.');
+        }
+    }
+
+    protected function ensureJadwalOwnership(int $jadwalId): void
+    {
+        $guruId = Auth::id();
+        $isOwner = JadwalPelajaran::where('id', $jadwalId)
+            ->where('guru_id', $guruId)
+            ->exists();
+
+        if (!$isOwner) {
+            abort(403, 'Anda tidak memiliki akses ke jadwal ini.');
+        }
+    }
+
     /**
      * Daftar kelas untuk presensi
      */
@@ -76,6 +100,8 @@ class PresensiController extends Controller
      */
     public function show(Kelas $kelas, Request $request)
     {
+        $this->ensureTeacherCanAccessKelas($kelas->id);
+
         $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
         $jadwalId = $request->get('jadwal_id');
         $guruId = Auth::id();
@@ -163,6 +189,8 @@ class PresensiController extends Controller
             'presensi.*.keterangan' => 'nullable|string|max:255',
         ]);
 
+        $this->ensureJadwalOwnership($validated['jadwal_id']);
+
         $tanggalObj = \Carbon\Carbon::parse($validated['tanggal']);
 
         foreach ($validated['presensi'] as $data) {
@@ -199,6 +227,8 @@ class PresensiController extends Controller
      */
     public function exportCsv(Kelas $kelas, Request $request)
     {
+        $this->ensureTeacherCanAccessKelas($kelas->id);
+
         $dateRange = $this->getDateRange($request->get('rentang', 'hari_ini'), $request->get('tanggal'));
         $jadwalId = $request->get('jadwal_id');
 
@@ -258,6 +288,8 @@ class PresensiController extends Controller
      */
     public function exportPdf(Kelas $kelas, Request $request)
     {
+        $this->ensureTeacherCanAccessKelas($kelas->id);
+
         $dateRange = $this->getDateRange($request->get('rentang', 'hari_ini'), $request->get('tanggal'));
         $jadwalId = $request->get('jadwal_id');
 
@@ -325,6 +357,7 @@ class PresensiController extends Controller
         $selectedKelas = null;
 
         if ($selectedKelasId) {
+            $this->ensureTeacherCanAccessKelas($selectedKelasId);
             $selectedKelas = Kelas::find($selectedKelasId);
             $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
 
@@ -369,6 +402,7 @@ class PresensiController extends Controller
             return ['selectedKelas' => null, 'rekapData' => [], 'periodeLabel' => '', 'selectedPelajaran' => null];
         }
 
+        $this->ensureTeacherCanAccessKelas($selectedKelasId);
         $selectedKelas = Kelas::find($selectedKelasId);
         $selectedPelajaran = $selectedPelajaranId ? MataPelajaran::find($selectedPelajaranId) : null;
         $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();

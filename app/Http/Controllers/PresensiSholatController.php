@@ -12,6 +12,17 @@ use Carbon\Carbon;
 
 class PresensiSholatController extends Controller
 {
+    protected function ensureTeacherIsWaliKelas(int $kelasId): void
+    {
+        $isWali = Kelas::where('id', $kelasId)
+            ->where('wali_kelas_id', Auth::id())
+            ->exists();
+
+        if (!$isWali) {
+            abort(403, 'Anda tidak memiliki akses ke kelas ini.');
+        }
+    }
+
     /**
      * Daftar kelas untuk presensi sholat
      */
@@ -80,6 +91,8 @@ class PresensiSholatController extends Controller
      */
     public function show(Kelas $kelas, Request $request)
     {
+        $this->ensureTeacherIsWaliKelas($kelas->id);
+
         $jenisSholat = $request->get('jenis', 'Zuhur');
         $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
 
@@ -120,6 +133,8 @@ class PresensiSholatController extends Controller
             'presensi.*.siswa_id' => 'required|exists:siswa,id',
             'presensi.*.status' => 'required|in:H,I,S,A',
         ]);
+
+        $this->ensureTeacherIsWaliKelas($validated['kelas_id']);
 
         $now = now();
         $records = collect($validated['presensi'])->map(function ($data) use ($validated, $now) {
@@ -181,6 +196,7 @@ class PresensiSholatController extends Controller
         $selectedKelas = null;
 
         if ($selectedKelasId) {
+            $this->ensureTeacherIsWaliKelas($selectedKelasId);
             $selectedKelas = Kelas::find($selectedKelasId);
             $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
 
@@ -224,6 +240,8 @@ class PresensiSholatController extends Controller
         if (!$selectedKelasId) {
             return ['selectedKelas' => null, 'rekapData' => [], 'jenisSholat' => $jenisSholat, 'periodeLabel' => ''];
         }
+
+        $this->ensureTeacherIsWaliKelas($selectedKelasId);
 
         $selectedKelas = Kelas::find($selectedKelasId);
         $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
