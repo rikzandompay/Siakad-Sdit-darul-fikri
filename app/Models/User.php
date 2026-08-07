@@ -49,7 +49,6 @@ class User extends Authenticatable
 
     public function isAdmin()
     {
-        // Hanya Dewi Quraisyinta (username: sinta) yang merupakan admin
-        return strtolower($this->username) === 'sinta' || str_contains(strtolower($this->nama_lengkap), 'dewi quraisyinta');
+        return in_array(strtolower($this->username), config('admin.usernames', ['sinta']));
     }
 }

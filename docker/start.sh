@@ -22,6 +22,10 @@ touch /var/www/html/storage/logs/laravel.log
 chown www-data:www-data /var/www/html/storage/logs/laravel.log
 chmod 664 /var/www/html/storage/logs/laravel.log
 
+# Clear any stale cache before optimizing
+php artisan cache:clear || echo "⚠️ Cache clear failed, continuing..."
+php artisan config:clear || echo "⚠️ Config clear failed, continuing..."
+
 # Cache all Laravel optimizations for production (config, routes, views, events)
 php artisan optimize || echo "⚠️ Optimize failed, continuing..."
 

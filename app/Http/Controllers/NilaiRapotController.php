@@ -16,6 +16,10 @@ class NilaiRapotController extends Controller
 {
     protected function ensureTeacherCanAccessKelas(int $kelasId): void
     {
+        if (auth()->user()->isAdmin()) {
+            return;
+        }
+
         $guruId = Auth::id();
         $hasAccess = JadwalPelajaran::where('guru_id', $guruId)
             ->where('kelas_id', $kelasId)
@@ -28,6 +32,10 @@ class NilaiRapotController extends Controller
 
     protected function ensureTeacherCanAccessPelajaran(int $pelajaranId, int $kelasId): void
     {
+        if (auth()->user()->isAdmin()) {
+            return;
+        }
+
         $guruId = Auth::id();
         $hasAccess = JadwalPelajaran::where('guru_id', $guruId)
             ->where('kelas_id', $kelasId)

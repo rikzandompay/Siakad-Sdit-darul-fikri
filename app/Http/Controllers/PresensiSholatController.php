@@ -14,6 +14,10 @@ class PresensiSholatController extends Controller
 {
     protected function ensureTeacherIsWaliKelas(int $kelasId): void
     {
+        if (auth()->user()->isAdmin()) {
+            return;
+        }
+
         $isWali = Kelas::where('id', $kelasId)
             ->where('wali_kelas_id', Auth::id())
             ->exists();

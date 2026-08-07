@@ -48,7 +48,9 @@ class GuruController extends Controller
             'email' => 'required|email|max:255|unique:users,email',
             'no_hp' => 'nullable|string|max:20',
             'status' => 'required|in:Aktif,Pensiun,Pindah',
-            'password' => 'required|string|min:6',
+            'password' => ['required', 'string', 'min:8', 'regex:/[A-Z]/', 'regex:/[a-z]/', 'regex:/[0-9]/'],
+        ], [
+            'password.regex' => 'Password harus mengandung huruf besar, huruf kecil, dan angka.',
         ]);
 
         $validated['name'] = explode(' ', $validated['nama_lengkap'])[0] ?? $validated['nama_lengkap'];
@@ -69,7 +71,9 @@ class GuruController extends Controller
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($guru->id)],
             'no_hp' => 'nullable|string|max:20',
             'status' => 'required|in:Aktif,Pensiun,Pindah',
-            'password' => 'nullable|string|min:6',
+            'password' => ['nullable', 'string', 'min:8', 'regex:/[A-Z]/', 'regex:/[a-z]/', 'regex:/[0-9]/'],
+        ], [
+            'password.regex' => 'Password harus mengandung huruf besar, huruf kecil, dan angka.',
         ]);
 
         $validated['name'] = explode(' ', $validated['nama_lengkap'])[0] ?? $validated['nama_lengkap'];

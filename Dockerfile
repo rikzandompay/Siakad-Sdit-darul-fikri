@@ -1,4 +1,4 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.4-fpm-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -56,6 +56,9 @@ RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions sto
 
 # Nginx config
 COPY docker/nginx.conf /etc/nginx/nginx.conf
+
+# PHP-FPM pool config (optimized for performance)
+COPY docker/www.conf /usr/local/etc/php-fpm.d/www.conf
 
 # Supervisor config
 COPY docker/supervisord.conf /etc/supervisord.conf
