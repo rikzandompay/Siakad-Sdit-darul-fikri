@@ -75,7 +75,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/nilai/rekap', [NilaiRapotController::class, 'rekap'])->name('nilai.rekap');
     Route::get('/nilai/rekap/export/csv', [NilaiRapotController::class, 'exportRekapCsv'])->name('nilai.rekap.export.csv');
     Route::get('/nilai/rekap/export/pdf', [NilaiRapotController::class, 'exportRekapPdf'])->name('nilai.rekap.export.pdf');
-    Route::post('/nilai', [NilaiRapotController::class, 'store'])->middleware('throttle:30,1')->name('nilai.store');
+    Route::post('/nilai', [NilaiRapotController::class, 'store'])->middleware('throttle:120,1')->name('nilai.store');
     Route::get('/nilai/export/csv', [NilaiRapotController::class, 'exportCsv'])->name('nilai.export.csv');
     Route::get('/nilai/export/pdf', [NilaiRapotController::class, 'exportPdf'])->name('nilai.export.pdf');
 
