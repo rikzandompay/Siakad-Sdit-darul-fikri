@@ -22,11 +22,12 @@ class PresensiController extends Controller
         }
 
         $guruId = Auth::id();
-        $hasAccess = JadwalPelajaran::where('guru_id', $guruId)
+        $isWaliKelas = Kelas::where('id', $kelasId)->where('wali_kelas_id', $guruId)->exists();
+        $isGuruPengajar = JadwalPelajaran::where('guru_id', $guruId)
             ->where('kelas_id', $kelasId)
             ->exists();
 
-        if (!$hasAccess) {
+        if (!$isWaliKelas && !$isGuruPengajar) {
             abort(403, 'Anda tidak memiliki akses ke kelas ini.');
         }
     }
