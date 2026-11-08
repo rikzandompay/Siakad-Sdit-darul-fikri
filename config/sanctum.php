@@ -50,7 +50,7 @@ return [
     |
     */
 
-    'expiration' => env('SANCTUM_EXPIRATION', 60 * 24 * 30), // menit; token aplikasi MyDarfik berlaku 30 hari
+    'expiration' => env('SANCTUM_EXPIRATION', 60 * 24 * 7), // menit; token aplikasi MyDarfik berlaku 7 hari
 
     /*
     |--------------------------------------------------------------------------

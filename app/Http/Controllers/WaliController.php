@@ -27,7 +27,7 @@ class WaliController extends Controller
             ->withQueryString();
 
         $siswaTanpaNamaWali = Siswa::where('status', 'Aktif')
-            ->where(fn ($q) => $q->whereNull('nama_wali')->orWhere('nama_wali', ''))
+            ->whereNull('tanggal_lahir')
             ->orderBy('nama_siswa')
             ->with('kelas')
             ->get();

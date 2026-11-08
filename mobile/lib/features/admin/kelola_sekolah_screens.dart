@@ -394,7 +394,7 @@ class _AkunWaliScreenState extends State<AkunWaliScreen> {
     final api = context.read<ApiClient>();
     return AppPage(
       title: 'Akun Wali Murid',
-      subtitle: 'Masuk dengan NIS siswa dan nama lengkap wali',
+      subtitle: 'Masuk dengan NIS dan tanggal lahir siswa (YY-MM-DD)',
       scroll: false,
       padding: EdgeInsets.zero,
       bottom: SecondaryButton(label: 'Sinkronkan dari data siswa', onPressed: _sinkron),
@@ -417,7 +417,7 @@ class _AkunWaliScreenState extends State<AkunWaliScreen> {
               final list = (d['data'] as List).cast<Map>();
               return ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
                 SectionLabel('${d['total']} akun'),
-                if (list.isEmpty) EmptyPanel(icon: Icons.family_restroom_outlined, message: _q.isEmpty ? 'Belum ada akun wali. Isi nama wali di Data Siswa, lalu ketuk Sinkronkan.' : 'Tidak ada akun yang cocok dengan "$_q".'),
+                if (list.isEmpty) EmptyPanel(icon: Icons.family_restroom_outlined, message: _q.isEmpty ? 'Belum ada akun wali. Isi tanggal lahir di Data Siswa, lalu ketuk Sinkronkan.' : 'Tidak ada akun yang cocok dengan "$_q".'),
                 for (final w in list)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),

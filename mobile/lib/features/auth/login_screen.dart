@@ -270,26 +270,24 @@ class _LoginScreenState extends State<LoginScreen> {
                           validator: (v) => (v ?? '').trim().isEmpty ? (guru ? 'Isi username atau NIP' : 'Isi NIS siswa') : null,
                         ),
                         const SizedBox(height: 16),
-                        Text(guru ? 'KATA SANDI' : 'NAMA LENGKAP WALI', style: AppText.overline),
+                        Text(guru ? 'KATA SANDI' : 'TANGGAL LAHIR SISWA', style: AppText.overline),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _pass,
-                          obscureText: guru && !_lihat,
-                          textCapitalization: guru ? TextCapitalization.none : TextCapitalization.words,
+                          obscureText: !_lihat,
+                          keyboardType: guru ? TextInputType.text : TextInputType.datetime,
                           autofillHints: guru ? const [AutofillHints.password] : null,
                           onFieldSubmitted: (_) => _masuk(),
                           decoration: InputDecoration(
-                            hintText: guru ? 'Masukkan kata sandi' : 'Sesuai data di sekolah',
-                            prefixIcon: Icon(guru ? Icons.lock_outline : Icons.badge_outlined),
-                            suffixIcon: guru
-                                ? IconButton(
-                                    tooltip: _lihat ? 'Sembunyikan kata sandi' : 'Lihat kata sandi',
-                                    icon: Icon(_lihat ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                                    onPressed: () => setState(() => _lihat = !_lihat),
-                                  )
-                                : null,
+                            hintText: guru ? 'Masukkan kata sandi' : 'Format YY-MM-DD, contoh 16-01-25',
+                            prefixIcon: Icon(guru ? Icons.lock_outline : Icons.cake_outlined),
+                            suffixIcon: IconButton(
+                              tooltip: _lihat ? 'Sembunyikan kata sandi' : 'Lihat kata sandi',
+                              icon: Icon(_lihat ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                              onPressed: () => setState(() => _lihat = !_lihat),
+                            ),
                           ),
-                          validator: (v) => (v ?? '').trim().isEmpty ? (guru ? 'Isi kata sandi' : 'Isi nama lengkap wali') : null,
+                          validator: (v) => (v ?? '').trim().isEmpty ? (guru ? 'Isi kata sandi' : 'Isi tanggal lahir siswa (YY-MM-DD)') : null,
                         ),
                         const SizedBox(height: 8),
                         CheckboxListTile(

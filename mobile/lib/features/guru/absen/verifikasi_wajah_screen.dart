@@ -7,7 +7,7 @@ import '../../../widgets/common.dart';
 import '../../face/face_capture.dart';
 import '../../face/face_service.dart';
 
-/// Langkah 2: liveness + cocokkan wajah dengan template, lalu kirim absen ke server.
+/// Langkah 2: liveness + ambil embedding wajah, lalu kirim ke server (server yang mencocokkan).
 class VerifikasiWajahScreen extends StatefulWidget {
   const VerifikasiWajahScreen({super.key, required this.args});
   final Map<String, dynamic> args;
@@ -20,23 +20,7 @@ class _VerifikasiWajahScreenState extends State<VerifikasiWajahScreen> {
   static const _maksPercobaan = 3;
   int _percobaan = 0;
   Key _captureKey = UniqueKey();
-  List<double>? _template;
   String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    context.read<ApiClient>().get('/guru/wajah').then((res) {
-      final t = res['template'] as List?;
-      if (t == null) {
-        _keHasil({'jenis': 'error', 'pesan': 'Wajah belum terdaftar. Daftarkan wajah terlebih dahulu.'});
-      } else {
-        setState(() => _template = t.map((e) => (e as num).toDouble()).toList());
-      }
-    }).catchError((e) {
-      if (mounted) setState(() => _error = e.toString());
-    });
-  }
 
   void _keHasil(Map<String, dynamic> hasil) {
     if (mounted) context.pushReplacement('/guru/absen/hasil', extra: {...hasil, 'aksi': widget.args['aksi']});
@@ -46,16 +30,16 @@ class _VerifikasiWajahScreenState extends State<VerifikasiWajahScreen> {
     final api = context.read<ApiClient>();
     try {
       final emb = await FaceService.instance.embeddingDariFoto(foto.first);
-      final skor = FaceService.skor(emb, _template!);
       _percobaan++;
       final res = await api.post('/guru/absen/${widget.args['aksi']}', {
         'latitude': widget.args['latitude'],
         'longitude': widget.args['longitude'],
         'akurasi': widget.args['akurasi'],
-        'skor_wajah': skor,
+        'mock': widget.args['mock'] ?? false,
+        'embedding': emb,
         'liveness': true,
       });
-      _keHasil({'jenis': 'berhasil', 'hari_ini': res['hari_ini'], 'skor_wajah': skor, 'jarak_meter': widget.args['jarak_meter']});
+      _keHasil({'jenis': 'berhasil', 'hari_ini': res['hari_ini'], 'skor_wajah': res['skor_wajah'], 'jarak_meter': widget.args['jarak_meter']});
     } on FaceException catch (e) {
       _ulang(e.message);
     } on ApiException catch (e) {
@@ -85,10 +69,7 @@ class _VerifikasiWajahScreenState extends State<VerifikasiWajahScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (_error != null)
           Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(_error!, textAlign: TextAlign.center)),
-        if (_template == null)
-          const Padding(padding: EdgeInsets.only(top: 80), child: Center(child: CircularProgressIndicator()))
-        else
-          FaceCapture(key: _captureKey, onSelesai: _selesai, onGagal: _ulang),
+        FaceCapture(key: _captureKey, onSelesai: _selesai, onGagal: _ulang),
       ]),
     );
   }

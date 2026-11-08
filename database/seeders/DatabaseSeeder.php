@@ -15,6 +15,11 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Data dummy bersandi lemah (password123): jangan pernah masuk production.
+        if (app()->isProduction()) {
+            throw new \RuntimeException('DatabaseSeeder berisi akun dummy dan diblokir di production.');
+        }
+
         // ── 1. GURU (USERS) ──
         $guru1 = User::create([
             'name' => 'Guru Satu',

@@ -14,8 +14,9 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Absen guru dengan verifikasi lokasi + wajah.
- * Wajah dicocokkan di HP (template disimpan terenkripsi di server agar bisa dipakai di HP baru);
- * server tetap memeriksa ulang jarak dari koordinat yang dikirim, skor minimal, jam, dan hari sekolah.
+ * HP hanya mengirim embedding wajah hasil kamera; pencocokan dengan template (terenkripsi,
+ * tidak pernah dikirim ke HP) dan skor dihitung di server. Server juga memeriksa jarak,
+ * akurasi GPS, lokasi palsu, jam, dan hari sekolah.
  */
 class AbsenController extends Controller
 {
@@ -51,7 +52,7 @@ class AbsenController extends Controller
     public function masuk(Request $request): JsonResponse
     {
         $guru = $request->user();
-        $data = $request->validate($this->aturanLokasi() + $this->aturanWajah());
+        $data = $request->validate($this->aturanWajah() + $this->aturanLokasi());
         $now = Sekolah::now();
 
         $this->pastikanHariSekolah($now);
@@ -62,7 +63,7 @@ class AbsenController extends Controller
         if (($batas = config('presensi_guru.batas_tidak_hadir')) && $now->format('H:i') >= $batas) {
             return $this->gagal('lewat_batas', "Absen masuk ditutup pukul {$batas}. Hubungi Tata Usaha untuk koreksi.");
         }
-        [$lokasi, $err] = $this->verifikasi($data);
+        [$lokasi, $skor, $err] = $this->verifikasi($guru->id, $data);
         if ($err) {
             return $err;
         }
@@ -72,18 +73,18 @@ class AbsenController extends Controller
             [
                 'status' => PresensiGuru::HADIR, 'jam_masuk' => $now->format('H:i:s'), 'jam_pulang' => null,
                 'masuk_latitude' => $data['latitude'], 'masuk_longitude' => $data['longitude'],
-                'masuk_jarak_meter' => $lokasi['jarak_meter'], 'masuk_skor_wajah' => $data['skor_wajah'],
+                'masuk_jarak_meter' => $lokasi['jarak_meter'], 'masuk_skor_wajah' => $skor,
                 'sumber' => 'aplikasi', 'keterangan' => null,
             ]
         );
 
-        return response()->json(['message' => 'Absen masuk berhasil.', 'hari_ini' => self::ringkasHariIni($absen)]);
+        return response()->json(['message' => 'Absen masuk berhasil.', 'skor_wajah' => $skor, 'hari_ini' => self::ringkasHariIni($absen)]);
     }
 
     public function pulang(Request $request): JsonResponse
     {
         $guru = $request->user();
-        $data = $request->validate($this->aturanLokasi() + $this->aturanWajah());
+        $data = $request->validate($this->aturanWajah() + $this->aturanLokasi());
         $now = Sekolah::now();
 
         $absen = PresensiGuru::where('guru_id', $guru->id)->where('tanggal', $now->toDateString())->first();
@@ -93,7 +94,7 @@ class AbsenController extends Controller
         if ($absen->jam_pulang) {
             return $this->gagal('sudah_absen', 'Anda sudah absen pulang pukul '.substr($absen->jam_pulang, 0, 5).'.', 409);
         }
-        [$lokasi, $err] = $this->verifikasi($data);
+        [$lokasi, $skor, $err] = $this->verifikasi($guru->id, $data);
         if ($err) {
             return $err;
         }
@@ -101,10 +102,10 @@ class AbsenController extends Controller
         $absen->update([
             'jam_pulang' => $now->format('H:i:s'),
             'pulang_latitude' => $data['latitude'], 'pulang_longitude' => $data['longitude'],
-            'pulang_jarak_meter' => $lokasi['jarak_meter'], 'pulang_skor_wajah' => $data['skor_wajah'],
+            'pulang_jarak_meter' => $lokasi['jarak_meter'], 'pulang_skor_wajah' => $skor,
         ]);
 
-        return response()->json(['message' => 'Absen pulang berhasil.', 'hari_ini' => self::ringkasHariIni($absen->fresh())]);
+        return response()->json(['message' => 'Absen pulang berhasil.', 'skor_wajah' => $skor, 'hari_ini' => self::ringkasHariIni($absen->fresh())]);
     }
 
     /** Rekap absen guru sendiri per bulan (YYYY-MM). */
@@ -145,8 +146,6 @@ class AbsenController extends Controller
         return response()->json([
             'terdaftar' => (bool) $wajah,
             'didaftarkan_pada' => $wajah?->didaftarkan_pada?->toIso8601String(),
-            // Template dipakai HP untuk mencocokkan wajah (mis. setelah ganti HP).
-            'template' => $wajah ? json_decode($wajah->template, true) : null,
         ]);
     }
 
@@ -197,9 +196,32 @@ class AbsenController extends Controller
     private function aturanWajah(): array
     {
         return [
-            'skor_wajah' => 'required|numeric|between:0,100',
+            'akurasi' => 'required|numeric|min:0|max:'.(int) config('presensi_guru.maks_akurasi_meter'),
+            'mock' => 'required|declined',
+            'embedding' => 'required|array|min:64|max:1024',
+            'embedding.*' => 'numeric|between:-100,100',
             'liveness' => 'required|accepted',
         ];
+    }
+
+    /** Cosine similarity -> persen, kalibrasi sama dengan aplikasi (cos 0.20 = 0%, cos 0.80 = 100%). */
+    public static function skorWajah(array $a, array $b): float
+    {
+        if (count($a) !== count($b)) {
+            return 0.0;
+        }
+        $dot = $na = $nb = 0.0;
+        foreach ($a as $i => $x) {
+            $dot += $x * $b[$i];
+            $na += $x * $x;
+            $nb += $b[$i] * $b[$i];
+        }
+        if ($na == 0.0 || $nb == 0.0) {
+            return 0.0;
+        }
+        $cos = $dot / sqrt($na * $nb);
+
+        return round(max(0.0, min(1.0, ($cos - 0.20) / 0.60)) * 100, 1);
     }
 
     private function hitungLokasi(array $data): array
@@ -221,20 +243,47 @@ class AbsenController extends Controller
         ];
     }
 
-    /** @return array{0: array, 1: JsonResponse|null} */
-    private function verifikasi(array $data): array
+    /** @return array{0: array, 1: float|null, 2: JsonResponse|null} */
+    private function verifikasi(int $guruId, array $data): array
     {
         $lokasi = $this->hitungLokasi($data);
         if (! $lokasi['di_dalam_area']) {
-            return [$lokasi, $this->gagal('di_luar_area', 'Anda berada di luar area sekolah.', 422, $lokasi)];
+            return [$lokasi, null, $this->gagal('di_luar_area', 'Anda berada di luar area sekolah.', 422, $lokasi)];
         }
 
+        $wajah = WajahGuru::where('guru_id', $guruId)->first();
+        if (! $wajah) {
+            return [$lokasi, null, $this->gagal('wajah_belum_terdaftar', 'Wajah belum terdaftar. Daftarkan wajah terlebih dahulu.')];
+        }
+
+        $template = json_decode($wajah->template, true) ?: [];
+        $embedding = array_map('floatval', $data['embedding']);
+        $skor = self::skorWajah($embedding, $template);
         $min = (float) config('presensi_guru.min_skor_wajah');
-        if ((float) $data['skor_wajah'] < $min) {
-            return [$lokasi, $this->gagal('wajah_tidak_cocok', "Kecocokan wajah {$data['skor_wajah']}% (minimal {$min}%).", 422, ['skor_wajah' => (float) $data['skor_wajah'], 'min_skor_wajah' => $min])];
+
+        // Embedding identik dengan template = data hasil salin, bukan tangkapan kamera.
+        if ($this->identik($embedding, $template)) {
+            return [$lokasi, null, $this->gagal('wajah_tidak_cocok', 'Data wajah tidak valid. Ulangi verifikasi dengan kamera.', 422, ['skor_wajah' => 0.0, 'min_skor_wajah' => $min])];
+        }
+        if ($skor < $min) {
+            return [$lokasi, null, $this->gagal('wajah_tidak_cocok', "Kecocokan wajah {$skor}% (minimal {$min}%).", 422, ['skor_wajah' => $skor, 'min_skor_wajah' => $min])];
         }
 
-        return [$lokasi, null];
+        return [$lokasi, $skor, null];
+    }
+
+    private function identik(array $a, array $b): bool
+    {
+        if (count($a) !== count($b)) {
+            return false;
+        }
+        foreach ($a as $i => $x) {
+            if (abs($x - $b[$i]) > 1e-6) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function pastikanHariSekolah(Carbon $now): void

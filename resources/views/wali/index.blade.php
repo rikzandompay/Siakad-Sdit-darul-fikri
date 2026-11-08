@@ -6,7 +6,7 @@
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
     <div>
         <h2 class="font-bold text-2xl text-blue-600">Akun Wali Murid</h2>
-        <p class="text-gray-500 text-sm mt-1">Dibuat otomatis dari Data Siswa. Wali login di aplikasi MyDarfik dengan <strong>NIS siswa</strong> dan <strong>nama lengkap wali</strong> sesuai data siswa.</p>
+        <p class="text-gray-500 text-sm mt-1">Dibuat otomatis dari Data Siswa. Wali login di aplikasi MyDarfik dengan <strong>NIS siswa</strong> dan <strong>tanggal lahir siswa</strong> format YY-MM-DD (mis. 16-01-25).</p>
     </div>
     <form method="POST" action="{{ route('wali.sinkron') }}" onsubmit="return confirm('Sinkronkan akun wali dengan data siswa sekarang?')">
         @csrf
@@ -18,13 +18,13 @@
 
 <div class="bg-blue-50 border border-blue-200 text-blue-900 text-sm rounded-lg px-4 py-3 flex items-start gap-2">
     <span class="material-symbols-outlined text-base">info</span>
-    <span>Siswa baru otomatis punya akun saat datanya disimpan. Untuk mengganti nama wali atau NIS, ubah di <a href="{{ route('siswa.index') }}" class="font-bold underline">Data Siswa</a>; akunnya ikut berubah. Akun nonaktif otomatis untuk siswa yang lulus atau pindah.</span>
+    <span>Siswa baru otomatis punya akun saat datanya disimpan. Untuk mengganti NIS atau tanggal lahir, ubah di <a href="{{ route('siswa.index') }}" class="font-bold underline">Data Siswa</a>; akunnya ikut berubah. Akun nonaktif otomatis untuk siswa yang lulus atau pindah.</span>
 </div>
 
 @if($siswaTanpaNamaWali->isNotEmpty())
     <div class="bg-amber-50 border border-amber-200 text-amber-900 text-sm rounded-lg px-4 py-3">
-        <p class="font-bold flex items-center gap-2"><span class="material-symbols-outlined text-base">warning</span> {{ $siswaTanpaNamaWali->count() }} siswa aktif belum punya akun karena nama wali kosong</p>
-        <p class="mt-1 text-amber-800">{{ $siswaTanpaNamaWali->take(8)->map(fn ($s) => $s->nama_siswa.' ('.($s->kelas?->nama_kelas ?? '-').')')->join(', ') }}{{ $siswaTanpaNamaWali->count() > 8 ? ', dan '.($siswaTanpaNamaWali->count() - 8).' lainnya' : '' }}. Lengkapi nama wali di Data Siswa.</p>
+        <p class="font-bold flex items-center gap-2"><span class="material-symbols-outlined text-base">warning</span> {{ $siswaTanpaNamaWali->count() }} siswa aktif belum punya akun karena tanggal lahir kosong</p>
+        <p class="mt-1 text-amber-800">{{ $siswaTanpaNamaWali->take(8)->map(fn ($s) => $s->nama_siswa.' ('.($s->kelas?->nama_kelas ?? '-').')')->join(', ') }}{{ $siswaTanpaNamaWali->count() > 8 ? ', dan '.($siswaTanpaNamaWali->count() - 8).' lainnya' : '' }}. Lengkapi tanggal lahir di Data Siswa.</p>
     </div>
 @endif
 

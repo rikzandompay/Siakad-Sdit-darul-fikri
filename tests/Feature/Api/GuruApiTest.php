@@ -84,7 +84,18 @@ class GuruApiTest extends TestCase
 
     private function lokasi(float $offsetLat = 0.00038): array
     {
-        return ['latitude' => self::LAT + $offsetLat, 'longitude' => self::LNG, 'akurasi' => 8, 'skor_wajah' => 97.5, 'liveness' => true];
+        return ['latitude' => self::LAT + $offsetLat, 'longitude' => self::LNG, 'akurasi' => 8, 'mock' => false, 'embedding' => $this->wajahDari(0.05), 'liveness' => true];
+    }
+
+    /** Template = sin(i); embedding kamera = template + derau kecil (bukan salinan). */
+    private function wajahDari(float $derau): array
+    {
+        return array_map(fn ($i) => sin($i) + $derau * cos($i * 7), range(1, 192));
+    }
+
+    private function daftarkanWajah(?User $user = null): void
+    {
+        WajahGuru::create(['guru_id' => ($user ?? $this->guru)->id, 'template' => json_encode(array_map(fn ($i) => sin($i), range(1, 192))), 'didaftarkan_pada' => now()]);
     }
 
     // ── Login ─────────────────────────────────────────────────────────
@@ -115,14 +126,15 @@ class GuruApiTest extends TestCase
         $this->postJson('/api/v1/auth/login', ['peran' => 'guru', 'username' => 'lain', 'password' => 'Rahasia123'])->assertStatus(422);
     }
 
-    public function test_login_wali_nis_dan_nama_wali_tidak_bisa_akses_endpoint_guru(): void
+    public function test_login_wali_nis_dan_tanggal_lahir_tidak_bisa_akses_endpoint_guru(): void
     {
-        $res = $this->postJson('/api/v1/auth/login', ['peran' => 'wali', 'username' => '2024001', 'password' => 'siti AMINAH']);
+        $res = $this->postJson('/api/v1/auth/login', ['peran' => 'wali', 'username' => '2024001', 'password' => '16-01-01']);
         $res->assertOk()->assertJsonPath('peran', 'wali')->assertJsonPath('akun.anak.0.nama', 'Aisyah Putri');
         $this->assertStringStartsWith(Siswa::QR_PREFIX, $res->json('akun.anak.0.qr'));
 
         $this->withHeader('Authorization', 'Bearer '.$res->json('token'))->getJson('/api/v1/guru/dashboard')->assertStatus(403);
-        $this->postJson('/api/v1/auth/login', ['peran' => 'wali', 'username' => '2024001', 'password' => 'Orang Lain'])->assertStatus(422);
+        $this->postJson('/api/v1/auth/login', ['peran' => 'wali', 'username' => '2024001', 'password' => 'Siti Aminah'])->assertStatus(422);
+        $this->postJson('/api/v1/auth/login', ['peran' => 'wali', 'username' => '2024001', 'password' => '16-01-02'])->assertStatus(422);
         // Guru tidak bisa login di tab wali dan sebaliknya.
         $this->postJson('/api/v1/auth/login', ['peran' => 'wali', 'username' => 'ahmad', 'password' => 'Rahasia123'])->assertStatus(422);
     }
@@ -239,10 +251,12 @@ class GuruApiTest extends TestCase
     public function test_absen_masuk_dan_pulang_dengan_lokasi_dan_wajah(): void
     {
         $h = $this->tokenGuru();
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', $this->lokasi())->assertStatus(422)->assertJsonPath('kode', 'wajah_belum_terdaftar');
 
         $this->withHeaders($h)->getJson('/api/v1/guru/absen')->assertOk()
             ->assertJsonPath('hari_sekolah', true)->assertJsonPath('lokasi.radius_meter', 100)
             ->assertJsonPath('wajah_terdaftar', false)->assertJsonPath('hari_ini.status', null);
+        $this->daftarkanWajah();
 
         $cek = $this->withHeaders($h)->postJson('/api/v1/guru/absen/cek-lokasi', $this->lokasi())->assertOk();
         $this->assertTrue($cek->json('di_dalam_area'));
@@ -258,7 +272,7 @@ class GuruApiTest extends TestCase
         $this->withHeaders($h)->postJson('/api/v1/guru/absen/pulang', $this->lokasi())->assertOk()->assertJsonPath('hari_ini.jam_pulang', '14:10');
         $row = PresensiGuru::firstOrFail();
         $this->assertSame('aplikasi', $row->sumber);
-        $this->assertSame(97.5, $row->masuk_skor_wajah);
+        $this->assertGreaterThanOrEqual(85, $row->masuk_skor_wajah, 'Skor dihitung server');
 
         $this->withHeaders($h)->getJson('/api/v1/guru/absen/rekap?bulan=2026-11')->assertOk()
             ->assertJsonPath('hadir', 1)->assertJsonPath('persen', 100)->assertJsonPath('data.0.jam_pulang', '14:10');
@@ -270,9 +284,20 @@ class GuruApiTest extends TestCase
 
         $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', $this->lokasi(0.0108))->assertStatus(422)
             ->assertJsonPath('kode', 'di_luar_area')->assertJsonPath('di_dalam_area', false);
-        $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', ['skor_wajah' => 61] + $this->lokasi())->assertStatus(422)
+        $this->daftarkanWajah();
+        $h = $this->tokenGuru();
+        // Wajah orang lain (vektor berbeda) ditolak walau klien dulu bisa kirim skor sendiri.
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', ['embedding' => array_map(fn ($i) => cos($i * 3), range(1, 192)), 'skor_wajah' => 100] + $this->lokasi())->assertStatus(422)
+            ->assertJsonPath('kode', 'wajah_tidak_cocok');
+        // Salinan persis template (bukan dari kamera) ditolak.
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', ['embedding' => $this->wajahDari(0)] + $this->lokasi())->assertStatus(422)
             ->assertJsonPath('kode', 'wajah_tidak_cocok');
         $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', ['liveness' => false] + $this->lokasi())->assertJsonValidationErrors('liveness');
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', ['mock' => true] + $this->lokasi())->assertJsonValidationErrors('mock');
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', ['akurasi' => 300] + $this->lokasi())->assertJsonValidationErrors('akurasi');
+        $tanpa = $this->lokasi();
+        unset($tanpa['akurasi'], $tanpa['mock']);
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', $tanpa)->assertJsonValidationErrors(['akurasi', 'mock']);
         $this->assertSame(0, PresensiGuru::count());
 
         Carbon::setTestNow(Carbon::parse('2026-11-09 13:01:00', 'Asia/Pontianak'));
@@ -302,11 +327,10 @@ class GuruApiTest extends TestCase
         $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => $template])->assertStatus(409)->assertJsonPath('kode', 'sudah_terdaftar');
 
         $this->assertStringNotContainsString((string) $template[0], \DB::table('wajah_guru')->value('template'));
+        // Template tidak pernah dikirim balik ke HP.
         $res = $this->withHeaders($h)->getJson('/api/v1/guru/wajah')->assertOk()->assertJsonPath('terdaftar', true);
-        $this->assertEqualsWithDelta($template[5], $res->json('template.5'), 1e-9);
-
-        // Guru lain tidak melihat template milik orang lain.
-        $this->withHeaders($this->tokenGuru($this->guruLain))->getJson('/api/v1/guru/wajah')->assertJsonPath('terdaftar', false)->assertJsonPath('template', null);
+        $this->assertArrayNotHasKey('template', $res->json());
+        $this->withHeaders($this->tokenGuru($this->guruLain))->getJson('/api/v1/guru/wajah')->assertJsonPath('terdaftar', false);
         $this->assertSame(1, WajahGuru::count());
     }
 

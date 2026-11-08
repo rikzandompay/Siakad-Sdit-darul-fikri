@@ -79,6 +79,7 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen> {
                   'latitude': _posisi!.latitude,
                   'longitude': _posisi!.longitude,
                   'akurasi': _posisi!.accuracy,
+                  'mock': _posisi!.isMocked,
                   'jarak_meter': h!['jarak_meter'],
                 })
             : null,

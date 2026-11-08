@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Hash;
 /**
  * Akun wali murid untuk aplikasi MyDarfik. Dibuat dan disinkronkan OTOMATIS dari data siswa:
  * - username  = NIS siswa
- * - "kata sandi" = nama lengkap wali (kolom nama_wali) — dibandingkan tanpa peduli huruf
- *   besar/kecil, spasi ganda, dan tanda baca; disimpan ter-hash.
+ * - kata sandi = tanggal lahir siswa format YY-MM-DD (mis. 16-01-25); disimpan ter-hash.
+ *   Pemisah "-", "/", "." dan tahun 4 digit juga diterima.
  * - status    = Aktif selama siswa berstatus Aktif.
  * Tidak ada pembuatan akun manual: tambah/ubah/hapus siswa sudah cukup.
  */
@@ -39,19 +39,27 @@ class Wali extends Authenticatable
         return $this->status === 'Aktif';
     }
 
-    /** "Siti  Aminah, S.Pd." => "siti aminah spd" */
-    public static function normalisasiNama(?string $nama): string
+    /** "16-1-25", "2016/01/25", "16.01.25" => "16-01-25"; tidak valid => "". */
+    public static function normalisasiTanggal(?string $tanggal): string
     {
-        $nama = mb_strtolower((string) $nama);
-        $nama = preg_replace('/[^\p{L}\p{N}\s]/u', '', $nama);
+        if (! preg_match('/^\s*(\d{2}|\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})\s*$/', (string) $tanggal, $m)) {
+            return '';
+        }
+        [$y, $bulan, $hari] = [(int) $m[1], (int) $m[2], (int) $m[3]];
 
-        return trim(preg_replace('/\s+/u', ' ', $nama));
+        return checkdate($bulan, $hari, $y < 100 ? 2000 + $y : $y) ? sprintf('%02d-%02d-%02d', $y % 100, $bulan, $hari) : '';
     }
 
-    /** Apakah nama yang diketik wali cocok dengan "kata sandi" akun ini. */
-    public function cocokNama(?string $nama): bool
+    /** Kata sandi akun dari tanggal lahir siswa (kolom date). */
+    public static function sandiDariSiswa(Siswa $siswa): string
     {
-        $norm = static::normalisasiNama($nama);
+        return $siswa->tanggal_lahir ? static::normalisasiTanggal(substr((string) $siswa->tanggal_lahir, 0, 10)) : '';
+    }
+
+    /** Apakah tanggal lahir yang diketik wali cocok dengan kata sandi akun ini. */
+    public function cocokSandi(?string $tanggal): bool
+    {
+        $norm = static::normalisasiTanggal($tanggal);
 
         return $norm !== '' && Hash::check($norm, $this->password);
     }
@@ -63,12 +71,12 @@ class Wali extends Authenticatable
 
     /**
      * Buat/perbarui/hapus akun wali sesuai data siswa. Dipanggil otomatis saat siswa disimpan.
-     * Tanpa nama wali, akun tidak ada (tidak ada "kata sandi" yang bisa dipakai).
+     * Tanpa tanggal lahir, akun tidak ada (tidak ada kata sandi yang bisa dipakai).
      */
     public static function sinkronDariSiswa(Siswa $siswa): ?self
     {
         $wali = static::untukSiswa($siswa);
-        $norm = static::normalisasiNama($siswa->nama_wali);
+        $norm = static::sandiDariSiswa($siswa);
 
         if ($norm === '') {
             $wali?->delete();
@@ -77,7 +85,7 @@ class Wali extends Authenticatable
         }
 
         $data = [
-            'nama' => trim($siswa->nama_wali),
+            'nama' => trim((string) $siswa->nama_wali) ?: 'Wali '.$siswa->nama_siswa,
             'username' => (string) $siswa->nis,
             'no_hp' => $siswa->no_hp_wali,
             'status' => $siswa->status === 'Aktif' ? 'Aktif' : 'Nonaktif',
@@ -95,6 +103,11 @@ class Wali extends Authenticatable
         $wali->fill($data);
         if (! Hash::check($norm, $wali->password)) {
             $wali->password = $norm;
+            // Kata sandi berubah: keluarkan semua perangkat yang memakai sandi lama.
+            $wali->tokens()->delete();
+        }
+        if ($wali->isDirty('status') && $data['status'] !== 'Aktif') {
+            $wali->tokens()->delete();
         }
         $wali->save();
 

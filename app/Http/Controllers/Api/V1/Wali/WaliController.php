@@ -291,14 +291,13 @@ class WaliController extends Controller
     public function ubahData(Request $request, Siswa $siswa): JsonResponse
     {
         abort_unless($request->user()->siswa()->whereKey($siswa->id)->exists(), 403);
+        // Tanggal lahir = kata sandi login, hanya bisa diubah sekolah (tidak divalidasi = diabaikan).
         $data = $request->validate([
-            'tanggal_lahir' => 'required|date|before:today',
             'jenis_kelamin' => 'required|in:L,P',
             'alamat' => 'nullable|string|max:100',
             'nama_wali' => 'required|string|min:3|max:100',
             'no_hp_wali' => 'nullable|string|max:20',
         ]);
-        // Nama wali juga kata sandi login; akun wali ikut disinkronkan (Siswa::saved).
         $siswa->update($data);
 
         return response()->json(['message' => 'Data tersimpan.', 'anak' => self::dataAnak($siswa->fresh('kelas.waliKelas'))]);

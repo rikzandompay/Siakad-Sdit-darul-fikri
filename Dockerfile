@@ -28,7 +28,7 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.fast_shutdown=1" >> /usr/local/etc/php/conf.d/opcache.ini
 
 # Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
@@ -38,13 +38,13 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interactio
 
 # Copy package.json for npm
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN npm ci
 
 # Copy rest of the app
 COPY . .
 
 # Build Vite assets
-RUN npm run build
+RUN npm run build && rm -rf node_modules
 
 # Run composer scripts
 RUN composer run-script post-autoload-dump 2>/dev/null || true

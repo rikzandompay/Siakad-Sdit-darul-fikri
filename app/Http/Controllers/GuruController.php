@@ -95,6 +95,11 @@ class GuruController extends Controller
 
         $guru->update($validated);
 
+        // Sandi direset atau akun dinonaktifkan: cabut token aplikasi di semua perangkat.
+        if ($guru->wasChanged(['password', 'status'])) {
+            $guru->tokens()->delete();
+        }
+
         return redirect()->route('guru.index')->with('success', 'Data guru berhasil diperbarui!');
     }
 

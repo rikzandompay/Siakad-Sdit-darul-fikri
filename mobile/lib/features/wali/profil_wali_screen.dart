@@ -125,7 +125,6 @@ class UbahDataScreen extends StatefulWidget {
 
 class _UbahDataScreenState extends State<UbahDataScreen> {
   late final Map<String, dynamic> a = context.read<Session>().anak!;
-  late DateTime? _lahir = a['tanggal_lahir'] == null ? null : DateTime.tryParse(a['tanggal_lahir']);
   late String _jk = a['jenis_kelamin'] ?? 'L';
   late final _alamat = TextEditingController(text: a['alamat']);
   late final _wali = TextEditingController(text: a['nama_wali']);
@@ -141,24 +140,10 @@ class _UbahDataScreenState extends State<UbahDataScreen> {
   }
 
   Future<void> _kirim() async {
-    final namaLama = (a['nama_wali'] ?? '').toString().trim().toLowerCase();
     final namaBaru = _wali.text.trim();
-    if (namaBaru.toLowerCase() != namaLama) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (c) => AlertDialog(
-          title: const Text('Ganti nama wali?'),
-          content: Text('Nama wali dipakai untuk login. Setelah disimpan, login berikutnya memakai NIS dan nama "$namaBaru".'),
-          actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Batal')), TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Simpan'))],
-        ),
-      );
-      if (ok != true) return;
-    }
-    if (!mounted) return;
     setState(() => _simpan = true);
     try {
       await context.read<ApiClient>().put('/wali/siswa/${a['id']}', {
-        'tanggal_lahir': _lahir == null ? null : '${_lahir!.year}-${_lahir!.month.toString().padLeft(2, '0')}-${_lahir!.day.toString().padLeft(2, '0')}',
         'jenis_kelamin': _jk,
         'alamat': _alamat.text.trim(),
         'nama_wali': namaBaru,
@@ -185,22 +170,15 @@ class _UbahDataScreenState extends State<UbahDataScreen> {
       bottom: PrimaryButton(label: 'Simpan Perubahan', loading: _simpan, onPressed: _kirim),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         label('TANGGAL LAHIR'),
-        OutlinedButton.icon(
-          onPressed: () async {
-            final t = await showDatePicker(context: context, initialDate: _lahir ?? DateTime(2018), firstDate: DateTime(2005), lastDate: DateTime.now());
-            if (t != null) setState(() => _lahir = t);
-          },
-          icon: const Icon(Icons.event_outlined),
-          label: Text(_lahir == null ? 'Pilih tanggal' : '${_lahir!.year}-${_lahir!.month.toString().padLeft(2, '0')}-${_lahir!.day.toString().padLeft(2, '0')}'),
-          style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48), alignment: Alignment.centerLeft, backgroundColor: AppColors.field),
-        ),
+        TextField(enabled: false, controller: TextEditingController(text: a['tanggal_lahir'] ?? '-'), decoration: const InputDecoration(suffixIcon: Icon(Icons.lock_outline))),
+        const SizedBox(height: 4),
+        Text('Tanggal lahir dipakai untuk login dan hanya bisa diubah sekolah.', style: AppText.caption),
         label('JENIS KELAMIN'),
         PilihanChips<String>(pilihan: const {'L': 'Laki-laki', 'P': 'Perempuan'}, nilai: _jk, onChanged: (v) => setState(() => _jk = v)),
         label('ALAMAT'),
         TextField(controller: _alamat, maxLength: 100, decoration: const InputDecoration(counterText: '')),
         label('NAMA WALI'),
         TextField(controller: _wali, maxLength: 100, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(counterText: '')),
-        Text('Nama wali juga dipakai untuk login.', style: AppText.caption),
         label('NO HP'),
         TextField(controller: _hp, maxLength: 20, keyboardType: TextInputType.phone, decoration: const InputDecoration(counterText: '')),
         label('KELAS'),

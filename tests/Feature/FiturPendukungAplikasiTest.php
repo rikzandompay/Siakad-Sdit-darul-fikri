@@ -134,13 +134,13 @@ class FiturPendukungAplikasiTest extends TestCase
 
     // ── Akun wali (otomatis dari data siswa) ──────────────────────────
 
-    private function siswaDenganWali(string $nis, string $nama, ?string $namaWali, string $status = 'Aktif'): Siswa
+    private function siswaDenganWali(string $nis, string $nama, ?string $namaWali, string $status = 'Aktif', ?string $lahir = '2016-01-25'): Siswa
     {
-        return Siswa::create(['nis' => $nis, 'nisn' => '8'.$nis, 'nama_siswa' => $nama, 'tanggal_lahir' => '2016-01-01', 'jenis_kelamin' => 'L',
+        return Siswa::create(['nis' => $nis, 'nisn' => '8'.$nis, 'nama_siswa' => $nama, 'tanggal_lahir' => $lahir, 'jenis_kelamin' => 'L',
             'kelas_id' => $this->kelas->id, 'status' => $status, 'nama_wali' => $namaWali, 'no_hp_wali' => '0812']);
     }
 
-    public function test_siswa_baru_otomatis_punya_akun_wali_login_nis_dan_nama_wali(): void
+    public function test_siswa_baru_otomatis_punya_akun_wali_login_nis_dan_tanggal_lahir(): void
     {
         $siswa = $this->siswaDenganWali('5001', 'Aisyah', 'Siti Aminah');
 
@@ -149,13 +149,16 @@ class FiturPendukungAplikasiTest extends TestCase
         $this->assertSame('Siti Aminah', $wali->nama);
         $this->assertSame('Aktif', $wali->status);
         $this->assertSame([$siswa->id], $wali->siswa()->pluck('siswa.id')->all());
-        $this->assertNotSame('siti aminah', $wali->password, 'Tersimpan ter-hash');
+        $this->assertNotSame('16-01-25', $wali->password, 'Tersimpan ter-hash');
 
-        // Huruf besar/kecil, spasi ganda, dan tanda baca tidak membuat login gagal.
-        $this->assertTrue($wali->cocokNama('siti aminah'));
-        $this->assertTrue($wali->cocokNama('  SITI   Aminah. '));
-        $this->assertFalse($wali->cocokNama('Siti Aminah Lain'));
-        $this->assertFalse($wali->cocokNama(''));
+        // Format utama YY-MM-DD; variasi pemisah, tanpa nol depan, dan tahun 4 digit diterima.
+        $this->assertTrue($wali->cocokSandi('16-01-25'));
+        $this->assertTrue($wali->cocokSandi(' 16/1/25 '));
+        $this->assertTrue($wali->cocokSandi('2016-01-25'));
+        $this->assertFalse($wali->cocokSandi('25-01-16'), 'Urutan DD-MM-YY salah');
+        $this->assertFalse($wali->cocokSandi('Siti Aminah'), 'Nama wali bukan sandi lagi');
+        $this->assertFalse($wali->cocokSandi('16-02-30'), 'Tanggal tidak valid');
+        $this->assertFalse($wali->cocokSandi(''));
     }
 
     public function test_ubah_data_siswa_menyinkronkan_akun_wali(): void
@@ -163,22 +166,31 @@ class FiturPendukungAplikasiTest extends TestCase
         $siswa = $this->siswaDenganWali('5002', 'Bilal', 'Budi Santoso');
         $id = Wali::firstWhere('username', '5002')->id;
 
+        $token = Wali::findOrFail($id)->createToken('hp', ['wali']);
         $siswa->update(['nama_wali' => 'Hj. Rahmawati', 'nis' => '5099']);
         $wali = Wali::findOrFail($id);
         $this->assertSame('5099', $wali->username, 'NIS baru menjadi username');
-        $this->assertTrue($wali->cocokNama('hj rahmawati'));
-        $this->assertFalse($wali->cocokNama('Budi Santoso'), 'Nama lama tidak berlaku');
-        $this->assertSame(1, Wali::count(), 'Memperbarui, bukan membuat akun baru');
+        $this->assertSame('Hj. Rahmawati', $wali->nama);
+        $this->assertSame(1, $wali->tokens()->count(), 'Ganti nama tidak mencabut token');
 
+        $siswa->update(['tanggal_lahir' => '2016-03-04']);
+        $wali->refresh();
+        $this->assertTrue($wali->cocokSandi('16-03-04'));
+        $this->assertFalse($wali->cocokSandi('16-01-25'), 'Sandi lama tidak berlaku');
+        $this->assertSame(0, $wali->tokens()->count(), 'Ganti sandi mencabut token');
+        $this->assertSame(0, Wali::where('username', '5002')->count(), 'Memperbarui, bukan membuat akun baru');
+
+        $wali->createToken('hp', ['wali']);
         $siswa->update(['status' => 'Pindah']);
         $this->assertSame('Nonaktif', $wali->fresh()->status);
+        $this->assertSame(0, $wali->tokens()->count(), 'Nonaktif mencabut token');
         $siswa->update(['status' => 'Aktif']);
         $this->assertSame('Aktif', $wali->fresh()->status);
 
-        $siswa->update(['nama_wali' => null]);
-        $this->assertSame(0, Wali::count(), 'Tanpa nama wali tidak ada akun');
-        $siswa->update(['nama_wali' => 'Ibu Baru']);
-        $this->assertSame(1, Wali::count());
+        $siswa->update(['tanggal_lahir' => null]);
+        $this->assertNull(Wali::find($id), 'Tanpa tanggal lahir tidak ada akun');
+        $siswa->update(['tanggal_lahir' => '2016-05-06']);
+        $this->assertTrue(Wali::firstWhere('username', '5099')->cocokSandi('16-05-06'));
     }
 
     public function test_hapus_siswa_menghapus_akun_wali_dan_lewat_form_data_siswa(): void
@@ -187,7 +199,7 @@ class FiturPendukungAplikasiTest extends TestCase
             'nis' => '5003', 'nisn' => '85003', 'nama_siswa' => 'Citra', 'tanggal_lahir' => '2016-02-02', 'jenis_kelamin' => 'P',
             'kelas_id' => $this->kelas->id, 'nama_wali' => 'Ibu Citra', 'no_hp_wali' => '0813', 'status' => 'Aktif',
         ])->assertRedirect();
-        $this->assertTrue(Wali::firstWhere('username', '5003')->cocokNama('ibu citra'));
+        $this->assertTrue(Wali::firstWhere('username', '5003')->cocokSandi('16-02-02'));
 
         $siswa = Siswa::firstWhere('nis', '5003');
         $this->actingAs($this->sinta)->delete('/siswa/'.$siswa->id)->assertRedirect();
@@ -199,15 +211,15 @@ class FiturPendukungAplikasiTest extends TestCase
         // Siswa "lama": ada sebelum fitur, tanpa akun.
         $siswa = $this->siswaDenganWali('5004', 'Dodi', 'Pak Dodi');
         Wali::query()->delete();
-        $tanpa = $this->siswaDenganWali('5005', 'Eka', null);
+        $tanpa = $this->siswaDenganWali('5005', 'Eka', 'Ibu Eka', 'Aktif', null);
 
         $this->actingAs($this->waliKelas)->get('/wali')->assertStatus(403);
         $this->actingAs($this->waliKelas)->post('/wali/sinkron')->assertStatus(403);
 
-        $this->actingAs($this->sinta)->get('/wali')->assertOk()->assertSee('belum punya akun karena nama wali kosong')->assertSee('Eka');
+        $this->actingAs($this->sinta)->get('/wali')->assertOk()->assertSee('belum punya akun karena tanggal lahir kosong')->assertSee('Eka');
         $this->actingAs($this->sinta)->post('/wali/sinkron')->assertRedirect('/wali');
-        $this->assertSame(1, Wali::count());
-        $this->assertTrue(Wali::firstWhere('username', '5004')->cocokNama('pak dodi'));
+        $this->assertNull(Wali::firstWhere('username', '5005'));
+        $this->assertTrue(Wali::firstWhere('username', '5004')->cocokSandi('16-01-25'));
         $this->actingAs($this->sinta)->get('/wali')->assertSee('5004')->assertSee('Pak Dodi');
     }
 

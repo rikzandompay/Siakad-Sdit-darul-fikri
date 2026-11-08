@@ -49,7 +49,7 @@ class Siswa extends Model
 
     protected static function booted(): void
     {
-        // Akun wali di aplikasi mengikuti data siswa (NIS + nama wali).
+        // Akun wali di aplikasi mengikuti data siswa (NIS + tanggal lahir).
         // Kegagalan sinkron (mis. migrasi belum jalan) dilaporkan, tapi tidak boleh menggagalkan simpan siswa.
         static::saved(function (Siswa $siswa) {
             try {

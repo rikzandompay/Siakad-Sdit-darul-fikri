@@ -14,6 +14,9 @@ return [
     // Kecocokan wajah minimal (persen) yang diterima server dari aplikasi.
     'min_skor_wajah' => (float) env('GURU_MIN_SKOR_WAJAH', 85),
 
+    // Akurasi GPS terburuk (meter) yang masih diterima saat absen.
+    'maks_akurasi_meter' => (int) env('GURU_MAKS_AKURASI_METER', 50),
+
     // Radius area sekolah (meter) jika belum diatur di Pengaturan Sekolah.
     'radius_meter' => (int) env('GURU_RADIUS_METER', 100),
 

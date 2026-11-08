@@ -281,7 +281,7 @@
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Wali</label>
                         <input name="nama_wali" type="text"
                             class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
-                        <p class="text-[11px] text-gray-500 mt-1">Dipakai wali untuk login di aplikasi MyDarfik bersama NIS siswa. Akun wali dibuat otomatis.</p>
+                        <p class="text-[11px] text-gray-500 mt-1">Wali login di aplikasi MyDarfik dengan NIS + tanggal lahir siswa (YY-MM-DD). Akun wali dibuat otomatis.</p>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">No HP Wali</label>
@@ -374,7 +374,7 @@
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Wali</label>
                         <input id="edit-wali" name="nama_wali" type="text"
                             class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
-                        <p class="text-[11px] text-gray-500 mt-1">Dipakai wali untuk login di aplikasi MyDarfik bersama NIS siswa. Akun wali dibuat otomatis.</p>
+                        <p class="text-[11px] text-gray-500 mt-1">Wali login di aplikasi MyDarfik dengan NIS + tanggal lahir siswa (YY-MM-DD). Akun wali dibuat otomatis.</p>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">No HP Wali</label>

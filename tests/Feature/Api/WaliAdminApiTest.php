@@ -178,13 +178,14 @@ class WaliAdminApiTest extends TestCase
         $this->assertSame(1, KonselingPercakapan::count());
     }
 
-    public function test_wali_ubah_data_dan_login_mengikuti_nama_wali_baru(): void
+    public function test_wali_ubah_data_tidak_bisa_mengganti_tanggal_lahir_sandi(): void
     {
         $h = $this->wali();
-        $this->req($h)->putJson('/api/v1/wali/siswa/'.$this->zaki->id, ['tanggal_lahir' => '2018-07-05', 'jenis_kelamin' => 'L', 'alamat' => 'Sui Durian', 'nama_wali' => 'Agus Ahmad Baru', 'no_hp_wali' => '0821'])
-            ->assertOk()->assertJsonPath('anak.alamat', 'Sui Durian');
-        $this->req($h)->putJson('/api/v1/wali/siswa/'.$this->lain->id, ['tanggal_lahir' => '2018-07-05', 'jenis_kelamin' => 'L', 'nama_wali' => 'X'])->assertStatus(403);
-        $this->postJson('/api/v1/auth/login', ['peran' => 'wali', 'username' => '2024002', 'password' => 'agus ahmad baru'])->assertOk();
+        $this->req($h)->putJson('/api/v1/wali/siswa/'.$this->zaki->id, ['tanggal_lahir' => '2010-01-01', 'jenis_kelamin' => 'L', 'alamat' => 'Sui Durian', 'nama_wali' => 'Agus Ahmad Baru', 'no_hp_wali' => '0821'])
+            ->assertOk()->assertJsonPath('anak.alamat', 'Sui Durian')->assertJsonPath('anak.tanggal_lahir', '2018-07-05');
+        $this->req($h)->putJson('/api/v1/wali/siswa/'.$this->lain->id, ['jenis_kelamin' => 'L', 'nama_wali' => 'Xyz'])->assertStatus(403);
+        $this->postJson('/api/v1/auth/login', ['peran' => 'wali', 'username' => '2024002', 'password' => '18-07-05'])->assertOk();
+        $this->postJson('/api/v1/auth/login', ['peran' => 'wali', 'username' => '2024002', 'password' => '10-01-01'])->assertStatus(422);
     }
 
     public function test_konseling_ubah_hapus_dan_foto_pribadi(): void

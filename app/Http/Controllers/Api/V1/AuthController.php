@@ -20,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * Login aplikasi MyDarfik.
  * - Guru & Staf: username atau NIP + kata sandi (akun web yang sama).
- * - Wali murid : NIS siswa + nama lengkap wali (akun dibuat otomatis dari data siswa).
+ * - Wali murid : NIS siswa + tanggal lahir siswa YY-MM-DD (akun dibuat otomatis dari data siswa).
  * Salah 5 kali untuk akun yang sama mengunci login akun itu 5 menit (dari HP mana pun).
  */
 class AuthController extends Controller
@@ -55,7 +55,7 @@ class AuthController extends Controller
             throw ValidationException::withMessages([
                 'username' => $data['peran'] === 'guru'
                     ? 'Username/NIP atau kata sandi salah.'
-                    : 'NIS atau nama wali tidak cocok.',
+                    : 'NIS atau tanggal lahir (YY-MM-DD) tidak cocok.',
             ]);
         }
 
@@ -128,11 +128,11 @@ class AuthController extends Controller
         return $user && Hash::check($password, $user->password) ? $user : null;
     }
 
-    private function cekWali(string $nis, string $namaWali): ?Wali
+    private function cekWali(string $nis, string $tanggalLahir): ?Wali
     {
         $wali = Wali::where('username', trim($nis))->where('status', 'Aktif')->first();
 
-        return $wali && $wali->cocokNama($namaWali) ? $wali : null;
+        return $wali && $wali->cocokSandi($tanggalLahir) ? $wali : null;
     }
 
     /** Data kartu & profil yang ditampilkan aplikasi. */
