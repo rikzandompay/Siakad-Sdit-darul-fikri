@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Guru\LainnyaController;
 use App\Http\Controllers\Api\V1\Guru\PresensiKelasController;
 use App\Http\Controllers\Api\V1\Guru\SholatController;
 use App\Http\Controllers\Api\V1\KonselingController;
+use App\Http\Controllers\Api\V1\NotifikasiController;
 use App\Http\Controllers\Api\V1\Wali\WaliController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +26,13 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+
+        // Notifikasi (guru & wali): token push perangkat dan riwayat lonceng.
+        Route::post('/perangkat', [NotifikasiController::class, 'simpanPerangkat']);
+        Route::delete('/perangkat', [NotifikasiController::class, 'hapusPerangkat']);
+        Route::get('/notifikasi', [NotifikasiController::class, 'index']);
+        Route::post('/notifikasi/baca-semua', [NotifikasiController::class, 'bacaSemua']);
+        Route::post('/notifikasi/{id}/baca', [NotifikasiController::class, 'baca']);
 
         Route::prefix('guru')->middleware('peran:guru')->group(function () {
             Route::post('/ubah-sandi', [AuthController::class, 'ubahSandi'])->middleware('throttle:api-sandi');

@@ -24,6 +24,8 @@ class AppPage extends StatelessWidget {
       decoration: const BoxDecoration(gradient: AppColors.pageGradient),
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        // Bilah bawah (mis. kolom ketik chat) ada di dalam body, bukan bottomNavigationBar:
+        // body ikut naik di atas keyboard, sedangkan bottomNavigationBar tertutup keyboard.
         body: SafeArea(
           bottom: bottom == null,
           child: Column(
@@ -31,16 +33,18 @@ class AppPage extends StatelessWidget {
             children: [
               if (title != null) PageHeader(title: title!, subtitle: subtitle, onBack: onBack),
               Expanded(child: scroll ? SingleChildScrollView(child: body) : body),
+              if (bottom != null)
+                Builder(
+                  builder: (context) => Container(
+                    color: AppColors.surface,
+                    // Di dalam body, padding bawah sistem otomatis nol saat keyboard terbuka.
+                    padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
+                    child: bottom,
+                  ),
+                ),
             ],
           ),
         ),
-        bottomNavigationBar: bottom == null
-            ? null
-            : Container(
-                color: AppColors.surface,
-                padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
-                child: bottom,
-              ),
       ),
     );
   }

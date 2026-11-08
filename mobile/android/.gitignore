@@ -15,3 +15,6 @@ key.properties
 
 # Hasil build Gradle
 build/
+
+# Konfigurasi Firebase per proyek (unduh dari Firebase Console)
+app/google-services.json

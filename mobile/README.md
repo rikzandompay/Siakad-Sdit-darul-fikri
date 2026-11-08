@@ -32,6 +32,24 @@ Build debug Android mengizinkan HTTP (untuk server lokal); build rilis hanya HTT
 
 iOS: butuh macOS + Xcode. Target minimum iOS 15.5 (syarat ML Kit), sudah diatur di `ios/Podfile`.
 
+## Notifikasi (konseling, pengumuman, surat izin, tugas)
+
+Riwayat notifikasi (ikon lonceng di beranda) langsung jalan. Notifikasi **push** di bilah
+notifikasi HP butuh proyek Firebase (gratis):
+
+1. Buka https://console.firebase.google.com → **Add project** → nama mis. `MyDarfik`.
+2. **Add app → Android**, package name `id.sch.darulfikri.mydarfik` → unduh
+   `google-services.json` → taruh di `mobile/android/app/google-services.json` (tidak masuk git),
+   lalu build ulang aplikasi.
+3. **Project settings → Service accounts → Generate new private key** → simpan file JSON-nya
+   di luar repo. Di server isi `FIREBASE_CREDENTIALS`:
+   - lokal: path file, mis. `FIREBASE_CREDENTIALS=/home/saya/kunci/mydarfik-firebase.json`
+   - Railway: tempel seluruh isi JSON sebagai nilai variabel.
+4. Jalankan antrean di server (`php artisan queue:work`; di Docker sudah otomatis lewat supervisord)
+   dan scheduler (`php artisan schedule:work`) untuk pengingat tugas H-1 pukul 18.00.
+
+Tanpa langkah 2–3 aplikasi tetap jalan; notifikasi hanya tampil di riwayat lonceng.
+
 ## Pengenalan wajah (di HP)
 
 - `google_mlkit_face_detection`: deteksi wajah dan kedipan (liveness).

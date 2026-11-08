@@ -30,6 +30,7 @@ import 'features/guru/lainnya/penilaian_screen.dart';
 import 'features/guru/lainnya/tugas_screen.dart';
 import 'features/shared/cetak_kartu_screen.dart';
 import 'features/shared/chat_screen.dart';
+import 'features/shared/notifikasi_screen.dart';
 import 'features/shared/pengumuman_screen.dart';
 import 'features/wali/izin_wali_screen.dart';
 import 'features/wali/jadwal_guru_screen.dart';
@@ -78,6 +79,7 @@ GoRouter buildRouter(Session session) {
         GoRoute(path: 'guru/:id', builder: (_, s) => JadwalMengajarScreen(endpoint: '/wali/guru/${s.pathParameters['id']}/jadwal')),
         GoRoute(path: 'konseling', builder: (_, _) => const KonselingWaliScreen()),
         GoRoute(path: 'konseling/:id', builder: (_, s) => ChatScreen(base: '/wali/konseling', id: int.parse(s.pathParameters['id']!), sayaPengirim: 'wali')),
+        GoRoute(path: 'notifikasi', builder: (_, _) => const NotifikasiScreen()),
         GoRoute(path: 'profil', builder: (_, _) => const ProfilWaliScreen()),
         GoRoute(path: 'profil/ubah', builder: (_, _) => const UbahDataScreen()),
         GoRoute(path: 'profil/cetak-kartu', builder: (_, _) => const CetakKartuScreen()),
@@ -97,6 +99,7 @@ GoRouter buildRouter(Session session) {
       GoRoute(path: '/admin/wali', builder: (_, _) => const AkunWaliScreen()),
       GoRoute(path: '/admin/guru/:id/absen', builder: (_, s) => KoreksiGuruScreen(guruId: int.parse(s.pathParameters['id']!), nama: s.extra as String?)),
       GoRoute(path: '/guru', builder: (_, _) => const GuruDashboardScreen(), routes: [
+        GoRoute(path: 'notifikasi', builder: (_, _) => const NotifikasiScreen()),
         GoRoute(path: 'profil', builder: (_, _) => const ProfilScreen()),
         GoRoute(path: 'profil/cetak-kartu', builder: (_, _) => const CetakKartuScreen()),
         // Presensi kelas

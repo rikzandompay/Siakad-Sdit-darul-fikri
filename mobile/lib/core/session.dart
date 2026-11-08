@@ -1,19 +1,22 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'api_client.dart';
+import 'notifikasi.dart';
 
 enum Peran { guru, wali }
 
 /// Status login: token disimpan di penyimpanan aman perangkat (Keychain / Keystore).
 class Session extends ChangeNotifier {
-  Session(this.api) {
+  Session(this.api) : notifikasi = LayananNotifikasi(api) {
     api.onUnauthorized = () => _clear();
   }
 
   final ApiClient api;
+  final LayananNotifikasi notifikasi;
   static const _storage = FlutterSecureStorage();
 
   bool ready = false;
@@ -38,21 +41,8 @@ class Session extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Satu-satunya tempat menyimpan alamat server pilihan pengguna (kunci `api_url`, dibaca main.dart).
-  Future<void> setCustomBaseUrl(String url) async {
-    final clean = ApiClient.normalisasi(url);
-    if (clean.isEmpty) return;
-    api.baseUrl = clean;
-    await _storage.write(key: 'api_url', value: clean);
-    await _storage.delete(key: 'custom_api_url');
-    notifyListeners();
-  }
-
   Future<void> restore() async {
     try {
-      // Kunci lama dari versi sebelumnya: pindahkan ke `api_url` lalu hapus.
-      final lama = await _storage.read(key: 'custom_api_url');
-      if (lama != null && lama.trim().isNotEmpty) await setCustomBaseUrl(lama);
       _token = await _storage.read(key: 'token');
       final p = await _storage.read(key: 'peran');
       peran = p == null ? null : Peran.values.byName(p);
@@ -86,6 +76,7 @@ class Session extends ChangeNotifier {
     }
     ready = true;
     notifyListeners();
+    if (loggedIn) unawaited(notifikasi.daftarkan());
   }
 
   Future<void> refreshMe() async {
@@ -118,11 +109,13 @@ class Session extends ChangeNotifier {
       await _storage.delete(key: 'akun');
     }
     notifyListeners();
+    unawaited(notifikasi.daftarkan());
   }
 
   Future<void> refreshAkun() async => refreshMe();
 
   Future<void> logout() async {
+    await notifikasi.lepas();
     try {
       await api.post('/auth/logout');
     } catch (_) {
@@ -136,6 +129,7 @@ class Session extends ChangeNotifier {
     peran = null;
     akun = {};
     api.token = null;
+    notifikasi.reset();
     await _storage.delete(key: 'token');
     await _storage.delete(key: 'peran');
     await _storage.delete(key: 'akun');

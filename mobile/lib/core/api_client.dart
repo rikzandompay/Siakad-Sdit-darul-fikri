@@ -56,7 +56,7 @@ class ApiClient {
   Future<Map<String, dynamic>> get(String path, {Map<String, dynamic>? query, Duration? batas}) {
     final f = _send(() => _dio.get(path, queryParameters: query, options: _opts()));
     if (batas == null) return f;
-    return f.timeout(batas, onTimeout: () => throw ApiException('Server tidak merespons. Periksa alamat server.'));
+    return f.timeout(batas, onTimeout: () => throw ApiException('Server tidak merespons. Periksa koneksi internet Anda lalu coba lagi.'));
   }
 
   Future<Map<String, dynamic>> post(String path, [Map<String, dynamic>? body]) =>
@@ -65,7 +65,7 @@ class ApiClient {
   Future<Map<String, dynamic>> put(String path, [Map<String, dynamic>? body]) =>
       _send(() => _dio.put(path, data: body ?? {}, options: _opts()));
 
-  Future<Map<String, dynamic>> delete(String path) => _send(() => _dio.delete(path, options: _opts()));
+  Future<Map<String, dynamic>> delete(String path, [Map<String, dynamic>? body]) => _send(() => _dio.delete(path, data: body, options: _opts()));
 
   /// Kirim form multipart (mis. foto surat izin). [file] = path lokal, dikirim sebagai [fileField].
   Future<Map<String, dynamic>> upload(String path, Map<String, dynamic> fields, {String? file, String fileField = 'lampiran'}) async {
@@ -118,11 +118,10 @@ class ApiClient {
   ApiException _toApiException(DioException e) {
     final res = e.response;
     if (res == null) {
-      final tujuan = '${e.requestOptions.uri.host}:${e.requestOptions.uri.port}';
       final msg = switch (e.type) {
         DioExceptionType.connectionTimeout || DioExceptionType.receiveTimeout || DioExceptionType.sendTimeout =>
-          'Server $tujuan tidak merespons. Pastikan HP dan server satu jaringan, atau cek alamat server (Atur alamat server).',
-        _ => 'Tidak dapat terhubung ke $tujuan. Periksa koneksi dan alamat server (Atur alamat server).',
+          'Server tidak merespons. Periksa koneksi internet Anda lalu coba lagi.',
+        _ => 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda lalu coba lagi.',
       };
       return ApiException(msg);
     }

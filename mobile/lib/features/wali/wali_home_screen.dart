@@ -9,6 +9,7 @@ import '../../core/session.dart';
 import '../../core/theme.dart';
 import '../../widgets/common.dart';
 import '../../widgets/kartu_identitas.dart';
+import '../shared/notifikasi_screen.dart';
 
 /// Beranda wali murid: kartu pelajar (QR sholat), aktivitas hari ini, menu, pengingat PR, info sekolah.
 class WaliHomeScreen extends StatefulWidget {
@@ -58,8 +59,10 @@ class _WaliHomeScreenState extends State<WaliHomeScreen> {
                           style: AppText.body,
                         ),
                         const SizedBox(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 12,
+                          runSpacing: 8,
                           children: [
                             OutlinedButton.icon(
                               onPressed: () async {
@@ -71,7 +74,6 @@ class _WaliHomeScreenState extends State<WaliHomeScreen> {
                               icon: const Icon(Icons.refresh),
                               label: const Text('Muat Ulang'),
                             ),
-                            const SizedBox(width: 12),
                             FilledButton.icon(
                               style: FilledButton.styleFrom(backgroundColor: AppColors.alpa),
                               onPressed: () => session.logout(),
@@ -167,6 +169,8 @@ class _Header extends StatelessWidget {
           Text('${a['kelas'] ?? '-'}${a['wali_kelas'] == null ? '' : ' · Wali: ${a['wali_kelas']}'}', style: AppText.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
         ]),
       ),
+      const SizedBox(width: 8),
+      const TombolNotifikasi(rute: '/wali/notifikasi'),
     ]);
   }
 }

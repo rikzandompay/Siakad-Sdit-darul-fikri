@@ -24,6 +24,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     Future.wait([session.restore(), Future.delayed(const Duration(milliseconds: 3500))]).then((_) {
       if (!mounted) return;
       context.go(!session.loggedIn ? '/login' : (session.peran == Peran.wali ? '/wali' : '/guru'));
+      // Aplikasi dibuka dari ketukan notifikasi: tampilkan layar terkait di atas beranda.
+      final rute = session.notifikasi.ambilRuteTertunda();
+      if (session.loggedIn && rute != null) context.push(rute);
     });
   }
 

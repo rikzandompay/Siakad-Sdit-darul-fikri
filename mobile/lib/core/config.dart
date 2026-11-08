@@ -3,8 +3,8 @@
 class AppConfig {
   static const apiUrl = String.fromEnvironment(
     'API_URL',
-    // Server Laravel di laptop (Wi-Fi yang sama). Tunnel publik bisa dipilih di layar login.
-    defaultValue: 'http://10.61.248.45:8000/api/v1',
+    // Server produksi SIAKAD. Untuk uji lokal: --dart-define=API_URL=http://IP-LAPTOP:8000/api/v1
+    defaultValue: 'https://siakad-darul-fikri.web.id/api/v1',
   );
 
   /// Alamat web SIAKAD (untuk ekspor CSV/PDF yang dibuka di browser).

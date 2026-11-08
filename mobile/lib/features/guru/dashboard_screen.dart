@@ -7,6 +7,7 @@ import '../../core/format.dart';
 import '../../core/session.dart';
 import '../../core/theme.dart';
 import '../../widgets/common.dart';
+import '../shared/notifikasi_screen.dart';
 import '../../widgets/kartu_identitas.dart';
 import '../admin/admin_sekolah_view.dart';
 
@@ -128,10 +129,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final peran = [
-      if ((akun['mata_pelajaran'] as List?)?.isNotEmpty ?? false) 'Guru ${(akun['mata_pelajaran'] as List).first}',
-      if ((akun['wali_kelas'] as List?)?.isNotEmpty ?? false) 'Wali ${(akun['wali_kelas'] as List).join(', ')}',
-    ].join(' & ');
+    final peran = (akun['jabatan'] as String?) ?? (admin ? 'Kepala Sekolah' : 'Guru');
     return Row(children: [
       Semantics(
         button: true,
@@ -141,17 +139,12 @@ class _Header extends StatelessWidget {
       const SizedBox(width: 12),
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(admin ? 'Selamat Datang, Kepala Sekolah' : 'Selamat Mengajar,', style: AppText.bodySmall),
+          Text(admin ? 'Selamat Datang,' : 'Selamat Mengajar,', style: AppText.bodySmall),
           Text(akun['nama'] ?? '-', style: AppText.heading.copyWith(fontSize: 17), maxLines: 1, overflow: TextOverflow.ellipsis),
-          if (peran.isNotEmpty) Text(peran, style: AppText.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(peran, style: AppText.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
         ]),
       ),
-      IconButton.outlined(
-        tooltip: 'Pengumuman',
-        onPressed: () => context.push(admin ? '/admin/pengumuman' : '/guru/pengumuman'),
-        icon: const Icon(Icons.notifications_none_rounded),
-        style: IconButton.styleFrom(side: const BorderSide(color: AppColors.line), backgroundColor: AppColors.surface, minimumSize: const Size(48, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-      ),
+      const TombolNotifikasi(rute: '/guru/notifikasi'),
     ]);
   }
 }

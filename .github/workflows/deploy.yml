@@ -1,0 +1,115 @@
+name: Deploy to Production VPS
+
+# Push ke main → tes → build aset → deploy ke VPS (SIAKAD SDIT Darul Fikri).
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-siakad
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Tes & build aset
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, gd, zip, pdo_sqlite, sqlite3, bcmath, intl
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Jalankan tes
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan test
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build aset (Vite)
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-build
+          path: public/build
+          retention-days: 1
+
+  deploy:
+    name: Deploy ke VPS
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: public-build
+          path: build
+
+      - name: Kirim aset hasil build ke VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 43.173.30.73
+          username: ubuntu
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          source: build/*
+          target: /tmp/siakad-build
+          rm: true
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 43.173.30.73
+          username: ubuntu
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script_stop: true
+          script: |
+            set -e
+            cd /var/www/siakad
+
+            echo "===> Mengambil kode terbaru dari GitHub..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "===> Memasang aset hasil build..."
+            rm -rf public/build
+            mkdir -p public/build
+            cp -r /tmp/siakad-build/build/. public/build/
+            rm -rf /tmp/siakad-build
+
+            echo "===> Composer install..."
+            composer install --no-dev --optimize-autoloader --no-interaction
+
+            echo "===> Migrasi database..."
+            sudo -u www-data php artisan migrate --force
+
+            echo "===> Menyegarkan cache aplikasi..."
+            sudo -u www-data php artisan optimize:clear
+            sudo -u www-data php artisan optimize
+
+            echo "===> Izin penyimpanan..."
+            sudo chown -R www-data:www-data storage bootstrap/cache
+            sudo chmod -R ug+rwX storage bootstrap/cache
+
+            echo "===> Reload PHP-FPM & restart antrean notifikasi..."
+            sudo systemctl reload php8.4-fpm
+            sudo systemctl restart siakad-queue
+
+            echo "===> Cek kesehatan..."
+            curl -fsS -H "Host: siakad-darul-fikri.web.id" http://127.0.0.1/api/v1/ping
+            echo
+            echo "===> Deploy selesai."

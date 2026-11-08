@@ -6,6 +6,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Notifikasi push butuh android/app/google-services.json dari Firebase Console (tidak masuk git).
+// Tanpa file itu aplikasi tetap bisa di-build; notifikasi hanya tampil di riwayat (lonceng).
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 // Kunci rilis dibaca dari android/key.properties (tidak masuk git). Simpan cadangan keystore:
 // tanpa keystore yang sama, update aplikasi tidak bisa dipasang di atas versi lama.
 val keyProps = Properties().apply {
@@ -19,6 +25,8 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Dibutuhkan flutter_local_notifications.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -64,4 +72,8 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MenerimaNotifikasi;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\Hash;
  */
 class Wali extends Authenticatable
 {
-    use HasApiTokens;
+    use HasApiTokens, MenerimaNotifikasi;
 
     protected $table = 'wali';
 

@@ -28,10 +28,7 @@ class KonselingController extends Controller
             'anak' => ['id' => $siswa->id, 'nama' => $siswa->nama_siswa, 'kelas' => $siswa->kelas?->nama_kelas],
             'pengampu' => $pengampu ? [
                 'nama' => $pengampu->nama_lengkap ?? $pengampu->name, 'inisial' => Sekolah::inisial($pengampu->nama_lengkap ?? $pengampu->name),
-                'jabatan' => collect([
-                    $pengampu->kelasWali()->pluck('nama_kelas')->map(fn ($k) => "Wali $k")->join(', '),
-                    $pengampu->jadwalPelajaran()->with('mataPelajaran')->get()->pluck('mataPelajaran.nama_pelajaran')->filter()->unique()->map(fn ($m) => "Guru $m")->join(', '),
-                ])->filter()->join(' · '),
+                'jabatan' => $pengampu->isAdmin() ? 'Kepala Sekolah' : 'Guru',
             ] : null,
             'data' => $this->daftar(KonselingPercakapan::where('siswa_id', $siswa->id), KonselingPesan::GURU),
         ]);

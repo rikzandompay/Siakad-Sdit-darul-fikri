@@ -25,3 +25,9 @@ if ($batasGuru = config('presensi_guru.batas_tidak_hadir')) {
         ->timezone(config('presensi_guru.timezone'))
         ->withoutOverlapping();
 }
+
+// Pengingat tugas H-1 tenggat ke wali murid.
+Schedule::command('tugas:ingatkan-tenggat')
+    ->dailyAt(config('notifikasi.pengingat_tugas_jam'))
+    ->timezone(\App\Support\Sekolah::timezone())
+    ->withoutOverlapping();

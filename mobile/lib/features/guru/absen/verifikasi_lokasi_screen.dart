@@ -159,7 +159,7 @@ class _Info extends StatelessWidget {
   Widget build(BuildContext context) => Row(children: [
         Container(width: 40, height: 40, decoration: BoxDecoration(color: merah ? AppColors.alpaTint : AppColors.brand100, shape: BoxShape.circle), child: Icon(icon, size: 20, color: merah ? AppColors.alpa : AppColors.brand800)),
         const SizedBox(width: 12),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: AppText.caption), Text(nilai, style: AppText.heading)]),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: AppText.caption), Text(nilai, style: AppText.heading)])),
       ]);
 }
 
