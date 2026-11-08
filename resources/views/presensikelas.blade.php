@@ -56,7 +56,7 @@
 <div>
     <h3 class="font-bold text-lg text-gray-900 mb-4">Pilih Kelas untuk Presensi</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @foreach($kelasList as $kelas)
+        @forelse($kelasList as $kelas)
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                 <div class="h-28 bg-blue-500 relative overflow-hidden flex items-end p-6">
                     <div>
@@ -85,7 +85,13 @@
                     </a>
                 </div>
             </div>
-        @endforeach
+        @empty
+            <div class="col-span-3 py-16 text-center">
+                <span class="material-symbols-outlined text-5xl text-gray-300">how_to_reg</span>
+                <h4 class="text-lg font-bold text-gray-800 mt-3">Belum ada kelas untuk diisi</h4>
+                <p class="text-gray-500 text-sm max-w-md mx-auto mt-1">Presensi kelas hanya diisi oleh wali kelas. Anda belum terdaftar sebagai wali kelas mana pun. Rekap presensi kelas yang Anda ajar tetap bisa dilihat di menu Rekap.</p>
+            </div>
+        @endforelse
     </div>
 </div>
 @endsection

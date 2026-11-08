@@ -6,29 +6,23 @@
 <div class="mb-2">
     <h2 class="font-bold text-2xl text-blue-600">Presensi Sholat {{ $jenisSholat }}</h2>
     <p class="text-gray-500 text-sm mt-1">
-        @if($jenisSholat == 'Zuhur')
-            Kelola kehadiran sholat Zuhur berjamaah untuk kelas 3 hingga 6.
-        @else
-            Kelola kehadiran sholat Dhuha berjamaah untuk seluruh kelas.
+        Sholat {{ $jenisSholat }} berjamaah pukul {{ $waktuSholat }} untuk kelas 1 hingga 6. Siswa tercatat Hadir saat QR Kartu Pelajar di-scan lewat aplikasi MyDarfik.
+        @if($batasTidakHadir)
+            Siswa yang belum tercatat sampai pukul {{ $batasTidakHadir }} otomatis Tidak Hadir.
         @endif
     </p>
 </div>
 
 <!-- Toggle Jenis Sholat -->
 <div class="flex items-center gap-3 mb-6">
-    <a href="{{ route('presensi-sholat.index', ['jenis' => 'Zuhur']) }}"
-       class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == 'Zuhur' ? 'bg-blue-500 text-gray-900 shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
-        <span class="material-symbols-outlined text-sm align-middle mr-1">mosque</span>
-        Sholat Zuhur
-    </a>
-    <a href="{{ route('presensi-sholat.index', ['jenis' => 'Dhuha']) }}"
-       class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == 'Dhuha' ? 'bg-blue-500 text-gray-900 shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
-        <span class="material-symbols-outlined text-sm align-middle mr-1">wb_sunny</span>
-        Sholat Dhuha
-    </a>
+    @foreach(\App\Models\PresensiSholat::JENIS as $jenis)
+        <a href="{{ route('presensi-sholat.index', ['jenis' => $jenis]) }}"
+           class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == $jenis ? 'bg-blue-500 text-gray-900 shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
+            <span class="material-symbols-outlined text-sm align-middle mr-1">{{ $jenis == 'Dhuha' ? 'wb_sunny' : 'mosque' }}</span>
+            Sholat {{ $jenis }}
+        </a>
+    @endforeach
 </div>
-
-
 
 <!-- Stats -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -37,40 +31,40 @@
             <div class="p-2.5 bg-blue-50 rounded-lg text-blue-600">
                 <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">groups</span>
             </div>
-            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">Hadir</span>
+            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">Hari Ini</span>
         </div>
-        <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Kehadiran Hari Ini</p>
+        <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Persentase Hadir</p>
         <p class="text-2xl font-bold text-gray-900 mt-1">{{ $persenHadir }}%</p>
     </div>
     <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center justify-between mb-4">
-            <div class="p-2.5 bg-blue-50 rounded-lg text-blue-600">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">sick</span>
+            <div class="p-2.5 bg-green-50 rounded-lg text-green-700">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
             </div>
-            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">Sakit</span>
+            <span class="text-xs font-bold text-green-700 bg-green-50 px-2 py-1 rounded">Hadir</span>
         </div>
-        <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Sakit Hari Ini</p>
-        <p class="text-2xl font-bold text-gray-900 mt-1">{{ $sakitCount }}</p>
-    </div>
-    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-        <div class="flex items-center justify-between mb-4">
-            <div class="p-2.5 bg-amber-50 rounded-lg text-amber-700">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">mail</span>
-            </div>
-            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">Izin</span>
-        </div>
-        <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Izin Hari Ini</p>
-        <p class="text-2xl font-bold text-gray-900 mt-1">{{ $izinCount }}</p>
+        <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Hadir Hari Ini</p>
+        <p class="text-2xl font-bold text-gray-900 mt-1">{{ $hadirCount }}</p>
     </div>
     <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center justify-between mb-4">
             <div class="p-2.5 bg-red-50 rounded-lg text-red-700">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person_off</span>
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">cancel</span>
             </div>
-            <span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">Alpa</span>
+            <span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">Tidak Hadir</span>
         </div>
-        <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Alpa Hari Ini</p>
-        <p class="text-2xl font-bold text-gray-900 mt-1">{{ $alpaCount }}</p>
+        <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Tidak Hadir Hari Ini</p>
+        <p class="text-2xl font-bold text-gray-900 mt-1">{{ $tidakHadirCount }}</p>
+    </div>
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+            <div class="p-2.5 bg-gray-100 rounded-lg text-gray-600">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">schedule</span>
+            </div>
+            <span class="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded">Belum</span>
+        </div>
+        <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Belum Tercatat</p>
+        <p class="text-2xl font-bold text-gray-900 mt-1">{{ $belumCount }}</p>
     </div>
 </div>
 
@@ -83,7 +77,7 @@
                 <div class="h-28 bg-blue-500 relative overflow-hidden flex items-end p-6">
                     <div>
                         <div class="bg-amber-500 text-blue-950 font-bold px-2.5 py-0.5 rounded text-[10px] inline-block mb-2 uppercase tracking-wider">
-                            {{ $jenisSholat == 'Zuhur' ? 'Setiap Hari' : 'Setiap Hari' }}
+                            Setiap Hari · {{ $waktuSholat }}
                         </div>
                         <h3 class="text-white font-bold text-lg leading-none">{{ $kelas->nama_kelas }}</h3>
                     </div>
@@ -114,11 +108,7 @@
                 </div>
                 <h4 class="text-lg font-bold text-gray-800 mb-2">Belum Ada Kelas yang Tersedia</h4>
                 <p class="text-gray-400 text-sm max-w-sm leading-relaxed">
-                    @if($jenisSholat == 'Zuhur')
-                        Pembiasaan sholat Zuhur berjamaah di sekolah diperuntukkan bagi kelas 3 hingga kelas 6. Kelas yang Anda ampu saat ini belum termasuk dalam program ini.
-                    @else
-                        Anda belum terdaftar sebagai wali kelas yang mengikuti program sholat Dhuha berjamaah.
-                    @endif
+                    Presensi sholat dikelola oleh wali kelas. Anda belum terdaftar sebagai wali kelas mana pun.
                 </p>
             </div>
         @endforelse

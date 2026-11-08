@@ -4,13 +4,51 @@ namespace App\Http\Controllers;
 
 use App\Models\Siswa;
 use App\Models\Kelas;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Illuminate\Http\Request;
 
 class SiswaController extends Controller
 {
+    /**
+     * Kartu Pelajar (depan & belakang) dengan QR presensi sholat, siap cetak.
+     */
+    public function kartu(Siswa $siswa)
+    {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
+        if (! $siswa->qr_token) {
+            $siswa->regenerateQrToken();
+        }
+
+        $writer = new Writer(new ImageRenderer(new RendererStyle(240, 1), new SvgImageBackEnd()));
+        $qrSvg = preg_replace('/^<\?xml[^>]*>\s*/', '', $writer->writeString($siswa->qr_payload));
+
+        $siswa->load('kelas');
+
+        return view('exports.kartu-pelajar', compact('siswa', 'qrSvg'));
+    }
+
+    /**
+     * Ganti QR (kartu hilang/disalahgunakan). QR lama langsung tidak berlaku.
+     */
+    public function regenerateQr(Siswa $siswa)
+    {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
+        $siswa->regenerateQrToken();
+
+        return redirect()->route('siswa.kartu', $siswa)->with('success', 'QR baru dibuat. Cetak ulang kartu; QR lama tidak berlaku lagi.');
+    }
+
     public function index(Request $request)
     {
         $query = Siswa::with('kelas');
+        if (! auth()->user()->isAdmin()) {
+            $query->whereIn('kelas_id', $this->accessibleKelasIds());
+        }
 
         // Search
         if ($request->filled('search')) {
@@ -44,6 +82,8 @@ class SiswaController extends Controller
 
     public function store(Request $request)
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
         $validated = $request->validate([
             'nis' => 'required|string|max:20|unique:siswa,nis',
             'nisn' => 'required|string|max:20|unique:siswa,nisn',
@@ -65,6 +105,8 @@ class SiswaController extends Controller
 
     public function update(Request $request, Siswa $siswa)
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
         $validated = $request->validate([
             'nis' => 'required|string|max:20|unique:siswa,nis,' . $siswa->id,
             'nisn' => 'required|string|max:20|unique:siswa,nisn,' . $siswa->id,
@@ -87,6 +129,8 @@ class SiswaController extends Controller
 
     public function destroy(Siswa $siswa)
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
         $kelasId = $siswa->getAttribute('kelas_id');
         $siswa->delete();
         $this->clearSiswaCache($kelasId);
@@ -99,6 +143,9 @@ class SiswaController extends Controller
     public function exportCsv(Request $request)
     {
         $query = Siswa::with('kelas');
+        if (! auth()->user()->isAdmin()) {
+            $query->whereIn('kelas_id', $this->accessibleKelasIds());
+        }
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -140,7 +187,7 @@ class SiswaController extends Controller
             fputcsv($file, ['No', 'NIS', 'NISN', 'Nama Siswa', 'Tanggal Lahir', 'Alamat', 'Jenis Kelamin', 'Kelas', 'Nama Wali', 'No HP Wali', 'Status']);
             $no = 1;
             foreach ($data as $s) {
-                fputcsv($file, [
+                $this->putSafeCsv($file, [
                     $no++,
                     $s->nis,
                     $s->nisn,
@@ -166,6 +213,9 @@ class SiswaController extends Controller
     public function exportPdf(Request $request)
     {
         $query = Siswa::with('kelas');
+        if (! auth()->user()->isAdmin()) {
+            $query->whereIn('kelas_id', $this->accessibleKelasIds());
+        }
 
         if ($request->filled('search')) {
             $search = $request->search;

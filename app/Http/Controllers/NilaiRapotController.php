@@ -228,10 +228,13 @@ class NilaiRapotController extends Controller
             'nilai.*.pengurang_menyontek' => 'nullable|numeric|min:0|max:100',
         ]);
 
-        $firstKelasId = Siswa::find($validated['nilai'][0]['siswa_id'])?->kelas_id;
-        if ($firstKelasId) {
-            $this->ensureTeacherCanAccessPelajaran($validated['pelajaran_id'], $firstKelasId);
+        $siswaIds = array_values(array_unique(array_column($validated['nilai'], 'siswa_id')));
+        $kelasIds = Siswa::whereIn('id', $siswaIds)->pluck('kelas_id')->unique();
+        if ($kelasIds->count() !== 1 || ! $kelasIds->first() || Siswa::whereIn('id', $siswaIds)->count() !== count($siswaIds)) {
+            abort(403, 'Data siswa tidak valid atau lintas kelas.');
         }
+        $firstKelasId = (int) $kelasIds->first();
+        $this->ensureTeacherCanAccessPelajaran($validated['pelajaran_id'], $firstKelasId);
 
         foreach ($validated['nilai'] as $data) {
             $formatifData = $data['formatif'];
@@ -269,7 +272,7 @@ class NilaiRapotController extends Controller
         return redirect()->route('nilai.index', [
             'tahun_ajaran_id' => $validated['tahun_ajaran_id'],
             'pelajaran_id' => $validated['pelajaran_id'],
-            'kelas_id' => Siswa::find($validated['nilai'][0]['siswa_id'])?->kelas_id,
+            'kelas_id' => $firstKelasId,
         ])->with('success', 'Rekap nilai berhasil disimpan!');
     }
 
@@ -370,7 +373,7 @@ class NilaiRapotController extends Controller
                 $row[] = $n ? $n->nilai_rapor : 0;
                 $row[] = $n ? NilaiRapot::getPredikat($n->nilai_rapor) : 'F';
 
-                fputcsv($file, $row);
+                $this->putSafeCsv($file, $row);
             }
             fclose($file);
         };
@@ -485,7 +488,7 @@ class NilaiRapotController extends Controller
 
                 $rataRata = $rataRataSiswa[$s->id] ?? 0;
                 $row[] = $rataRata > 0 ? number_format($rataRata, 1) : '-';
-                fputcsv($file, $row);
+                $this->putSafeCsv($file, $row);
             }
             fclose($file);
         };

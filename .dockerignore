@@ -7,5 +7,10 @@ storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
+database/*.sqlite
+database/*.sqlite-*
+database/*.sql
+.phpunit.result.cache
+tests
 *.md
 PPT_SisforSinta.txt

@@ -15,6 +15,12 @@ class Kelas extends Model
         return $this->belongsTo(User::class, 'wali_kelas_id');
     }
 
+    /** Guru yang melayani konseling wali murid kelas ini (diatur admin). */
+    public function pengampuKonseling()
+    {
+        return $this->belongsTo(User::class, 'pengampu_konseling_id');
+    }
+
     public function siswa()
     {
         return $this->hasMany(Siswa::class, 'kelas_id');

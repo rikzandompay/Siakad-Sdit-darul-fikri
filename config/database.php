@@ -98,7 +98,8 @@ return [
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
             'options' => [
-                PDO::ATTR_EMULATE_PREPARES => false,
+                // Pooler transaksi Supabase (port 6543) tidak mendukung prepared statement server-side.
+                PDO::ATTR_EMULATE_PREPARES => (bool) env('DB_EMULATE_PREPARES', false),
             ],
         ],
 

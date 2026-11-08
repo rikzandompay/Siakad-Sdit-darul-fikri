@@ -4,12 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Kelas;
 use App\Models\PresensiSholat;
-use App\Models\Siswa;
+use App\Services\CacheService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Carbon\Carbon;
+use Illuminate\Validation\Rule;
 
+/**
+ * Presensi sholat Dzuhur & Ashar (kelas 1–6), status Hadir / Tidak Hadir.
+ * Di aplikasi MyDarfik status Hadir berasal dari scan QR Kartu Pelajar;
+ * halaman web ini dipakai wali kelas/admin untuk melihat dan mengoreksi.
+ */
 class PresensiSholatController extends Controller
 {
     protected function ensureTeacherIsWaliKelas(int $kelasId): void
@@ -22,129 +29,125 @@ class PresensiSholatController extends Controller
             ->where('wali_kelas_id', Auth::id())
             ->exists();
 
-        if (!$isWali) {
+        if (! $isWali) {
             abort(403, 'Anda tidak memiliki akses ke kelas ini.');
         }
     }
 
     /**
-     * Daftar kelas untuk presensi sholat
+     * Kelas yang boleh dikelola: admin semua kelas, guru hanya kelas walinya.
      */
+    protected function kelasSholat(): Collection
+    {
+        $user = Auth::user();
+        $key = $user->isAdmin() ? 'sholat:kelas:admin' : 'sholat:kelas:guru:'.$user->id;
+
+        return Cache::remember($key, 300, function () use ($user) {
+            return Kelas::withCount('siswaAktif')
+                ->with('waliKelas')
+                ->when(! $user->isAdmin(), fn ($q) => $q->where('wali_kelas_id', $user->id))
+                ->orderBy('nama_kelas')
+                ->get();
+        });
+    }
+
+    protected function todaySekolah(): string
+    {
+        return Carbon::now(config('sholat.timezone'))->toDateString();
+    }
+
     public function index(Request $request)
     {
-        $jenisSholat = $request->get('jenis', 'Zuhur');
-        $guruId = Auth::id();
-        $today = Carbon::today();
-        $todayStr = $today->toDateString();
-
-        $kelasList = Cache::remember("sholat_kelas_list_guru_{$guruId}_jenis_{$jenisSholat}", 300, function() use ($jenisSholat, $guruId) {
-            if ($jenisSholat === 'Zuhur') {
-                // Kelas 3-6 setiap hari, hanya wali kelas
-                return Kelas::withCount('siswaAktif')
-                    ->with('waliKelas')
-                    ->where('wali_kelas_id', $guruId)
-                    ->where(function ($q) {
-                        $q->where('nama_kelas', 'like', '%3%')
-                          ->orWhere('nama_kelas', 'like', '%4%')
-                          ->orWhere('nama_kelas', 'like', '%5%')
-                          ->orWhere('nama_kelas', 'like', '%6%');
-                    })
-                    ->orderBy('nama_kelas')->get();
-            } else {
-                // Dhuha: Kelas 1-6
-                return Kelas::withCount('siswaAktif')
-                    ->with('waliKelas')
-                    ->where('wali_kelas_id', $guruId)
-                    ->orderBy('nama_kelas')->get();
-            }
-        });
-
-        // Stats hari ini - filter by teacher's classes (di-cache untuk performa)
+        $jenisSholat = PresensiSholat::normalizeJenis($request->get('jenis'));
+        $today = $this->todaySekolah();
+        $kelasList = $this->kelasSholat();
         $kelasIds = $kelasList->pluck('id');
-        $stats = Cache::remember("sholat_presensi_stats_guru_{$guruId}_jenis_{$jenisSholat}_{$todayStr}", 120, function() use ($today, $jenisSholat, $kelasIds) {
-            $presensiToday = PresensiSholat::where('tanggal', $today)
-                ->where('jenis_sholat', $jenisSholat)
-                ->whereIn('kelas_id', $kelasIds)
-                ->get();
-            return [
-                'hadirCount' => $presensiToday->where('status_kehadiran', 'H')->count(),
-                'sakitCount' => $presensiToday->where('status_kehadiran', 'S')->count(),
-                'izinCount' => $presensiToday->where('status_kehadiran', 'I')->count(),
-                'alpaCount' => $presensiToday->where('status_kehadiran', 'A')->count(),
-                'totalPresensi' => $presensiToday->count(),
-            ];
-        });
+        $totalSiswa = (int) $kelasList->sum('siswa_aktif_count');
 
-        $hadirCount = $stats['hadirCount'];
-        $sakitCount = $stats['sakitCount'];
-        $izinCount = $stats['izinCount'];
-        $alpaCount = $stats['alpaCount'];
-        $totalPresensi = $stats['totalPresensi'];
-        $persenHadir = $totalPresensi > 0 ? round(($hadirCount / $totalPresensi) * 100, 1) : 0;
+        $stats = Cache::remember(
+            CacheService::keyPresensiSholatHariIni(Auth::id(), $jenisSholat),
+            120,
+            function () use ($today, $jenisSholat, $kelasIds) {
+                $counts = PresensiSholat::where('tanggal', $today)
+                    ->where('jenis_sholat', $jenisSholat)
+                    ->whereIn('kelas_id', $kelasIds)
+                    ->selectRaw('status_kehadiran, COUNT(*) as jumlah')
+                    ->groupBy('status_kehadiran')
+                    ->pluck('jumlah', 'status_kehadiran');
 
-        $isFriday = $today->isFriday();
+                return [
+                    'hadir' => (int) ($counts[PresensiSholat::HADIR] ?? 0),
+                    'tidakHadir' => (int) ($counts[PresensiSholat::TIDAK_HADIR] ?? 0),
+                ];
+            }
+        );
+
+        $hadirCount = $stats['hadir'];
+        $tidakHadirCount = $stats['tidakHadir'];
+        $belumCount = max(0, $totalSiswa - $hadirCount - $tidakHadirCount);
+        $persenHadir = $totalSiswa > 0 ? round(($hadirCount / $totalSiswa) * 100, 1) : 0;
+        $waktuSholat = config('sholat.waktu.'.$jenisSholat);
+        $batasTidakHadir = config('sholat.batas_tidak_hadir.'.$jenisSholat);
 
         return view('presensi-sholat-kelas', compact(
-            'kelasList', 'jenisSholat', 'hadirCount', 'sakitCount',
-            'izinCount', 'alpaCount', 'persenHadir', 'isFriday'
+            'kelasList', 'jenisSholat', 'hadirCount', 'tidakHadirCount', 'belumCount',
+            'persenHadir', 'waktuSholat', 'batasTidakHadir'
         ));
     }
 
-    /**
-     * Form input presensi sholat per kelas
-     */
     public function show(Kelas $kelas, Request $request)
     {
         $this->ensureTeacherIsWaliKelas($kelas->id);
+        $request->validate(['tanggal' => 'nullable|date']);
 
-        $jenisSholat = $request->get('jenis', 'Zuhur');
-        $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
+        $jenisSholat = PresensiSholat::normalizeJenis($request->get('jenis'));
+        $tanggal = $request->filled('tanggal')
+            ? Carbon::parse($request->get('tanggal'))->toDateString()
+            : $this->todaySekolah();
 
         $siswa = $kelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
 
-        // Existing presensi data
         $existingPresensi = PresensiSholat::where('kelas_id', $kelas->id)
             ->where('tanggal', $tanggal)
             ->where('jenis_sholat', $jenisSholat)
-            ->pluck('status_kehadiran', 'siswa_id')
-            ->toArray();
+            ->get(['siswa_id', 'status_kehadiran', 'keterangan', 'recorded_by'])
+            ->keyBy('siswa_id');
 
-        $hadirCount = collect($existingPresensi)->filter(fn($v) => $v === 'H')->count();
-        $sakitCount = collect($existingPresensi)->filter(fn($v) => $v === 'S')->count();
-        $izinCount = collect($existingPresensi)->filter(fn($v) => $v === 'I')->count();
-        $alpaCount = collect($existingPresensi)->filter(fn($v) => $v === 'A')->count();
+        $hadirCount = $existingPresensi->where('status_kehadiran', PresensiSholat::HADIR)->count();
+        $tidakHadirCount = $existingPresensi->where('status_kehadiran', PresensiSholat::TIDAK_HADIR)->count();
+        $belumCount = max(0, $siswa->count() - $hadirCount - $tidakHadirCount);
 
-        $kelasList = Cache::remember('kelas_list_for_sholat', 300, function () {
-            return Kelas::orderBy('nama_kelas')->get();
-        });
+        $kelasList = $this->kelasSholat();
 
         return view('presensi-sholat-siswa', compact(
             'kelas', 'siswa', 'jenisSholat', 'tanggal', 'kelasList',
-            'existingPresensi', 'hadirCount', 'sakitCount', 'izinCount', 'alpaCount'
+            'existingPresensi', 'hadirCount', 'tidakHadirCount', 'belumCount'
         ));
     }
 
-    /**
-     * Simpan presensi sholat
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'kelas_id' => 'required|exists:kelas,id',
-            'jenis_sholat' => 'required|in:Zuhur,Dhuha',
-            'tanggal' => 'required|date',
+            'jenis_sholat' => ['required', Rule::in(PresensiSholat::JENIS)],
+            'tanggal' => 'required|date|before_or_equal:'.$this->todaySekolah(),
             'presensi' => 'required|array',
-            'presensi.*.siswa_id' => 'required|exists:siswa,id',
-            'presensi.*.status' => 'required|in:H,I,S,A',
+            'presensi.*.siswa_id' => ['required', Rule::exists('siswa', 'id')->where('kelas_id', $request->input('kelas_id'))],
+            'presensi.*.status' => ['nullable', Rule::in(PresensiSholat::STATUS)],
+            'presensi.*.keterangan' => 'nullable|string|max:255',
         ]);
 
         $this->ensureTeacherIsWaliKelas($validated['kelas_id']);
 
         $now = now();
-        $records = collect($validated['presensi'])->map(function ($data) use ($validated, $now) {
-            return [
+        $tanggal = Carbon::parse($validated['tanggal'])->toDateString();
+
+        // Siswa yang tidak dipilih statusnya dibiarkan "belum tercatat".
+        $records = collect($validated['presensi'])
+            ->filter(fn ($data) => ! empty($data['status']))
+            ->map(fn ($data) => [
                 'siswa_id' => $data['siswa_id'],
-                'tanggal' => $validated['tanggal'],
+                'tanggal' => $tanggal,
                 'jenis_sholat' => $validated['jenis_sholat'],
                 'kelas_id' => $validated['kelas_id'],
                 'status_kehadiran' => $data['status'],
@@ -152,8 +155,13 @@ class PresensiSholatController extends Controller
                 'recorded_by' => Auth::id(),
                 'created_at' => $now,
                 'updated_at' => $now,
-            ];
-        })->toArray();
+            ])
+            ->values()
+            ->all();
+
+        if (empty($records)) {
+            return back()->with('error', 'Pilih status minimal satu siswa sebelum menyimpan.');
+        }
 
         PresensiSholat::upsert(
             $records,
@@ -161,106 +169,49 @@ class PresensiSholatController extends Controller
             ['kelas_id', 'status_kehadiran', 'keterangan', 'recorded_by', 'updated_at']
         );
 
-        // Invalidate cache
-        $guruId = Auth::id();
-        $tanggalObj = \Carbon\Carbon::parse($validated['tanggal']);
-        $todayStr = $tanggalObj->toDateString();
-        Cache::forget("sholat_presensi_stats_guru_{$guruId}_jenis_{$validated['jenis_sholat']}_{$todayStr}");
+        CacheService::clearPresensiSholat(Auth::id(), $validated['jenis_sholat']);
 
         return redirect()->route('presensi-sholat.show', [
             'kelas' => $validated['kelas_id'],
             'jenis' => $validated['jenis_sholat'],
-            'tanggal' => $validated['tanggal'],
-        ])->with('success', 'Presensi Sholat ' . $validated['jenis_sholat'] . ' berhasil disimpan!');
+            'tanggal' => $tanggal,
+        ])->with('success', 'Presensi Sholat '.$validated['jenis_sholat'].' berhasil disimpan!');
     }
 
     public function rekap(Request $request)
     {
-        $jenisSholat = $request->get('jenis', 'Zuhur');
-        $selectedKelasId = $request->get('kelas_id');
-        $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
+        $jenisSholat = PresensiSholat::normalizeJenis($request->get('jenis'), termasukArsip: true);
+        $tanggal = $request->get('tanggal', $this->todaySekolah());
         $rentang = $request->get('rentang', 'bulan_ini');
+        $kelasList = $this->kelasSholat();
 
-        if ($jenisSholat === 'Zuhur') {
-            $kelasList = Kelas::where('wali_kelas_id', Auth::id())
-                ->where(function ($q) {
-                    $q->where('nama_kelas', 'like', '%3%')
-                      ->orWhere('nama_kelas', 'like', '%4%')
-                      ->orWhere('nama_kelas', 'like', '%5%')
-                      ->orWhere('nama_kelas', 'like', '%6%');
-                })->orderBy('nama_kelas')->get();
-        } else {
-            $kelasList = Kelas::where('wali_kelas_id', Auth::id())->orderBy('nama_kelas')->get();
-        }
-
-        $dateRange = $this->getDateRange($rentang, $tanggal);
-        $periodeLabel = $this->getPeriodeLabelWithDate($rentang, $tanggal);
-
-        $rekapData = [];
+        $periodeLabel = $this->periodeLabel($rentang, $tanggal);
         $selectedKelas = null;
+        $rekapData = [];
 
-        if ($selectedKelasId) {
-            $this->ensureTeacherIsWaliKelas($selectedKelasId);
-            $selectedKelas = Kelas::find($selectedKelasId);
-            $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
-
-            $summaryBySiswa = PresensiSholat::where('kelas_id', $selectedKelasId)
-                ->where('jenis_sholat', $jenisSholat)
-                ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
-                ->selectRaw("siswa_id,
-                    SUM(CASE WHEN status_kehadiran = 'H' THEN 1 ELSE 0 END) as hadir_count,
-                    SUM(CASE WHEN status_kehadiran = 'S' THEN 1 ELSE 0 END) as sakit_count,
-                    SUM(CASE WHEN status_kehadiran = 'I' THEN 1 ELSE 0 END) as izin_count,
-                    SUM(CASE WHEN status_kehadiran = 'A' THEN 1 ELSE 0 END) as alpa_count")
-                ->groupBy('siswa_id')
-                ->get()
-                ->keyBy('siswa_id');
-
-            foreach ($siswaList as $siswa) {
-                $summary = $summaryBySiswa->get($siswa->id);
-
-                $rekapData[$siswa->id] = [
-                    'siswa' => $siswa,
-                    'summary' => [
-                        'H' => (int) ($summary->hadir_count ?? 0),
-                        'S' => (int) ($summary->sakit_count ?? 0),
-                        'I' => (int) ($summary->izin_count ?? 0),
-                        'A' => (int) ($summary->alpa_count ?? 0),
-                    ],
-                ];
-            }
+        if ($selectedKelasId = $request->get('kelas_id')) {
+            $this->ensureTeacherIsWaliKelas((int) $selectedKelasId);
+            $selectedKelas = Kelas::findOrFail($selectedKelasId);
+            $rekapData = $this->buildRekap($selectedKelas, $jenisSholat, $this->periodeRange($rentang, $tanggal));
         }
 
         return view('rekap-presensi-sholat', compact('kelasList', 'selectedKelas', 'rekapData', 'tanggal', 'rentang', 'periodeLabel', 'jenisSholat'));
     }
 
-    private function getRekapDataForExport(Request $request)
+    /**
+     * Ringkasan Hadir / Tidak Hadir per siswa aktif di kelas.
+     */
+    private function buildRekap(Kelas $kelas, string $jenisSholat, array $dateRange): array
     {
-        $jenisSholat = $request->get('jenis', 'Zuhur');
-        $selectedKelasId = $request->get('kelas_id');
-        $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
-        $rentang = $request->get('rentang', 'bulan_ini');
+        $siswaList = $kelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
 
-        if (!$selectedKelasId) {
-            return ['selectedKelas' => null, 'rekapData' => [], 'jenisSholat' => $jenisSholat, 'periodeLabel' => ''];
-        }
-
-        $this->ensureTeacherIsWaliKelas($selectedKelasId);
-
-        $selectedKelas = Kelas::find($selectedKelasId);
-        $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
-
-        $dateRange = $this->getDateRange($rentang, $tanggal);
-        $periodeLabel = $this->getPeriodeLabelWithDate($rentang, $tanggal);
-
-        $summaryBySiswa = PresensiSholat::where('kelas_id', $selectedKelasId)
+        $summaryBySiswa = PresensiSholat::where('kelas_id', $kelas->id)
             ->where('jenis_sholat', $jenisSholat)
-            ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
-            ->selectRaw("siswa_id,
-                SUM(CASE WHEN status_kehadiran = 'H' THEN 1 ELSE 0 END) as hadir_count,
-                SUM(CASE WHEN status_kehadiran = 'S' THEN 1 ELSE 0 END) as sakit_count,
-                SUM(CASE WHEN status_kehadiran = 'I' THEN 1 ELSE 0 END) as izin_count,
-                SUM(CASE WHEN status_kehadiran = 'A' THEN 1 ELSE 0 END) as alpa_count")
+            ->whereBetween('tanggal', [$dateRange['start']->toDateString(), $dateRange['end']->toDateString()])
+            ->selectRaw('siswa_id,
+                SUM(CASE WHEN status_kehadiran = ? THEN 1 ELSE 0 END) as hadir_count,
+                SUM(CASE WHEN status_kehadiran = ? THEN 1 ELSE 0 END) as tidak_hadir_count',
+                [PresensiSholat::HADIR, PresensiSholat::TIDAK_HADIR])
             ->groupBy('siswa_id')
             ->get()
             ->keyBy('siswa_id');
@@ -268,25 +219,51 @@ class PresensiSholatController extends Controller
         $rekapData = [];
         foreach ($siswaList as $siswa) {
             $summary = $summaryBySiswa->get($siswa->id);
+            $hadir = (int) ($summary->hadir_count ?? 0);
+            $tidakHadir = (int) ($summary->tidak_hadir_count ?? 0);
+            $total = $hadir + $tidakHadir;
+
             $rekapData[$siswa->id] = [
                 'siswa' => $siswa,
                 'summary' => [
-                    'H' => (int) ($summary->hadir_count ?? 0),
-                    'S' => (int) ($summary->sakit_count ?? 0),
-                    'I' => (int) ($summary->izin_count ?? 0),
-                    'A' => (int) ($summary->alpa_count ?? 0),
+                    'hadir' => $hadir,
+                    'tidak_hadir' => $tidakHadir,
+                    'total' => $total,
+                    'persen' => $total > 0 ? round($hadir / $total * 100, 1) : 0,
                 ],
             ];
         }
 
-        return ['selectedKelas' => $selectedKelas, 'rekapData' => $rekapData, 'jenisSholat' => $jenisSholat, 'periodeLabel' => $periodeLabel];
+        return $rekapData;
+    }
+
+    private function getRekapDataForExport(Request $request): array
+    {
+        $jenisSholat = PresensiSholat::normalizeJenis($request->get('jenis'), termasukArsip: true);
+        $tanggal = $request->get('tanggal', $this->todaySekolah());
+        $rentang = $request->get('rentang', 'bulan_ini');
+        $selectedKelasId = $request->get('kelas_id');
+
+        if (! $selectedKelasId) {
+            return ['selectedKelas' => null, 'rekapData' => [], 'jenisSholat' => $jenisSholat, 'periodeLabel' => ''];
+        }
+
+        $this->ensureTeacherIsWaliKelas((int) $selectedKelasId);
+        $selectedKelas = Kelas::findOrFail($selectedKelasId);
+
+        return [
+            'selectedKelas' => $selectedKelas,
+            'rekapData' => $this->buildRekap($selectedKelas, $jenisSholat, $this->periodeRange($rentang, $tanggal)),
+            'jenisSholat' => $jenisSholat,
+            'periodeLabel' => $this->periodeLabel($rentang, $tanggal),
+        ];
     }
 
     public function exportRekapCsv(Request $request)
     {
         $data = $this->getRekapDataForExport($request);
 
-        if (!$data['selectedKelas']) {
+        if (! $data['selectedKelas']) {
             return redirect()->back()->with('error', 'Pilih kelas terlebih dahulu.');
         }
 
@@ -295,7 +272,7 @@ class PresensiSholatController extends Controller
         $jenisSholat = $data['jenisSholat'];
         $periodeLabel = $data['periodeLabel'];
 
-        $filename = 'rekap_presensi_sholat_' . $jenisSholat . '_' . str_replace(' ', '_', $kelas->nama_kelas) . '_' . now()->format('Ymd') . '.csv';
+        $filename = 'rekap_presensi_sholat_'.$jenisSholat.'_'.str_replace(' ', '_', $kelas->nama_kelas).'_'.now()->format('Ymd').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -304,31 +281,28 @@ class PresensiSholatController extends Controller
 
         $callback = function () use ($rekapData, $kelas, $jenisSholat, $periodeLabel) {
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
 
-            // Header Section
             fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
             fputcsv($file, ['SD IT DARUL FIKRI']);
-            fputcsv($file, ['REKAPITULASI PRESENSI SHOLAT ' . strtoupper($jenisSholat)]);
+            fputcsv($file, ['REKAPITULASI PRESENSI SHOLAT '.strtoupper($jenisSholat)]);
             fputcsv($file, []);
-            fputcsv($file, ['Kelas', ':', $kelas->nama_kelas]);
+            $this->putSafeCsv($file, ['Kelas', ':', $kelas->nama_kelas]);
             fputcsv($file, ['Periode', ':', $periodeLabel]);
             fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
             fputcsv($file, []);
 
-            fputcsv($file, ['No', 'NIS', 'Nama Siswa', 'Hadir', 'Sakit', 'Izin', 'Alfa', 'Total']);
+            fputcsv($file, ['No', 'NIS', 'Nama Siswa', 'Hadir', 'Tidak Hadir', 'Total', '% Hadir']);
             $no = 1;
             foreach ($rekapData as $row) {
-                $total = $row['summary']['H'] + $row['summary']['S'] + $row['summary']['I'] + $row['summary']['A'];
-                fputcsv($file, [
+                $this->putSafeCsv($file, [
                     $no++,
                     $row['siswa']->nis ?? '-',
                     $row['siswa']->nama_siswa ?? '-',
-                    $row['summary']['H'],
-                    $row['summary']['S'],
-                    $row['summary']['I'],
-                    $row['summary']['A'],
-                    $total
+                    $row['summary']['hadir'],
+                    $row['summary']['tidak_hadir'],
+                    $row['summary']['total'],
+                    $row['summary']['persen'],
                 ]);
             }
             fclose($file);
@@ -341,7 +315,7 @@ class PresensiSholatController extends Controller
     {
         $data = $this->getRekapDataForExport($request);
 
-        if (!$data['selectedKelas']) {
+        if (! $data['selectedKelas']) {
             return redirect()->back()->with('error', 'Pilih kelas terlebih dahulu.');
         }
 
@@ -351,30 +325,5 @@ class PresensiSholatController extends Controller
         $periodeLabel = $data['periodeLabel'];
 
         return view('exports.rekap-presensi-sholat-pdf', compact('selectedKelas', 'jenisSholat', 'rekapData', 'periodeLabel'));
-    }
-
-    private function getDateRange($rentang, $tanggal = null)
-    {
-        $now = $tanggal ? Carbon::parse($tanggal) : Carbon::today();
-        return match ($rentang) {
-            'minggu_ini' => ['start' => $now->copy()->startOfWeek(), 'end' => $now->copy()->endOfWeek()],
-            'bulan_ini' => ['start' => $now->copy()->startOfMonth(), 'end' => $now->copy()->endOfMonth()],
-            'semester_ini' => [
-                'start' => $now->month >= 7 ? Carbon::create($now->year, 7, 1) : Carbon::create($now->year, 1, 1),
-                'end' => $now->month >= 7 ? Carbon::create($now->year, 12, 31) : Carbon::create($now->year, 6, 30),
-            ],
-            default => ['start' => $now->copy()->startOfDay(), 'end' => $now->copy()->endOfDay()],
-        };
-    }
-
-    private function getPeriodeLabelWithDate($rentang, $tanggal = null)
-    {
-        $now = $tanggal ? Carbon::parse($tanggal) : Carbon::today();
-        return match ($rentang) {
-            'minggu_ini' => 'Minggu ' . $now->copy()->startOfWeek()->translatedFormat('d M') . ' - ' . $now->copy()->endOfWeek()->translatedFormat('d M Y'),
-            'bulan_ini' => $now->translatedFormat('F Y'),
-            'semester_ini' => ($now->month >= 7 ? 'Semester Ganjil ' : 'Semester Genap ') . $now->year,
-            default => $now->translatedFormat('d F Y'),
-        };
     }
 }

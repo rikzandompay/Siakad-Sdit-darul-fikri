@@ -170,6 +170,11 @@
                             @if(auth()->user()->isAdmin())
                             <td class="px-6 py-4 text-center">
                                 <div class="flex items-center justify-center gap-1">
+                                    <a href="{{ route('siswa.kartu', $s->id) }}" target="_blank"
+                                        class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                        title="Kartu Pelajar &amp; QR Sholat">
+                                        <span class="material-symbols-outlined text-lg">badge</span>
+                                    </a>
                                     <button onclick="openEditModal({{ json_encode($s) }})"
                                         class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                         title="Edit">
@@ -276,6 +281,7 @@
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Wali</label>
                         <input name="nama_wali" type="text"
                             class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
+                        <p class="text-[11px] text-gray-500 mt-1">Wali login di aplikasi MyDarfik dengan NIS + tanggal lahir siswa (YY-MM-DD). Akun wali dibuat otomatis.</p>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">No HP Wali</label>
@@ -368,6 +374,7 @@
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Wali</label>
                         <input id="edit-wali" name="nama_wali" type="text"
                             class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
+                        <p class="text-[11px] text-gray-500 mt-1">Wali login di aplikasi MyDarfik dengan NIS + tanggal lahir siswa (YY-MM-DD). Akun wali dibuat otomatis.</p>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">No HP Wali</label>

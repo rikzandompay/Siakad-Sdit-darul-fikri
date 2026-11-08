@@ -29,8 +29,8 @@ php artisan config:clear || echo "⚠️ Config clear failed, continuing..."
 # Cache all Laravel optimizations for production (config, routes, views, events)
 php artisan optimize || echo "⚠️ Optimize failed, continuing..."
 
-# Run migrations gracefully so they don't crash the container if DB isn't ready
-php artisan migrate --force || echo "⚠️ Migrations failed, continuing anyway..."
+# Gagal keras: jangan layani trafik dengan skema setengah jadi.
+php artisan migrate --force
 
 echo "✅ Setup complete, starting supervisord..."
 

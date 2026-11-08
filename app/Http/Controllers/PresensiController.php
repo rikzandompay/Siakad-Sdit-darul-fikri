@@ -55,26 +55,22 @@ class PresensiController extends Controller
     {
         $guruId = Auth::id();
 
-        // Hanya tampilkan kelas dimana guru ini punya jadwal mengajar
-        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 300, function() use ($guruId) {
-            return JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique()->toArray();
-        });
+        // Presensi kelas hanya diisi wali kelas; admin melihat semua kelas.
+        $isAdmin = auth()->user()->isAdmin();
+        // Tanpa cache: penunjukan wali kelas bisa berubah kapan saja.
+        $kelasIdsGuru = Kelas::when(! $isAdmin, fn ($q) => $q->where('wali_kelas_id', $guruId))->pluck('id')->toArray();
 
-        $kelasList = Cache::remember("presensi_kelas_list_{$guruId}", 300, function() use ($kelasIdsGuru) {
-            return Kelas::withCount('siswaAktif')
-                ->with('waliKelas')
-                ->whereIn('id', $kelasIdsGuru)
-                ->orderBy('nama_kelas')
-                ->get();
-        });
+        $kelasList = Kelas::withCount('siswaAktif')
+            ->with('waliKelas')
+            ->whereIn('id', $kelasIdsGuru)
+            ->orderBy('nama_kelas')
+            ->get();
 
         $today = Carbon::today();
         $todayStr = $today->toDateString();
         
         // Hanya hitung presensi dari jadwal guru ini
-        $guruJadwalIds = Cache::remember("guru_jadwal_ids_{$guruId}", 300, function() use ($guruId) {
-            return JadwalPelajaran::where('guru_id', $guruId)->pluck('id')->toArray();
-        });
+        $guruJadwalIds = JadwalPelajaran::whereIn('kelas_id', $kelasIdsGuru)->pluck('id')->toArray();
 
         $totalSiswaAktif = Cache::remember("total_siswa_aktif_guru_{$guruId}", 300, function() use ($kelasIdsGuru) {
             return Siswa::where('status', 'Aktif')->whereIn('kelas_id', $kelasIdsGuru)->count();
@@ -120,10 +116,9 @@ class PresensiController extends Controller
             return $kelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
         });
 
-        // Cache jadwal kelas ini - hanya yang diampu guru login (5 menit)
-        $jadwalList = Cache::remember("jadwal_list_guru_{$guruId}_kelas_{$kelas->id}", 300, function() use ($kelas, $guruId) {
+        // Cache jadwal kelas ini - wali kelas mengisi semua jadwal kelasnya (5 menit)
+        $jadwalList = Cache::remember("jadwal_list_wali_kelas_{$kelas->id}", 300, function() use ($kelas) {
             return $kelas->jadwalPelajaran()
-                ->where('guru_id', $guruId)
                 ->with('mataPelajaran', 'guru')
                 ->orderByRaw("
                     CASE hari
@@ -189,16 +184,16 @@ class PresensiController extends Controller
      */
     public function store(Request $request)
     {
+        $jadwalKelasId = JadwalPelajaran::whereKey($request->input('jadwal_id'))->value('kelas_id') ?? 0;
+
         $validated = $request->validate([
             'jadwal_id' => 'required|exists:jadwal_pelajaran,id',
             'tanggal' => 'required|date',
             'presensi' => 'required|array',
-            'presensi.*.siswa_id' => 'required|exists:siswa,id',
+            'presensi.*.siswa_id' => ['required', \Illuminate\Validation\Rule::exists('siswa', 'id')->where('kelas_id', $jadwalKelasId)],
             'presensi.*.status' => 'required|in:H,I,S,A',
             'presensi.*.keterangan' => 'nullable|string|max:255',
         ]);
-
-        $this->ensureJadwalOwnership($validated['jadwal_id']);
 
         $tanggalObj = \Carbon\Carbon::parse($validated['tanggal']);
 
@@ -258,6 +253,8 @@ class PresensiController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
+        $rentangLabel = $this->getRentangLabel($request->get('rentang', 'hari_ini'));
+
         $callback = function () use ($data, $kelas, $dateRange, $rentangLabel) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM for UTF-8
@@ -276,7 +273,7 @@ class PresensiController extends Controller
             fputcsv($file, ['No', 'Tanggal', 'NIS', 'Nama Siswa', 'Mata Pelajaran', 'Status', 'Keterangan']);
             $no = 1;
             foreach ($data as $p) {
-                fputcsv($file, [
+                $this->putSafeCsv($file, [
                     $no++,
                     $p->tanggal->format('d/m/Y'),
                     $p->siswa->nis ?? '-',
@@ -487,7 +484,7 @@ class PresensiController extends Controller
             $no = 1;
             foreach ($rekapData as $row) {
                 $total = $row['summary']['H'] + $row['summary']['S'] + $row['summary']['I'] + $row['summary']['A'];
-                fputcsv($file, [
+                $this->putSafeCsv($file, [
                     $no++,
                     $row['siswa']->nis ?? '-',
                     $row['siswa']->nama_siswa ?? '-',

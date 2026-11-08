@@ -40,11 +40,13 @@ class GuruController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge(['username' => strtolower(trim((string) $request->input('username')))]);
+
         $validated = $request->validate([
             'nip' => 'nullable|string|max:30|unique:users,nip',
             'nama_lengkap' => 'required|string|max:100',
             'jenis_kelamin' => 'required|in:L,P',
-            'username' => 'required|string|max:50|unique:users,username',
+            'username' => ['required', 'string', 'max:50', 'unique:users,username', Rule::notIn(array_map('strtolower', config('admin.usernames', ['admin'])))],
             'email' => 'required|email|max:255|unique:users,email',
             'no_hp' => 'nullable|string|max:20',
             'status' => 'required|in:Aktif,Pensiun,Pindah',
@@ -63,14 +65,21 @@ class GuruController extends Controller
 
     public function update(Request $request, User $guru)
     {
+        $request->merge(['username' => strtolower(trim((string) $request->input('username')))]);
+        $adminUsernames = array_map('strtolower', config('admin.usernames', ['admin']));
+
         $validated = $request->validate([
             'nip' => ['nullable', 'string', 'max:30', Rule::unique('users', 'nip')->ignore($guru->id)],
             'nama_lengkap' => 'required|string|max:100',
             'jenis_kelamin' => 'required|in:L,P',
-            'username' => ['required', 'string', 'max:50', Rule::unique('users', 'username')->ignore($guru->id)],
+            'username' => array_filter([
+                'required', 'string', 'max:50',
+                Rule::unique('users', 'username')->ignore($guru->id),
+                $guru->isAdmin() ? Rule::in([strtolower($guru->username)]) : Rule::notIn($adminUsernames),
+            ]),
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($guru->id)],
             'no_hp' => 'nullable|string|max:20',
-            'status' => 'required|in:Aktif,Pensiun,Pindah',
+            'status' => $guru->isAdmin() ? 'required|in:Aktif' : 'required|in:Aktif,Pensiun,Pindah',
             'password' => ['nullable', 'string', 'min:8', 'regex:/[A-Z]/', 'regex:/[a-z]/', 'regex:/[0-9]/'],
         ], [
             'password.regex' => 'Password harus mengandung huruf besar, huruf kecil, dan angka.',
@@ -85,6 +94,11 @@ class GuruController extends Controller
         }
 
         $guru->update($validated);
+
+        // Sandi direset atau akun dinonaktifkan: cabut token aplikasi di semua perangkat.
+        if ($guru->wasChanged(['password', 'status'])) {
+            $guru->tokens()->delete();
+        }
 
         return redirect()->route('guru.index')->with('success', 'Data guru berhasil diperbarui!');
     }
@@ -146,7 +160,7 @@ class GuruController extends Controller
             fputcsv($file, ['No', 'NIP', 'Nama Lengkap', 'Gender', 'Username', 'Email', 'No HP', 'Status']);
             $no = 1;
             foreach ($data as $g) {
-                fputcsv($file, [
+                $this->putSafeCsv($file, [
                     $no++,
                     $g->nip ?? '-',
                     $g->nama_lengkap ?? $g->name,

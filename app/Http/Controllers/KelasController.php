@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Kelas;
+use App\Models\Tugas;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -11,11 +12,11 @@ class KelasController extends Controller
 {
     public function index()
     {
-        $kelasList = Cache::remember('kelas_list_admin', 300, function() {
+        $kelasList = Cache::remember('kelas_list_admin', 300, function () {
             return Kelas::withCount('siswaAktif')->with('waliKelas')->orderBy('nama_kelas')->get();
         });
 
-        $guruList = Cache::remember('guru_list_all', 300, function() {
+        $guruList = Cache::remember('guru_list_all', 300, function () {
             return User::orderBy('nama_lengkap')->get();
         });
 
@@ -26,8 +27,8 @@ class KelasController extends Controller
     {
         $kelas->load([
             'waliKelas',
-            'siswa' => fn($q) => $q->where('status', 'Aktif')->orderBy('nama_siswa'),
-            'jadwalPelajaran' => fn($q) => $q->orderByRaw("
+            'siswa' => fn ($q) => $q->where('status', 'Aktif')->orderBy('nama_siswa'),
+            'jadwalPelajaran' => fn ($q) => $q->orderByRaw("
                 CASE hari
                     WHEN 'Senin' THEN 1
                     WHEN 'Selasa' THEN 2
@@ -41,7 +42,20 @@ class KelasController extends Controller
             'jadwalPelajaran.guru',
         ]);
 
-        return view('kelasmapel', compact('kelas'));
+        // Ruang tugas per mata pelajaran: jumlah tugas dan apakah user boleh membukanya.
+        $user = auth()->user();
+        $jumlahTugas = Tugas::where('kelas_id', $kelas->id)
+            ->selectRaw('pelajaran_id, COUNT(*) as jumlah')
+            ->groupBy('pelajaran_id')
+            ->pluck('jumlah', 'pelajaran_id');
+        $ruangTugas = $kelas->jadwalPelajaran->groupBy('pelajaran_id')->map(fn ($jadwal) => [
+            'mapel' => $jadwal->first()->mataPelajaran,
+            'guru' => $jadwal->pluck('guru.nama_lengkap')->filter()->unique()->values(),
+            'jumlah' => (int) ($jumlahTugas[$jadwal->first()->pelajaran_id] ?? 0),
+            'boleh' => $user->isAdmin() || $jadwal->contains('guru_id', $user->id),
+        ])->values();
+
+        return view('kelasmapel', compact('kelas', 'ruangTugas'));
     }
 
     public function store(Request $request)
@@ -74,6 +88,7 @@ class KelasController extends Controller
     {
         $kelas->delete();
         $this->clearKelasCache();
+
         return redirect()->route('kelas.index')->with('success', 'Kelas berhasil dihapus!');
     }
 

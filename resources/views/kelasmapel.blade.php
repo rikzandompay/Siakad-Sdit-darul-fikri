@@ -58,6 +58,34 @@
     </div>
 </div>
 
+<!-- Ruang Tugas per Mata Pelajaran -->
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 md:p-8">
+    <div class="flex items-center gap-2 mb-1">
+        <span class="material-symbols-outlined text-blue-600">assignment</span>
+        <h3 class="font-bold text-lg text-gray-900">Ruang Tugas per Mata Pelajaran</h3>
+    </div>
+    <p class="text-sm text-gray-500 mb-5">Tiap mata pelajaran punya ruang tugas sendiri untuk {{ $kelas->nama_kelas }}. Hanya guru pengampu dan admin yang bisa membukanya.</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        @forelse($ruangTugas as $r)
+            @php $tag = $r['boleh'] ? 'a' : 'div'; @endphp
+            <{{ $tag }} @if($r['boleh']) href="{{ route('tugas.ruang', [$kelas, $r['mapel']]) }}" @endif
+                class="rounded-xl border p-4 flex items-start justify-between gap-3 {{ $r['boleh'] ? 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/40 transition-colors' : 'border-gray-100 bg-gray-50/60 opacity-70' }}">
+                <div class="min-w-0">
+                    <p class="font-bold text-gray-900 truncate">{{ $r['mapel']->nama_pelajaran }}</p>
+                    <p class="text-xs text-gray-500 mt-0.5 truncate">{{ $r['guru']->join(', ') ?: 'Belum ada guru' }}</p>
+                    @unless($r['boleh'])<p class="text-[11px] text-gray-400 mt-1">Bukan mata pelajaran Anda</p>@endunless
+                </div>
+                <div class="text-right shrink-0">
+                    <p class="text-2xl font-bold {{ $r['boleh'] ? 'text-blue-600' : 'text-gray-400' }}">{{ $r['jumlah'] }}</p>
+                    <p class="text-[11px] text-gray-500">tugas</p>
+                </div>
+            </{{ $tag }}>
+        @empty
+            <p class="text-sm text-gray-400 col-span-full">Belum ada mata pelajaran terjadwal. Tambahkan jadwal dulu.</p>
+        @endforelse
+    </div>
+</div>
+
 <!-- Schedule Table -->
 <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
     <div class="px-4 md:px-8 py-6 border-b border-gray-100 flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4">
