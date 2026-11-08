@@ -26,12 +26,6 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Jalankan tes
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-          php artisan test
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -41,6 +35,12 @@ jobs:
         run: |
           npm ci
           npm run build
+
+      - name: Jalankan tes
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan test
 
       - uses: actions/upload-artifact@v4
         with:
