@@ -26,44 +26,39 @@
 </div>
 
 <!-- Summary Cards -->
-<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
-                <span class="material-symbols-outlined text-blue-600" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                <span class="material-symbols-outlined text-green-700" style="font-variation-settings: 'FILL' 1;">check_circle</span>
             </div>
-            <span class="text-sm font-bold text-blue-600">Hadir</span>
+            <span class="text-sm font-bold text-green-700">Hadir</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $hadirCount }}</p>
-    </div>
-    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-        <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
-                <span class="material-symbols-outlined text-blue-600" style="font-variation-settings: 'FILL' 1;">medical_services</span>
-            </div>
-            <span class="text-sm font-bold text-blue-600">Sakit</span>
-        </div>
-        <p class="text-3xl font-bold text-gray-900">{{ $sakitCount }}</p>
-    </div>
-    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-        <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                <span class="material-symbols-outlined text-amber-600" style="font-variation-settings: 'FILL' 1;">mail</span>
-            </div>
-            <span class="text-sm font-bold text-amber-700">Izin</span>
-        </div>
-        <p class="text-3xl font-bold text-gray-900">{{ $izinCount }}</p>
     </div>
     <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
             <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
                 <span class="material-symbols-outlined text-red-600" style="font-variation-settings: 'FILL' 1;">cancel</span>
             </div>
-            <span class="text-sm font-bold text-red-700">Alpa</span>
+            <span class="text-sm font-bold text-red-700">Tidak Hadir</span>
         </div>
-        <p class="text-3xl font-bold text-gray-900">{{ $alpaCount }}</p>
+        <p class="text-3xl font-bold text-gray-900">{{ $tidakHadirCount }}</p>
+    </div>
+    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                <span class="material-symbols-outlined text-gray-600" style="font-variation-settings: 'FILL' 1;">schedule</span>
+            </div>
+            <span class="text-sm font-bold text-gray-600">Belum Tercatat</span>
+        </div>
+        <p class="text-3xl font-bold text-gray-900">{{ $belumCount }}</p>
     </div>
 </div>
+
+<p class="text-sm text-gray-500">
+    Status Hadir biasanya terisi dari scan QR di aplikasi MyDarfik. Pakai halaman ini untuk mengoreksi; siswa yang tidak dipilih statusnya tetap "Belum Tercatat".
+</p>
 
 <!-- Filter -->
 <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
@@ -71,7 +66,7 @@
         <input type="hidden" name="jenis" value="{{ $jenisSholat }}">
         <div>
             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Pilih Kelas</label>
-            <select onchange="window.location.href='/presensi-sholat/'+this.value+'?jenis={{ $jenisSholat }}'" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-blue-500 focus:border-blue-200">
+            <select onchange="window.location.href='{{ url('/presensi-sholat') }}/'+this.value+'?jenis={{ $jenisSholat }}&tanggal={{ $tanggal }}'" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-blue-500 focus:border-blue-200">
                 @foreach($kelasList as $k)
                     <option value="{{ $k->id }}" {{ $kelas->id == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
                 @endforeach
@@ -135,24 +130,27 @@
                             </td>
                             <td class="px-6 py-4">
                                 <input type="hidden" name="presensi[{{ $index }}][siswa_id]" value="{{ $s->id }}">
+                                @php $record = $existingPresensi->get($s->id); @endphp
                                 <div class="flex justify-center gap-1">
-                                    @php $currentStatus = $existingPresensi[$s->id] ?? 'H'; @endphp
-                                    @foreach(['H' => 'HADIR', 'S' => 'SAKIT', 'I' => 'IZIN', 'A' => 'ALPA'] as $code => $label)
+                                    @foreach(\App\Models\PresensiSholat::STATUS as $status)
                                         <label class="cursor-pointer">
-                                            <input type="radio" name="presensi[{{ $index }}][status]" value="{{ $code }}" class="hidden peer"
-                                                {{ $currentStatus == $code ? 'checked' : '' }}>
-                                            <span class="block px-4 py-2 rounded-lg text-[11px] font-bold transition-all border
+                                            <input type="radio" name="presensi[{{ $index }}][status]" value="{{ $status }}" class="hidden peer"
+                                                {{ $record?->status_kehadiran == $status ? 'checked' : '' }}>
+                                            <span class="block px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all border border-gray-200 text-gray-500
                                                 peer-checked:border-transparent peer-checked:text-white peer-checked:shadow-md
-                                                @if($code == 'H') peer-checked:bg-blue-500 border-gray-200 text-gray-500 hover:bg-blue-50
-                                                @elseif($code == 'S') peer-checked:bg-blue-500 border-gray-200 text-gray-500 hover:bg-blue-50
-                                                @elseif($code == 'I') peer-checked:bg-amber-500 border-gray-200 text-gray-500 hover:bg-amber-50
-                                                @else peer-checked:bg-red-600 border-gray-200 text-gray-500 hover:bg-red-50
-                                                @endif">
-                                                {{ $label }}
+                                                {{ $status == \App\Models\PresensiSholat::HADIR ? 'peer-checked:bg-green-600 hover:bg-green-50' : 'peer-checked:bg-red-600 hover:bg-red-50' }}">
+                                                {{ $status }}
                                             </span>
                                         </label>
                                     @endforeach
                                 </div>
+                                <p class="text-center text-[11px] text-gray-400 mt-1">
+                                    @if(! $record)
+                                        Belum tercatat
+                                    @elseif(! $record->recorded_by)
+                                        {{ $record->keterangan ?? 'Dicatat otomatis' }}
+                                    @endif
+                                </p>
                             </td>
                         </tr>
                     @endforeach

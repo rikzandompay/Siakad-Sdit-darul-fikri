@@ -21,10 +21,10 @@ class SecurityHeaders
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-        // Content-Security-Policy
+        // Content-Security-Policy (ponytail: keep unsafe-inline until Blade inline scripts move to Vite)
         $csp = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://app.secureprivacy.ai https://www.googletagmanager.com https://www.google-analytics.com",
+            "script-src 'self' 'unsafe-inline' https://app.secureprivacy.ai https://www.googletagmanager.com https://www.google-analytics.com",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: https://www.googletagmanager.com",

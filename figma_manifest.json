@@ -1,0 +1,8 @@
+{
+  "name": "SisforSinta UI Generator",
+  "id": "sisforsinta-ui-generator",
+  "api": "1.0.0",
+  "main": "generate_figma_frames.js",
+  "editorType": ["figma"]
+}
+

@@ -13,18 +13,22 @@
         </div>
 
         <!-- Toggle Jenis Sholat -->
-        <div class="flex items-center gap-3 mb-6">
-            <a href="{{ route('presensi-sholat.rekap', array_merge(request()->query(), ['jenis' => 'Zuhur'])) }}"
-               class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == 'Zuhur' ? 'bg-blue-500 text-gray-900 shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
-                <span class="material-symbols-outlined text-sm align-middle mr-1">mosque</span>
-                Sholat Zuhur
-            </a>
-            <a href="{{ route('presensi-sholat.rekap', array_merge(request()->query(), ['jenis' => 'Dhuha'])) }}"
-               class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == 'Dhuha' ? 'bg-blue-500 text-gray-900 shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
-                <span class="material-symbols-outlined text-sm align-middle mr-1">wb_sunny</span>
-                Sholat Dhuha
-            </a>
+        <div class="flex flex-wrap items-center gap-3 mb-6">
+            @foreach(\App\Models\PresensiSholat::JENIS_REKAP as $jenis)
+                @php $arsip = $jenis === \App\Models\PresensiSholat::ASHAR_ARSIP; @endphp
+                <a href="{{ route('presensi-sholat.rekap', array_merge(request()->query(), ['jenis' => $jenis])) }}"
+                   class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == $jenis ? 'bg-blue-500 text-gray-900 shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
+                    <span class="material-symbols-outlined text-sm align-middle mr-1">{{ $arsip ? 'inventory_2' : ($jenis == 'Dhuha' ? 'wb_sunny' : 'mosque') }}</span>
+                    Sholat {{ $jenis }}{{ $arsip ? ' (arsip)' : '' }}
+                </a>
+            @endforeach
         </div>
+
+        @if($jenisSholat === \App\Models\PresensiSholat::ASHAR_ARSIP)
+            <div class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg px-4 py-3">
+                Sholat Ashar tidak dicatat lagi. Data ini adalah arsip.
+            </div>
+        @endif
 
         <!-- Filter Bar -->
         <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
@@ -104,14 +108,9 @@
                                 <th class="px-6 py-4 font-bold uppercase tracking-wider w-16">No</th>
                                 <th class="px-6 py-4 font-bold uppercase tracking-wider">NIS</th>
                                 <th class="px-6 py-4 font-bold uppercase tracking-wider">Nama Lengkap</th>
-                                <th class="px-6 py-4 font-bold uppercase tracking-wider text-center" title="Hadir">Hadir
-                                </th>
-                                <th class="px-6 py-4 font-bold uppercase tracking-wider text-center" title="Sakit">Sakit
-                                </th>
-                                <th class="px-6 py-4 font-bold uppercase tracking-wider text-center" title="Izin">Izin
-                                </th>
-                                <th class="px-6 py-4 font-bold uppercase tracking-wider text-center" title="Alfa">Alfa
-                                </th>
+                                <th class="px-6 py-4 font-bold uppercase tracking-wider text-center">Hadir</th>
+                                <th class="px-6 py-4 font-bold uppercase tracking-wider text-center">Tidak Hadir</th>
+                                <th class="px-6 py-4 font-bold uppercase tracking-wider text-center">% Hadir</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
@@ -122,22 +121,19 @@
                                     <td class="px-6 py-4">
                                         <div class="font-bold text-gray-900">{{ $data['siswa']->nama_siswa }}</div>
                                     </td>
-                                    <td class="px-6 py-4 text-center font-bold text-blue-600 bg-blue-50/30">
-                                        {{ $data['summary']['H'] }}
-                                    </td>
-                                    <td class="px-6 py-4 text-center font-bold text-amber-500 bg-amber-50/30">
-                                        {{ $data['summary']['S'] }}
-                                    </td>
-                                    <td class="px-6 py-4 text-center font-bold text-blue-600 bg-blue-50/30">
-                                        {{ $data['summary']['I'] }}
+                                    <td class="px-6 py-4 text-center font-bold text-green-700 bg-green-50/30">
+                                        {{ $data['summary']['hadir'] }}
                                     </td>
                                     <td class="px-6 py-4 text-center font-bold text-red-500 bg-red-50/30">
-                                        {{ $data['summary']['A'] }}
+                                        {{ $data['summary']['tidak_hadir'] }}
+                                    </td>
+                                    <td class="px-6 py-4 text-center font-bold text-gray-700">
+                                        {{ $data['summary']['persen'] }}%
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-6 py-12 text-center">
+                                    <td colspan="6" class="px-6 py-12 text-center">
                                         <div class="inline-flex flex-col items-center justify-center space-y-3">
                                             <div
                                                 class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">

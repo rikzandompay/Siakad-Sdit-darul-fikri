@@ -149,7 +149,7 @@
             <td>Kelas</td>
             <td>:</td>
             <td>{{ $selectedKelas->nama_kelas }}</td>
-            <td>Bulan</td>
+            <td>Periode</td>
             <td>:</td>
             <td>{{ $periodeLabel }}</td>
         </tr>
@@ -166,38 +166,30 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th rowspan="2" style="width: 5%">No</th>
-                <th rowspan="2" style="width: 15%">NIS</th>
-                <th rowspan="2" style="width: 40%">Nama Siswa</th>
-                <th colspan="4">Keterangan</th>
-                <th rowspan="2" style="width: 10%">Total</th>
-            </tr>
-            <tr>
-                <th style="width: 7%">H</th>
-                <th style="width: 7%">S</th>
-                <th style="width: 7%">I</th>
-                <th style="width: 7%">A</th>
+                <th style="width: 5%">No</th>
+                <th style="width: 15%">NIS</th>
+                <th style="width: 38%">Nama Siswa</th>
+                <th style="width: 10%">Hadir</th>
+                <th style="width: 12%">Tidak Hadir</th>
+                <th style="width: 10%">Total</th>
+                <th style="width: 10%">% Hadir</th>
             </tr>
         </thead>
         <tbody>
             @forelse ($rekapData as $data)
-                @php
-                    $summary = $data['summary'];
-                    $total = $summary['H'] + $summary['S'] + $summary['I'] + $summary['A'];
-                @endphp
+                @php $summary = $data['summary']; @endphp
                 <tr>
                     <td>{{ $loop->iteration }}</td>
                     <td class="text-left">{{ $data['siswa']->nis }}</td>
                     <td class="text-left">{{ $data['siswa']->nama_siswa }}</td>
-                    <td>{{ $summary['H'] }}</td>
-                    <td>{{ $summary['S'] }}</td>
-                    <td>{{ $summary['I'] }}</td>
-                    <td>{{ $summary['A'] }}</td>
-                    <td><strong>{{ $total }}</strong></td>
+                    <td>{{ $summary['hadir'] }}</td>
+                    <td>{{ $summary['tidak_hadir'] }}</td>
+                    <td><strong>{{ $summary['total'] }}</strong></td>
+                    <td>{{ $summary['persen'] }}%</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8">Tidak ada data presensi sholat.</td>
+                    <td colspan="7">Tidak ada data presensi sholat.</td>
                 </tr>
             @endforelse
         </tbody>

@@ -98,7 +98,7 @@ class JadwalPelajaranController extends Controller
             fputcsv($file, ['Hari', 'Waktu', 'Mata Pelajaran', 'Guru Pengampu']);
 
             foreach ($jadwal as $j) {
-                fputcsv($file, [
+                $this->putSafeCsv($file, [
                     $j->hari,
                     Carbon::parse($j->jam_mulai)->format('H:i').' - '.Carbon::parse($j->jam_selesai)->format('H:i'),
                     $j->mataPelajaran->nama_pelajaran ?? '-',
@@ -139,5 +139,7 @@ class JadwalPelajaranController extends Controller
         Cache::forget("guru_jadwal_ids_{$guruId}");
         Cache::forget("total_siswa_aktif_guru_{$guruId}");
         Cache::forget("rekap_kelas_list_guru_{$guruId}");
+        Cache::forget("jadwal_list_wali_kelas_{$kelasId}");
+        Cache::forget("wali_jadwal_ids_{$guruId}");
     }
 }

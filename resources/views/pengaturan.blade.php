@@ -3,7 +3,15 @@
 @section('page-title', 'Pengaturan')
 
 @section('content')
-<h2 class="font-bold text-2xl text-blue-600">Pengaturan Sistem</h2>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <h2 class="font-bold text-2xl text-blue-600">Pengaturan Sistem</h2>
+    @if(Auth::user()->isAdmin())
+        <a href="{{ route('pengaturan-sekolah.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-50">
+            <span class="material-symbols-outlined text-sm">location_on</span>
+            Lokasi, Jam Masuk &amp; Hari Libur
+        </a>
+    @endif
+</div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
     <!-- Profil Guru -->
@@ -13,6 +21,30 @@
                 <span class="material-symbols-outlined text-blue-600">person</span>
                 Profil Guru
             </h3>
+        </div>
+        <div class="px-6 pt-6 flex items-center gap-4">
+            <div class="w-20 h-20 shrink-0 rounded-full bg-blue-100 text-blue-800 font-bold text-xl flex items-center justify-center overflow-hidden border-2 border-blue-50">
+                @if ($user->fotoUrl())
+                    <img src="{{ $user->fotoUrl() }}" alt="Foto profil" class="w-full h-full object-cover">
+                @else
+                    {{ strtoupper(substr($user->nama_lengkap ?? $user->name, 0, 2)) }}
+                @endif
+            </div>
+            <div class="min-w-0">
+                <form method="POST" action="{{ route('pengaturan.foto.update') }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">
+                    @csrf
+                    <input type="file" name="foto" accept="image/png,image/jpeg,image/webp" required class="text-xs text-gray-600 max-w-full">
+                    <button type="submit" class="px-4 py-2 bg-blue-500 text-gray-900 rounded-lg text-xs font-bold">Unggah Foto</button>
+                </form>
+                @error('foto') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                <p class="text-xs text-gray-500 mt-1">JPG, PNG, atau WebP, maksimal 5 MB. Foto ini tampil di header, Kartu Guru, dan aplikasi MyDarfik.</p>
+                @if ($user->fotoUrl())
+                    <form method="POST" action="{{ route('pengaturan.foto.destroy') }}" class="mt-1">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="text-xs text-red-600 font-semibold">Hapus foto</button>
+                    </form>
+                @endif
+            </div>
         </div>
         <form method="POST" action="{{ route('pengaturan.profil.update') }}" class="p-6 space-y-4">
             @csrf @method('PUT')

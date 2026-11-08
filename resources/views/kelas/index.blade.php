@@ -30,7 +30,7 @@
             <div class="p-6 space-y-4">
                 <div class="flex items-center justify-between text-sm">
                     <span class="text-gray-500">Total Siswa</span>
-                    <span class="font-bold text-gray-900">{{ $kelas->siswa_count }} Siswa</span>
+                    <span class="font-bold text-gray-900">{{ $kelas->siswa_aktif_count }} Siswa</span>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <a href="{{ route('kelas.show', $kelas->id) }}"

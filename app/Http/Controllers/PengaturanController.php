@@ -38,6 +38,21 @@ class PengaturanController extends Controller
         return redirect()->route('pengaturan.index')->with('success', 'Profil berhasil diperbarui!');
     }
 
+    public function updateFoto(Request $request)
+    {
+        $request->validate(['foto' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120']);
+        Auth::user()->simpanFoto($request->file('foto'));
+
+        return redirect()->route('pengaturan.index')->with('success', 'Foto profil diperbarui. Foto yang sama dipakai di aplikasi dan Kartu Guru.');
+    }
+
+    public function hapusFoto()
+    {
+        Auth::user()->hapusFoto();
+
+        return redirect()->route('pengaturan.index')->with('success', 'Foto profil dihapus.');
+    }
+
     public function updatePassword(Request $request)
     {
         $request->validate([

@@ -22,10 +22,18 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        if (Auth::attempt(['username' => $credentials['username'], 'password' => $credentials['password']], $request->boolean('remember'))) {
+        $throttleKey = strtolower($credentials['username']).'|'.$request->ip();
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            return back()->withErrors(['username' => 'Terlalu banyak percobaan login. Silakan coba lagi dalam 1 menit.'])->onlyInput('username');
+        }
+
+        if (Auth::attempt(['username' => $credentials['username'], 'password' => $credentials['password'], 'status' => 'Aktif'], $request->boolean('remember'))) {
+            \Illuminate\Support\Facades\RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
             return redirect()->intended(route('dashboard'));
         }
+
+        \Illuminate\Support\Facades\RateLimiter::hit($throttleKey, 60);
 
         return back()->withErrors([
             'username' => 'Username atau password salah.',

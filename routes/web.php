@@ -11,6 +11,13 @@ use App\Http\Controllers\PresensiController;
 use App\Http\Controllers\NilaiRapotController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PresensiSholatController;
+use App\Http\Controllers\PengumumanController;
+use App\Http\Controllers\KonselingController;
+use App\Http\Controllers\RekapPresensiGuruController;
+use App\Http\Controllers\PengaturanSekolahController;
+use App\Http\Controllers\WaliController;
+use App\Http\Controllers\IzinController;
+use App\Http\Controllers\TugasController;
 
 // ── AUTH ROUTES ──
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
@@ -18,6 +25,12 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // ── PROTECTED ROUTES ──
+// Foto guru/siswa: hanya untuk akun yang login (sesi web atau token aplikasi MyDarfik).
+Route::middleware(['auth:web,sanctum', 'throttle:240,1'])->group(function () {
+    Route::get('/foto/guru/{guru}', [\App\Http\Controllers\FotoController::class, 'guru'])->name('foto.guru');
+    Route::get('/foto/siswa/{siswa}', [\App\Http\Controllers\FotoController::class, 'siswa'])->name('foto.siswa');
+});
+
 Route::middleware('auth')->group(function () {
 
     // Dashboard
@@ -41,6 +54,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/siswa', [SiswaController::class, 'store'])->middleware('throttle:30,1')->name('siswa.store');
         Route::put('/siswa/{siswa}', [SiswaController::class, 'update'])->middleware('throttle:30,1')->name('siswa.update');
         Route::delete('/siswa/{siswa}', [SiswaController::class, 'destroy'])->middleware('throttle:30,1')->name('siswa.destroy');
+        Route::get('/siswa/{siswa}/kartu', [SiswaController::class, 'kartu'])->name('siswa.kartu');
+        Route::post('/siswa/{siswa}/qr', [SiswaController::class, 'regenerateQr'])->middleware('throttle:30,1')->name('siswa.qr.regenerate');
     });
 
     // Kelas CRUD
@@ -65,8 +80,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/presensi/rekap', [PresensiController::class, 'rekap'])->name('presensi.rekap');
     Route::get('/presensi/rekap/export/csv', [PresensiController::class, 'exportRekapCsv'])->name('presensi.rekap.export.csv');
     Route::get('/presensi/rekap/export/pdf', [PresensiController::class, 'exportRekapPdf'])->name('presensi.rekap.export.pdf');
-    Route::get('/presensi/{kelas}', [PresensiController::class, 'show'])->name('presensi.show');
-    Route::post('/presensi', [PresensiController::class, 'store'])->middleware('throttle:30,1')->name('presensi.store');
+    Route::get('/presensi/{kelas}', [PresensiController::class, 'show'])->middleware('wali.kelas')->name('presensi.show');
+    Route::post('/presensi', [PresensiController::class, 'store'])->middleware(['throttle:30,1', 'wali.kelas'])->name('presensi.store');
     Route::get('/presensi/{kelas}/export/csv', [PresensiController::class, 'exportCsv'])->name('presensi.export.csv');
     Route::get('/presensi/{kelas}/export/pdf', [PresensiController::class, 'exportPdf'])->name('presensi.export.pdf');
 
@@ -82,6 +97,8 @@ Route::middleware('auth')->group(function () {
     // Pengaturan
     Route::get('/pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
     Route::put('/pengaturan/profil', [PengaturanController::class, 'updateProfil'])->middleware('throttle:30,1')->name('pengaturan.profil.update');
+    Route::post('/pengaturan/foto', [PengaturanController::class, 'updateFoto'])->middleware('throttle:20,1')->name('pengaturan.foto.update');
+    Route::delete('/pengaturan/foto', [PengaturanController::class, 'hapusFoto'])->middleware('throttle:20,1')->name('pengaturan.foto.destroy');
     Route::put('/pengaturan/password', [PengaturanController::class, 'updatePassword'])->middleware('throttle:30,1')->name('pengaturan.password.update');
 
     // Pengaturan - Tahun Ajaran & Mata Pelajaran (Admin Only)
@@ -103,4 +120,67 @@ Route::middleware('auth')->group(function () {
     Route::get('/presensi-sholat/rekap/export/pdf', [PresensiSholatController::class, 'exportRekapPdf'])->name('presensi-sholat.rekap.export.pdf');
     Route::get('/presensi-sholat/{kelas}', [PresensiSholatController::class, 'show'])->name('presensi-sholat.show');
     Route::post('/presensi-sholat', [PresensiSholatController::class, 'store'])->middleware('throttle:30,1')->name('presensi-sholat.store');
+
+    // Pengumuman: semua guru membaca, admin mengelola
+    Route::get('/pengumuman', [PengumumanController::class, 'index'])->name('pengumuman.index');
+    Route::middleware('is_admin')->group(function () {
+        Route::get('/pengumuman/buat', [PengumumanController::class, 'create'])->name('pengumuman.create');
+        Route::post('/pengumuman', [PengumumanController::class, 'store'])->middleware('throttle:30,1')->name('pengumuman.store');
+        Route::get('/pengumuman/{pengumuman}/edit', [PengumumanController::class, 'edit'])->name('pengumuman.edit');
+        Route::put('/pengumuman/{pengumuman}', [PengumumanController::class, 'update'])->middleware('throttle:30,1')->name('pengumuman.update');
+        Route::delete('/pengumuman/{pengumuman}', [PengumumanController::class, 'destroy'])->middleware('throttle:30,1')->name('pengumuman.destroy');
+    });
+
+    // Konseling: privat antara pengampu kelas dan wali; admin hanya mengatur pengampu
+    Route::get('/konseling', [KonselingController::class, 'index'])->name('konseling.index');
+    Route::middleware('is_admin')->group(function () {
+        Route::get('/konseling/pengampu', [KonselingController::class, 'pengampu'])->name('konseling.pengampu');
+        Route::put('/konseling/pengampu', [KonselingController::class, 'updatePengampu'])->middleware('throttle:30,1')->name('konseling.pengampu.update');
+    });
+    Route::get('/konseling/baru', [KonselingController::class, 'create'])->name('konseling.create');
+    Route::post('/konseling', [KonselingController::class, 'store'])->middleware('throttle:30,1')->name('konseling.store');
+    Route::get('/konseling/{percakapan}', [KonselingController::class, 'show'])->name('konseling.show');
+    Route::post('/konseling/{percakapan}/balas', [KonselingController::class, 'reply'])->middleware('throttle:60,1')->name('konseling.reply');
+    Route::put('/konseling/{percakapan}/pesan/{pesan}', [KonselingController::class, 'updatePesan'])->middleware('throttle:60,1')->name('konseling.pesan.update');
+    Route::delete('/konseling/{percakapan}/pesan/{pesan}', [KonselingController::class, 'destroyPesan'])->middleware('throttle:60,1')->name('konseling.pesan.destroy');
+    Route::get('/konseling/{percakapan}/pesan/{pesan}/foto', [KonselingController::class, 'foto'])->name('konseling.pesan.foto');
+    Route::put('/konseling/{percakapan}/status', [KonselingController::class, 'updateStatus'])->middleware('throttle:30,1')->name('konseling.status');
+
+    // Rekap presensi guru (data absen wajah + lokasi dari aplikasi) — admin
+    Route::middleware('is_admin')->group(function () {
+        Route::get('/presensi-guru/rekap', [RekapPresensiGuruController::class, 'index'])->name('presensi-guru.rekap');
+        Route::get('/presensi-guru/rekap/export/csv', [RekapPresensiGuruController::class, 'exportCsv'])->name('presensi-guru.rekap.export.csv');
+        Route::get('/presensi-guru/rekap/export/pdf', [RekapPresensiGuruController::class, 'exportPdf'])->name('presensi-guru.rekap.export.pdf');
+    });
+
+    Route::middleware('is_admin')->group(function () {
+        Route::post('/presensi-guru/manual', [RekapPresensiGuruController::class, 'simpanManual'])->middleware('throttle:30,1')->name('presensi-guru.manual');
+        Route::delete('/presensi-guru/wajah/{guru}', [RekapPresensiGuruController::class, 'resetWajah'])->middleware('throttle:30,1')->name('presensi-guru.wajah.reset');
+
+        // Pengaturan sekolah: lokasi, radius, jam masuk, hari libur
+        Route::get('/pengaturan-sekolah', [PengaturanSekolahController::class, 'index'])->name('pengaturan-sekolah.index');
+        Route::put('/pengaturan-sekolah', [PengaturanSekolahController::class, 'update'])->middleware('throttle:30,1')->name('pengaturan-sekolah.update');
+        Route::post('/pengaturan-sekolah/libur', [PengaturanSekolahController::class, 'storeLibur'])->middleware('throttle:30,1')->name('pengaturan-sekolah.libur.store');
+        Route::delete('/pengaturan-sekolah/libur/{libur}', [PengaturanSekolahController::class, 'destroyLibur'])->middleware('throttle:30,1')->name('pengaturan-sekolah.libur.destroy');
+
+        // Akun wali murid: otomatis dari data siswa (NIS + nama wali); halaman ini hanya daftar & sinkron
+        Route::get('/wali', [WaliController::class, 'index'])->name('wali.index');
+        Route::post('/wali/sinkron', [WaliController::class, 'sinkron'])->middleware('throttle:10,1')->name('wali.sinkron');
+    });
+
+    // Izin siswa: wali kelas / admin meninjau
+    Route::get('/izin', [IzinController::class, 'index'])->name('izin.index');
+    Route::post('/izin/{izin}/setujui', [IzinController::class, 'approve'])->middleware('throttle:60,1')->name('izin.approve');
+    Route::post('/izin/{izin}/tolak', [IzinController::class, 'reject'])->middleware('throttle:60,1')->name('izin.reject');
+
+    // Tugas & nilai tugas: tiap mata pelajaran di sebuah kelas punya ruang tugas sendiri (dari Kelas & Mapel)
+    Route::get('/tugas', fn () => redirect()->route('kelas.index'))->name('tugas.index');
+    Route::get('/kelas/{kelas}/mapel/{mapel}/tugas', [TugasController::class, 'ruang'])->name('tugas.ruang');
+    Route::get('/kelas/{kelas}/mapel/{mapel}/tugas/buat', [TugasController::class, 'create'])->name('tugas.create');
+    Route::post('/kelas/{kelas}/mapel/{mapel}/tugas', [TugasController::class, 'store'])->middleware('throttle:30,1')->name('tugas.store');
+    Route::get('/tugas/{tugas}', [TugasController::class, 'show'])->name('tugas.show');
+    Route::get('/tugas/{tugas}/edit', [TugasController::class, 'edit'])->name('tugas.edit');
+    Route::put('/tugas/{tugas}', [TugasController::class, 'update'])->middleware('throttle:30,1')->name('tugas.update');
+    Route::delete('/tugas/{tugas}', [TugasController::class, 'destroy'])->middleware('throttle:30,1')->name('tugas.destroy');
+    Route::post('/tugas/{tugas}/nilai', [TugasController::class, 'simpanNilai'])->middleware('throttle:60,1')->name('tugas.nilai');
 });
