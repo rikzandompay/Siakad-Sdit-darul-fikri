@@ -24,3 +24,12 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Dokumen internal & bahan desain: tidak untuk repositori publik
+/PRD*.md
+/LAPORAN_*.md
+/review.md
+/performance_analysis.md
+/figma_manifest.json
+/generate_figma_frames.js
+/database/database.sql
