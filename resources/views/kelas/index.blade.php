@@ -39,7 +39,7 @@
                         Detail
                     </a>
                     <a href="{{ route('presensi.show', $kelas->id) }}"
-                        class="bg-blue-800 hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-sm">how_to_reg</span>
                         Presensi
                     </a>

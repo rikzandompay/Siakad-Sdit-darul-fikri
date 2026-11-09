@@ -16,7 +16,7 @@
     </form>
 </div>
 
-<div class="bg-blue-50 border border-blue-200 text-blue-900 text-sm rounded-lg px-4 py-3 flex items-start gap-2">
+<div class="bg-blue-50 border border-blue-200 text-blue-800 text-sm rounded-lg px-4 py-3 flex items-start gap-2">
     <span class="material-symbols-outlined text-base">info</span>
     <span>Siswa baru otomatis punya akun saat datanya disimpan. Untuk mengganti NIS atau tanggal lahir, ubah di <a href="{{ route('siswa.index') }}" class="font-bold underline">Data Siswa</a>; akunnya ikut berubah. Akun nonaktif otomatis untuk siswa yang lulus atau pindah.</span>
 </div>

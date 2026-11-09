@@ -13,22 +13,10 @@
     --font-inter: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 
     /*
-     * Palet biru sekolah. Seluruh kelas blue-* dan gray-* di semua halaman ikut berubah dari sini.
-     * Biru tegas (600 ke atas) untuk aksi dan teks; abu-abu bernuansa biru dengan kontras teks minimal AA
-     * di atas putih (gray-400 ke atas dipakai untuk teks, jadi tidak dibuat lebih terang).
+     * Biru memakai skala bawaan Tailwind (terang, seperti tombol referensi): 600 untuk aksi dan menu aktif,
+     * 50 sampai 100 untuk latar lembut. Abu-abu bernuansa biru dengan kontras teks minimal AA di atas putih
+     * (gray-400 ke atas dipakai untuk teks, jadi tidak dibuat lebih terang).
      */
-    --color-blue-50: #eff7fd;
-    --color-blue-100: #dceefa;
-    --color-blue-200: #bbddf3;
-    --color-blue-300: #8cc4e8;
-    --color-blue-400: #4f9fd5;
-    --color-blue-500: #2b7fbf;
-    --color-blue-600: #15649c;
-    --color-blue-700: #0f5282;
-    --color-blue-800: #0d3f63;
-    --color-blue-900: #0a2f4a;
-    --color-blue-950: #071f33;
-
     --color-gray-50: #f5f8fb;
     --color-gray-100: #eaf0f5;
     --color-gray-200: #dce5ec;
@@ -156,7 +144,7 @@
  *   hover   : opasitas 80%         ditekan : warna lebih gelap
  *   fokus   : cincin warna peran   nonaktif: opasitas 20%, tidak bisa diklik
  * Peran:
- *   btn-primary   biru tua penuh   aksi utama (Simpan, Tambah, Kirim)
+ *   btn-primary   biru penuh   aksi utama (Simpan, Tambah, Kirim)
  *   btn-secondary garis biru       aksi pendukung (Filter, Export, Ubah)
  *   btn-tertiary  teks biru        aksi paling ringan (Batal)
  *   btn-success   hijau penuh      menyetujui (Setujui)
@@ -172,10 +160,10 @@
         @apply focus-visible:outline-2 focus-visible:outline-offset-2;
     }
     .btn-primary {
-        @apply bg-blue-800 text-white outline-blue-800 active:bg-blue-950 active:opacity-100;
+        @apply bg-blue-600 text-white outline-blue-600 active:bg-blue-800 active:opacity-100;
     }
     .btn-secondary {
-        @apply border border-blue-800 bg-white text-blue-800 outline-blue-800 active:bg-blue-100 active:opacity-100;
+        @apply border border-blue-600 bg-white text-blue-700 outline-blue-600 active:bg-blue-100 active:opacity-100;
     }
     .btn-tertiary {
         @apply px-3 text-blue-700 outline-blue-700 hover:underline active:text-blue-950 active:opacity-100;

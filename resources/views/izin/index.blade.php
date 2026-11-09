@@ -34,7 +34,7 @@
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="font-bold text-gray-900">{{ $izin->siswa?->nama_siswa }}</span>
                             <span class="text-xs text-gray-500">{{ $izin->siswa?->kelas?->nama_kelas ?? '-' }}</span>
-                            <span class="text-[11px] font-bold px-2 py-0.5 rounded {{ $izin->jenis === 'Sakit' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800' }}">{{ $izin->jenis }}</span>
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded {{ $izin->jenis === 'Sakit' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-800' }}">{{ $izin->jenis }}</span>
                             @if($izin->status !== 'Menunggu')
                                 <span class="text-[11px] font-bold px-2 py-0.5 rounded {{ $izin->status === 'Disetujui' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700' }}">{{ $izin->status }}</span>
                             @endif

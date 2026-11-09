@@ -25,8 +25,8 @@
         ];
         $nama = Auth::user()->nama_lengkap ?? Auth::user()->name;
 
-        // Grafik batang per hari presensi. Tiap batang setinggi 100% dan terbagi menurut status,
-        // supaya komposisi hadir, sakit, izin, dan alpa terlihat walau datanya baru beberapa hari.
+        // Grafik garis per hari presensi, satu garis untuk tiap status, supaya tetap terbaca
+        // walau kehadirannya nol: garis sakit, izin, atau alpa yang naik.
         // Data lama di cache bisa belum punya hitungan sakit/izin/alpa: anggap 0 agar halaman tidak error.
         $tren = collect($trenKehadiran)->map(fn ($t) => $t + ['sakit' => 0, 'izin' => 0, 'alpa' => 0])->values();
         $adaTren = $tren->isNotEmpty();
@@ -37,6 +37,15 @@
             $persenPerHari = $tren->groupBy(fn ($t) => \App\Support\Sekolah::hari(\Carbon\Carbon::parse($t['tanggal'])))
                 ->map(fn ($g) => round($g->sum('hadir') / max(1, $g->sum('total')) * 100, 1));
             $hariTerendah = $jumlahHari >= 5 && $persenPerHari->count() > 1 ? $persenPerHari->sort()->keys()->first() : null;
+            // Satu garis per status, nilainya persen siswa pada hari itu. Titik x diberi jarak 2% di tepi agar tidak terpotong.
+            $xTitik = fn ($i) => $jumlahHari > 1 ? round(2 + $i / ($jumlahHari - 1) * 96, 2) : 50;
+            $yTitik = fn ($nilai, $total) => round(100 - ($total > 0 ? $nilai / $total * 100 : 0), 2);
+            $seriGrafik = [
+                ['alpa', 'Alpa', 'text-red-600', 2],
+                ['izin', 'Izin', 'text-amber-500', 2],
+                ['sakit', 'Sakit', 'text-purple-600', 2],
+                ['hadir', 'Hadir', 'text-green-700', 3],
+            ];
             $jumlahStatus = [
                 ['Hadir', $tren->sum('hadir'), 'bg-green-700'],
                 ['Sakit', $tren->sum('sakit'), 'bg-purple-600'],
@@ -72,41 +81,35 @@
                         </p>
 
                         <div class="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3" aria-hidden="true">
-                            <div class="tabular relative mt-5 h-44 text-right text-xs text-gray-600">
+                            <div class="tabular relative h-44 text-right text-xs text-gray-600">
                                 <span class="absolute right-0 top-0 -translate-y-1/2">100%</span>
                                 <span class="absolute right-0 top-1/2 -translate-y-1/2">50%</span>
                                 <span class="absolute right-0 top-full -translate-y-1/2">0%</span>
                             </div>
                             <div class="min-w-0">
-                                <div class="relative">
-                                    <div class="pointer-events-none absolute inset-x-0 bottom-0 top-5 border-y border-gray-200">
-                                        <div class="absolute inset-x-0 top-1/2 border-t border-gray-200"></div>
-                                    </div>
-                                    <div class="relative flex items-end {{ $labelSetiapBatang ? 'justify-start gap-2 md:gap-3' : 'justify-between gap-0.5' }}">
-                                        @foreach ($tren as $t)
-                                            @php $tgl = \Carbon\Carbon::parse($t['tanggal']); @endphp
-                                            <div class="flex min-w-0 flex-1 flex-col items-center {{ $labelSetiapBatang ? 'max-w-20' : '' }}"
-                                                title="{{ $tgl->translatedFormat('j M') }}: hadir {{ $t['hadir'] }}, sakit {{ $t['sakit'] }}, izin {{ $t['izin'] }}, alpa {{ $t['alpa'] }} ({{ $t['persen'] }}%)">
-                                                <span class="tabular mb-1 h-4 text-xs font-bold text-gray-900">@if ($labelSetiapBatang || $loop->last){{ round($t['persen']) }}%@endif</span>
-                                                <div class="flex h-44 w-full flex-col-reverse overflow-hidden rounded-t-md bg-gray-100">
-                                                    @foreach ([['hadir', 'bg-green-700'], ['sakit', 'bg-purple-600'], ['izin', 'bg-amber-500'], ['alpa', 'bg-red-600']] as [$kunci, $warna])
-                                                        @if ($t[$kunci] > 0)
-                                                            <span class="{{ $warna }}" style="height: {{ round($t[$kunci] / max(1, $t['total']) * 100, 2) }}%"></span>
-                                                        @endif
-                                                    @endforeach
-                                                </div>
-                                            </div>
+                                <div class="relative h-44">
+                                    <svg class="absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                        @foreach ([0, 50, 100] as $g)
+                                            <line x1="0" x2="100" y1="{{ $g }}" y2="{{ $g }}" class="text-gray-200" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" />
                                         @endforeach
-                                    </div>
+                                        {{-- Urutan gambar: alpa, izin, sakit, hadir, agar garis hadir paling atas. Titik = garis nol panjang berujung bulat. --}}
+                                        @foreach ($seriGrafik as [$kunci, $label, $warna, $tebal])
+                                            <polyline fill="none" class="{{ $warna }}" stroke="currentColor" stroke-width="{{ $tebal }}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"
+                                                points="{{ $tren->map(fn ($t, $i) => $xTitik($i).','.$yTitik($t[$kunci], $t['total']))->implode(' ') }}" />
+                                            @foreach ($tren as $i => $t)
+                                                <path d="M{{ $xTitik($i) }},{{ $yTitik($t[$kunci], $t['total']) }} l0,0" class="{{ $warna }}" stroke="currentColor" stroke-width="{{ $tebal + 5 }}" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+                                            @endforeach
+                                        @endforeach
+                                    </svg>
                                 </div>
-                                <div class="mt-2 flex items-start text-xs text-gray-600 {{ $labelSetiapBatang ? 'justify-start gap-2 md:gap-3' : 'justify-between' }}">
+                                <div class="relative mt-2 h-4 text-xs text-gray-600">
                                     @if ($labelSetiapBatang)
-                                        @foreach ($tren as $t)
-                                            <span class="min-w-0 max-w-20 flex-1 text-center">{{ \Carbon\Carbon::parse($t['tanggal'])->translatedFormat('j M') }}</span>
+                                        @foreach ($tren as $i => $t)
+                                            <span class="absolute -translate-x-1/2 whitespace-nowrap" style="left: {{ $xTitik($i) }}%">{{ \Carbon\Carbon::parse($t['tanggal'])->translatedFormat('j M') }}</span>
                                         @endforeach
                                     @else
-                                        <span>{{ \Carbon\Carbon::parse($tren->first()['tanggal'])->translatedFormat('j M') }}</span>
-                                        <span>{{ \Carbon\Carbon::parse($tren->last()['tanggal'])->translatedFormat('j M') }}</span>
+                                        <span class="absolute left-0">{{ \Carbon\Carbon::parse($tren->first()['tanggal'])->translatedFormat('j M') }}</span>
+                                        <span class="absolute right-0">{{ \Carbon\Carbon::parse($tren->last()['tanggal'])->translatedFormat('j M') }}</span>
                                     @endif
                                 </div>
                             </div>
@@ -153,7 +156,7 @@
                             <p class="text-sm font-bold text-gray-900">{{ $mulai }}</p>
                             <p class="text-xs text-gray-600">{{ $selesai }}</p>
                         </div>
-                        <span class="hidden h-3 w-3 shrink-0 rounded-full sm:block {{ $berlangsung ? 'bg-amber-400 ring-2 ring-blue-800' : 'bg-blue-200' }}" aria-hidden="true"></span>
+                        <span class="hidden h-3 w-3 shrink-0 rounded-full sm:block {{ $berlangsung ? 'bg-amber-400 ring-2 ring-blue-600' : 'bg-blue-200' }}" aria-hidden="true"></span>
                         <div class="min-w-0 flex-1">
                             <p class="truncate font-semibold text-gray-900">{{ $jadwal->mataPelajaran->nama_pelajaran ?? '-' }}</p>
                             <p class="truncate text-sm text-gray-600">{{ $jadwal->kelas->nama_kelas ?? '-' }}@if ($berlangsung), sedang berlangsung @endif</p>
@@ -222,38 +225,90 @@
                         <li class="px-6 py-8 text-sm text-gray-600">Belum ada kelas.</li>
                     @endforelse
                 </ul>
-                <a href="{{ route('kelas.index') }}" class="block border-t border-gray-100 px-5 py-3 text-sm font-semibold text-blue-800 hover:bg-gray-50 md:px-6">Kelola semua kelas</a>
+                <a href="{{ route('kelas.index') }}" class="block border-t border-gray-100 px-5 py-3 text-sm font-semibold text-blue-700 hover:bg-gray-50 md:px-6">Kelola semua kelas</a>
             </section>
         </div>
     </div>
 
-    {{-- Jadwal sepekan: satu kolom per hari, selebar halaman --}}
+    {{-- Jadwal sepekan: tabel jam pelajaran x hari, seperti jadwal di dinding kelas --}}
+    @php
+        $kunciSlot = fn ($j) => substr($j->jam_mulai, 0, 5).'|'.substr($j->jam_selesai, 0, 5);
+        $slotJam = $jadwalSepekan->map($kunciSlot)->unique()->sort()->values();
+    @endphp
     <section class="rounded-xl border border-gray-200 bg-white" aria-labelledby="judul-sepekan">
         <div class="flex items-baseline justify-between gap-3 border-b border-gray-200 px-5 py-4 md:px-6">
             <h2 id="judul-sepekan" class="text-lg font-bold text-gray-900">Jadwal mengajar sepekan</h2>
             <p class="text-sm text-gray-600">{{ $jadwalSepekan->count() }} sesi</p>
         </div>
-        <div class="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 md:p-5">
-            @foreach ($hariSekolah as $hari)
-                @php $hariIniKolom = $hari === $hariIni; $daftar = $perHari->get($hari, collect()); @endphp
-                <div class="min-w-0 rounded-lg border {{ $hariIniKolom ? 'border-blue-800' : 'border-gray-200' }} bg-white">
-                    <div class="flex items-center justify-between gap-2 rounded-t-md px-3 py-2 {{ $hariIniKolom ? 'bg-blue-800 text-white' : 'bg-gray-100 text-gray-900' }}">
-                        <h3 class="text-sm font-bold">{{ $hari }}</h3>
-                        @if ($hariIniKolom)<span class="text-xs font-medium text-blue-100">Hari ini</span>@endif
+
+        @if ($jadwalSepekan->isEmpty())
+            <p class="px-6 py-10 text-sm text-gray-600">Tidak ada jadwal mengajar dalam sepekan.</p>
+        @else
+            {{-- Layar lebar: tabel --}}
+            <div class="hidden overflow-x-auto p-3 md:block md:p-4">
+                <table class="w-full min-w-[720px] table-fixed border-separate border-spacing-1.5 text-left">
+                    <caption class="sr-only">Jadwal mengajar sepekan menurut jam pelajaran dan hari</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col" class="w-24"><span class="sr-only">Jam</span></th>
+                            @foreach ($hariSekolah as $hari)
+                                @php $hariIniKolom = $hari === $hariIni; @endphp
+                                <th scope="col" class="rounded-lg px-3 py-2 text-sm font-bold {{ $hariIniKolom ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900' }}">
+                                    {{ $hari }}
+                                    @if ($hariIniKolom)<span class="block text-xs font-medium text-blue-100">Hari ini</span>@endif
+                                </th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($slotJam as $slot)
+                            @php [$jm, $js] = explode('|', $slot); @endphp
+                            <tr>
+                                <th scope="row" class="tabular px-2 py-2 align-top text-xs font-semibold text-gray-700">{{ $jm }}<span class="block font-normal text-gray-600">{{ $js }}</span></th>
+                                @foreach ($hariSekolah as $hari)
+                                    @php
+                                        $hariIniKolom = $hari === $hariIni;
+                                        $isi = $jadwalSepekan->filter(fn ($j) => $j->hari === $hari && $kunciSlot($j) === $slot);
+                                    @endphp
+                                    <td class="rounded-lg align-top {{ $isi->isEmpty() ? 'bg-gray-50' : '' }} {{ $hariIniKolom && $isi->isEmpty() ? 'bg-blue-50/50' : '' }}">
+                                        @foreach ($isi as $j)
+                                            @php $berlangsung = $hariIniKolom && $jm <= $jamSekarang && $jamSekarang < $js; @endphp
+                                            <div class="rounded-lg px-3 py-2 {{ $hariIniKolom ? 'bg-blue-100' : 'bg-blue-50' }} {{ $berlangsung ? 'ring-2 ring-amber-400' : '' }} {{ ! $loop->first ? 'mt-1.5' : '' }}">
+                                                <p class="truncate text-sm font-bold text-gray-900">{{ $j->mataPelajaran->nama_pelajaran ?? '-' }}</p>
+                                                <p class="truncate text-xs text-gray-700">{{ $j->kelas->nama_kelas ?? '-' }}</p>
+                                            </div>
+                                        @endforeach
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- HP: daftar per hari --}}
+            <div class="space-y-4 p-4 md:hidden">
+                @foreach ($hariSekolah as $hari)
+                    @php $daftar = $perHari->get($hari, collect()); $hariIniKolom = $hari === $hariIni; @endphp
+                    @continue($daftar->isEmpty() && ! $hariIniKolom)
+                    <div>
+                        <h3 class="text-sm font-bold {{ $hariIniKolom ? 'text-blue-700' : 'text-gray-900' }}">{{ $hari }}@if ($hariIniKolom)<span class="font-medium text-gray-600"> (hari ini)</span>@endif</h3>
+                        <ul class="mt-2 space-y-1.5">
+                            @forelse ($daftar as $j)
+                                <li class="flex items-center gap-3 rounded-lg px-3 py-2 {{ $hariIniKolom ? 'bg-blue-100' : 'bg-blue-50' }}">
+                                    <span class="tabular w-12 shrink-0 text-xs font-semibold text-gray-700">{{ \Carbon\Carbon::parse($j->jam_mulai)->format('H:i') }}</span>
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block truncate text-sm font-bold text-gray-900">{{ $j->mataPelajaran->nama_pelajaran ?? '-' }}</span>
+                                        <span class="block truncate text-xs text-gray-700">{{ $j->kelas->nama_kelas ?? '-' }}</span>
+                                    </span>
+                                </li>
+                            @empty
+                                <li class="text-sm text-gray-600">Tidak mengajar hari ini.</li>
+                            @endforelse
+                        </ul>
                     </div>
-                    <div class="space-y-2 p-2">
-                        @forelse ($daftar as $j)
-                            <div class="rounded-md px-3 py-2 {{ $hariIniKolom ? 'bg-blue-50' : 'bg-gray-50' }}">
-                                <p class="tabular text-xs font-semibold text-gray-600">{{ \Carbon\Carbon::parse($j->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($j->jam_selesai)->format('H:i') }}</p>
-                                <p class="truncate text-sm font-bold text-gray-900">{{ $j->mataPelajaran->nama_pelajaran ?? '-' }}</p>
-                                <p class="truncate text-xs text-gray-600">{{ $j->kelas->nama_kelas ?? '-' }}</p>
-                            </div>
-                        @empty
-                            <p class="px-3 py-3 text-xs text-gray-600">Tidak mengajar</p>
-                        @endforelse
-                    </div>
-                </div>
-            @endforeach
-        </div>
+                @endforeach
+            </div>
+        @endif
     </section>
 @endsection

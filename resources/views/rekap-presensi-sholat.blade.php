@@ -16,7 +16,7 @@
         <div class="flex flex-wrap items-center gap-3 mb-6">
             @foreach(\App\Models\PresensiSholat::JENIS as $jenis)
                 <a href="{{ route('presensi-sholat.rekap', array_merge(request()->query(), ['jenis' => $jenis])) }}"
-                   class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == $jenis ? 'bg-blue-800 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
+                   class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == $jenis ? 'bg-blue-600 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
                     <span class="material-symbols-outlined text-sm align-middle mr-1" aria-hidden="true">{{ $jenis == 'Dhuha' ? 'wb_sunny' : 'mosque' }}</span>
                     Sholat {{ $jenis }}
                 </a>

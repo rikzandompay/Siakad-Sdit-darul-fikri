@@ -64,7 +64,7 @@
     @include('partials.analytics-body')
 
     <a href="#konten"
-        class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-lg focus:bg-blue-800 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Lewati ke konten</a>
+        class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Lewati ke konten</a>
 
     <!-- Sidebar -->
     <aside
@@ -140,7 +140,7 @@
         <div class="flex items-center gap-4">
             <!-- Mobile Hamburger Toggle -->
             <button type="button" @click="toggleSidebar"
-                class="md:hidden text-blue-800 p-2 -ml-2 rounded-lg hover:bg-gray-100 flex items-center justify-center" aria-label="Buka menu">
+                class="md:hidden text-blue-700 p-2 -ml-2 rounded-lg hover:bg-gray-100 flex items-center justify-center" aria-label="Buka menu">
                 <span class="material-symbols-outlined">menu</span>
             </button>
             <p class="truncate text-sm font-semibold text-gray-900">@yield('page-title', 'Dashboard')</p>
@@ -153,7 +153,7 @@
                     <p class="text-xs text-gray-600">{{ Auth::user()->isAdmin() ? 'Kepala Sekolah' : 'Guru' }}</p>
                 </div>
                 <a href="{{ route('pengaturan.index') }}" title="Profil saya"
-                    class="w-10 h-10 shrink-0 rounded-full bg-blue-800 flex items-center justify-center text-sm text-white font-bold overflow-hidden">
+                    class="w-10 h-10 shrink-0 rounded-full bg-blue-600 flex items-center justify-center text-sm text-white font-bold overflow-hidden">
                     @if (Auth::user()->fotoUrl())
                         <img src="{{ Auth::user()->fotoUrl() }}" alt="Foto {{ Auth::user()->nama_lengkap ?? Auth::user()->name }}" class="w-full h-full object-cover">
                     @else

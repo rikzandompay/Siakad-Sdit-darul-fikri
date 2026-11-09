@@ -23,7 +23,7 @@
             </h3>
         </div>
         <div class="px-6 pt-6 flex items-center gap-4">
-            <div class="w-20 h-20 shrink-0 rounded-full bg-blue-100 text-blue-800 font-bold text-xl flex items-center justify-center overflow-hidden border-2 border-blue-50">
+            <div class="w-20 h-20 shrink-0 rounded-full bg-blue-100 text-blue-700 font-bold text-xl flex items-center justify-center overflow-hidden border-2 border-blue-50">
                 @if ($user->fotoUrl())
                     <img src="{{ $user->fotoUrl() }}" alt="Foto profil" class="w-full h-full object-cover">
                 @else
