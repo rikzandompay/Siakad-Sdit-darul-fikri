@@ -40,29 +40,4 @@ Alpine.data('menuGroup', () => ({
     },
 }));
 
-// Agenda jadwal mengajar: tab hari. Hari awal dibaca dari data-awal; tiap tab dan panel membawa data-hari.
-Alpine.data('agendaHari', () => ({
-    hari: '',
-
-    init() {
-        this.hari = this.$el.dataset.awal;
-    },
-
-    pilih() {
-        this.hari = this.$el.dataset.hari;
-    },
-
-    get dipilih() {
-        return this.$el.dataset.hari === this.hari;
-    },
-
-    get kelasTab() {
-        return this.dipilih ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800 hover:bg-gray-200';
-    },
-
-    get kelasHitungan() {
-        return this.dipilih ? 'text-blue-100' : 'text-gray-600';
-    },
-}));
-
 Alpine.start();
