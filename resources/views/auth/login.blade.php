@@ -169,7 +169,7 @@
             width: 100%;
             padding: 0.75rem;
             margin-top: 1.5rem;
-            background: #dc2626;
+            background: #0d3f63;
             color: #fff;
             font-weight: 600;
             font-size: 0.875rem;
@@ -180,7 +180,7 @@
         }
 
         .login-btn:hover {
-            background: #b91c1c;
+            background: #0a2f4a;
         }
 
         .login-btn:active {

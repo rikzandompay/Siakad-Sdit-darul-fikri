@@ -69,9 +69,18 @@ class DashboardTrenTest extends TestCase
         $this->assertCount(3, $a);
         $this->assertSame([100.0], $a->pluck('persen')->unique()->values()->all());
 
-        // Guru B hanya punya satu hari presensi: belum cukup untuk grafik.
+        // Guru B punya satu hari presensi (alpa): tetap tampil sebagai satu batang dengan hitungan status.
         Cache::flush();
-        $this->actingAs($this->guruB)->get('/dashboard')->assertOk()->assertSee('Grafik muncul setelah ada presensi kelas di minimal dua hari');
+        $b = collect($this->actingAs($this->guruB)->get('/dashboard')->assertOk()->assertDontSee('Belum ada presensi kelas dalam 30 hari terakhir')->viewData('trenKehadiran'));
+        $this->assertCount(1, $b);
+        $this->assertSame([0, 0, 0, 1], [$b[0]['hadir'], $b[0]['sakit'], $b[0]['izin'], $b[0]['alpa']]);
+    }
+
+    public function test_tanpa_presensi_menampilkan_pesan_kosong(): void
+    {
+        $guruC = User::create(['name' => 'c', 'nama_lengkap' => 'Guru C', 'username' => 'guru-c', 'email' => 'c@s.id', 'password' => 'Rahasia123', 'status' => 'Aktif']);
+
+        $this->actingAs($guruC)->get('/dashboard')->assertOk()->assertSee('Belum ada presensi kelas dalam 30 hari terakhir');
     }
 
     public function test_data_lebih_dari_30_hari_tidak_ikut(): void

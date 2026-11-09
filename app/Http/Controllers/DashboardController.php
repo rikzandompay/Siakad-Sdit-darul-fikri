@@ -79,13 +79,13 @@ class DashboardController extends Controller
      * Persen siswa hadir per hari selama 30 hari terakhir (hanya hari yang ada presensinya).
      * Kepala sekolah/admin melihat seluruh sekolah; guru hanya kelas yang ia walikan atau ajar.
      *
-     * @return array{0: list<array{tanggal: string, total: int, hadir: int, persen: float}>, 1: string}
+     * @return array{0: list<array{tanggal: string, total: int, hadir: int, sakit: int, izin: int, alpa: int, persen: float}>, 1: string}
      */
     private function trenKehadiran(): array
     {
         $user = Auth::user();
         $mulai = Sekolah::now()->subDays(29)->toDateString();
-        $kunci = 'tren_kehadiran_'.$user->id.'_'.Sekolah::now()->toDateString();
+        $kunci = 'tren_kehadiran_v2_'.$user->id.'_'.Sekolah::now()->toDateString();
 
         $data = Cache::remember($kunci, 300, function () use ($user, $mulai) {
             $query = Presensi::where('tanggal', '>=', $mulai);
@@ -96,12 +96,19 @@ class DashboardController extends Controller
                 $query->whereIn('jadwal_id', $jadwalIds);
             }
 
-            return $query->selectRaw("tanggal, COUNT(*) as total, SUM(CASE WHEN status_kehadiran = 'H' THEN 1 ELSE 0 END) as hadir")
+            return $query->selectRaw("tanggal, COUNT(*) as total,
+                    SUM(CASE WHEN status_kehadiran = 'H' THEN 1 ELSE 0 END) as hadir,
+                    SUM(CASE WHEN status_kehadiran = 'S' THEN 1 ELSE 0 END) as sakit,
+                    SUM(CASE WHEN status_kehadiran = 'I' THEN 1 ELSE 0 END) as izin,
+                    SUM(CASE WHEN status_kehadiran = 'A' THEN 1 ELSE 0 END) as alpa")
                 ->groupBy('tanggal')->orderBy('tanggal')->get()
                 ->map(fn ($r) => [
                     'tanggal' => Carbon::parse($r->tanggal)->toDateString(),
                     'total' => (int) $r->total,
                     'hadir' => (int) $r->hadir,
+                    'sakit' => (int) $r->sakit,
+                    'izin' => (int) $r->izin,
+                    'alpa' => (int) $r->alpa,
                     'persen' => round(((int) $r->hadir) / max(1, (int) $r->total) * 100, 1),
                 ])->all();
         });
