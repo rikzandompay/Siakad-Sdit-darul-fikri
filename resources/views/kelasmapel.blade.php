@@ -93,14 +93,8 @@
     <div class="px-4 md:px-8 py-6 border-b border-gray-100 flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4">
         <h3 class="font-bold text-lg text-gray-900">Rincian Jadwal Pelajaran Mingguan</h3>
         <div class="flex flex-wrap items-center gap-3">
-            <a href="{{ route('jadwal.export.csv', $kelas->id) }}" class="btn btn-secondary flex items-center gap-2 px-4 py-2 rounded-lg text-sm">
-                <span class="material-symbols-outlined text-sm">download</span>
-                CSV
-            </a>
-            <a href="{{ route('jadwal.export.pdf', $kelas->id) }}" target="_blank" class="btn btn-secondary flex items-center gap-2 px-4 py-2 rounded-lg text-sm">
-                <span class="material-symbols-outlined text-sm">picture_as_pdf</span>
-                PDF
-            </a>
+            <x-export-button type="pdf" :href="route('jadwal.export.pdf', $kelas->id)" />
+            <x-export-button type="csv" :href="route('jadwal.export.csv', $kelas->id)" />
             @if(auth()->user()->isAdmin())
             <button onclick="document.getElementById('modal-tambah-jadwal').classList.remove('hidden')"
                 class="btn btn-primary flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm">

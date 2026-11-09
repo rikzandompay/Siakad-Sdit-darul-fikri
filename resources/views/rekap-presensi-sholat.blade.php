@@ -14,21 +14,14 @@
 
         <!-- Toggle Jenis Sholat -->
         <div class="flex flex-wrap items-center gap-3 mb-6">
-            @foreach(\App\Models\PresensiSholat::JENIS_REKAP as $jenis)
-                @php $arsip = $jenis === \App\Models\PresensiSholat::ASHAR_ARSIP; @endphp
+            @foreach(\App\Models\PresensiSholat::JENIS as $jenis)
                 <a href="{{ route('presensi-sholat.rekap', array_merge(request()->query(), ['jenis' => $jenis])) }}"
                    class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == $jenis ? 'bg-blue-800 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
-                    <span class="material-symbols-outlined text-sm align-middle mr-1">{{ $arsip ? 'inventory_2' : ($jenis == 'Dhuha' ? 'wb_sunny' : 'mosque') }}</span>
-                    Sholat {{ $jenis }}{{ $arsip ? ' (arsip)' : '' }}
+                    <span class="material-symbols-outlined text-sm align-middle mr-1" aria-hidden="true">{{ $jenis == 'Dhuha' ? 'wb_sunny' : 'mosque' }}</span>
+                    Sholat {{ $jenis }}
                 </a>
             @endforeach
         </div>
-
-        @if($jenisSholat === \App\Models\PresensiSholat::ASHAR_ARSIP)
-            <div class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg px-4 py-3">
-                Sholat Ashar tidak dicatat lagi. Data ini adalah arsip.
-            </div>
-        @endif
 
         <!-- Filter Bar -->
         <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
@@ -84,14 +77,8 @@
                     
                     <div class="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
                         <div class="flex gap-2 w-full md:w-auto">
-                            <a href="{{ route('presensi-sholat.rekap.export.pdf', request()->all()) }}" target="_blank"
-                                class="btn btn-secondary flex-1 md:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm">
-                                <span class="material-symbols-outlined text-sm">picture_as_pdf</span> PDF
-                            </a>
-                            <a href="{{ route('presensi-sholat.rekap.export.csv', request()->all()) }}" target="_blank"
-                                class="btn btn-secondary flex-1 md:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm">
-                                <span class="material-symbols-outlined text-sm">csv</span> CSV
-                            </a>
+                            <x-export-button type="pdf" :href="route('presensi-sholat.rekap.export.pdf', request()->all())" />
+                            <x-export-button type="csv" :href="route('presensi-sholat.rekap.export.csv', request()->all())" />
                         </div>
                         <div class="relative w-full md:w-64">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -121,10 +108,10 @@
                                     <td class="px-6 py-4">
                                         <div class="font-bold text-gray-900">{{ $data['siswa']->nama_siswa }}</div>
                                     </td>
-                                    <td class="px-6 py-4 text-center font-bold text-green-700 bg-green-50/30">
+                                    <td class="px-6 py-4 text-center font-bold text-green-700 bg-green-50/60">
                                         {{ $data['summary']['hadir'] }}
                                     </td>
-                                    <td class="px-6 py-4 text-center font-bold text-red-500 bg-red-50/30">
+                                    <td class="px-6 py-4 text-center font-bold text-red-700 bg-red-50/60">
                                         {{ $data['summary']['tidak_hadir'] }}
                                     </td>
                                     <td class="px-6 py-4 text-center font-bold text-gray-700">

@@ -181,7 +181,7 @@ class PresensiSholatTest extends TestCase
         $this->actingAs($this->wali)
             ->get('/presensi-sholat/rekap?jenis=Dhuha&rentang=bulan_ini&tanggal=2026-10-15&kelas_id='.$this->kelas->id)
             ->assertOk()
-            ->assertSee('(arsip)')
+            ->assertDontSee('(arsip)')->assertDontSee('Sholat Ashar')
             ->assertViewHas('rekapData', fn ($data) => $data[$this->andi->id]['summary']['tidak_hadir'] === 1);
 
         $this->actingAs($this->guruLain)

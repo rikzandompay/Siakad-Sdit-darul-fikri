@@ -14,16 +14,8 @@
             <h2 class="font-bold text-2xl text-blue-600">Manajemen Data Siswa</h2>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-            <a href="{{ route('siswa.export.pdf', request()->query()) }}" target="_blank"
-                class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
-                <span class="material-symbols-outlined text-sm">picture_as_pdf</span>
-                Export PDF
-            </a>
-            <a href="{{ route('siswa.export.csv', request()->query()) }}"
-                class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
-                <span class="material-symbols-outlined text-sm">table_chart</span>
-                Export CSV
-            </a>
+            <x-export-button type="pdf" :href="route('siswa.export.pdf', request()->query())" />
+            <x-export-button type="csv" :href="route('siswa.export.csv', request()->query())" />
             @if(auth()->user()->isAdmin())
             <button onclick="document.getElementById('modal-tambah').classList.remove('hidden')"
                 class="btn btn-primary flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm">

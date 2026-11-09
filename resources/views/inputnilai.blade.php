@@ -10,17 +10,8 @@
         </div>
         @if ($siswaList->count() > 0 && $kelasId && $pelajaranId)
             <div class="flex items-center gap-2 flex-wrap">
-                <a href="{{ route('nilai.export.pdf', ['tahun_ajaran_id' => $tahunAjaranId, 'kelas_id' => $kelasId, 'pelajaran_id' => $pelajaranId]) }}"
-                    target="_blank"
-                    class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
-                    <span class="material-symbols-outlined text-sm">picture_as_pdf</span>
-                    Export PDF
-                </a>
-                <a href="{{ route('nilai.export.csv', ['tahun_ajaran_id' => $tahunAjaranId, 'kelas_id' => $kelasId, 'pelajaran_id' => $pelajaranId]) }}"
-                    class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
-                    <span class="material-symbols-outlined text-sm">table_chart</span>
-                    Export CSV
-                </a>
+                <x-export-button type="pdf" :href="route('nilai.export.pdf', ['tahun_ajaran_id' => $tahunAjaranId, 'kelas_id' => $kelasId, 'pelajaran_id' => $pelajaranId])" />
+                <x-export-button type="csv" :href="route('nilai.export.csv', ['tahun_ajaran_id' => $tahunAjaranId, 'kelas_id' => $kelasId, 'pelajaran_id' => $pelajaranId])" />
             </div>
         @endif
     </div>

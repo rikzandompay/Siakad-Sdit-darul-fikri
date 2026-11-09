@@ -15,17 +15,8 @@
         <p class="text-gray-500 text-sm">Kelola kehadiran harian siswa {{ $kelas->nama_kelas }}</p>
     </div>
     <div class="flex items-center gap-2 flex-wrap">
-        <a href="{{ route('presensi.export.pdf', ['kelas' => $kelas->id, 'jadwal_id' => $jadwalId, 'tanggal' => $tanggal]) }}"
-           target="_blank"
-           class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
-            <span class="material-symbols-outlined text-sm">picture_as_pdf</span>
-            Export PDF
-        </a>
-        <a href="{{ route('presensi.export.csv', ['kelas' => $kelas->id, 'jadwal_id' => $jadwalId, 'tanggal' => $tanggal]) }}"
-           class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
-            <span class="material-symbols-outlined text-sm">table_chart</span>
-            Export CSV
-        </a>
+        <x-export-button type="pdf" :href="route('presensi.export.pdf', ['kelas' => $kelas->id, 'jadwal_id' => $jadwalId, 'tanggal' => $tanggal])" />
+        <x-export-button type="csv" :href="route('presensi.export.csv', ['kelas' => $kelas->id, 'jadwal_id' => $jadwalId, 'tanggal' => $tanggal])" />
         @if($jadwalId)
         <button type="submit" form="form-presensi"
            class="btn btn-secondary flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold">
@@ -40,43 +31,43 @@
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
     <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                <span class="material-symbols-outlined text-blue-600" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+                <span class="material-symbols-outlined text-green-700" style="font-variation-settings: 'FILL' 1;">check_circle</span>
             </div>
-            <span class="text-sm font-bold text-blue-600">Hadir</span>
+            <span class="text-sm font-bold text-green-700">Hadir</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $hadirCount }}</p>
-        <p class="text-xs text-gray-400 mt-1">Siswa telah terdata hadir</p>
-    </div>
-    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-        <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                <span class="material-symbols-outlined text-amber-600" style="font-variation-settings: 'FILL' 1;">medical_services</span>
-            </div>
-            <span class="text-sm font-bold text-amber-600">Sakit</span>
-        </div>
-        <p class="text-3xl font-bold text-gray-900">{{ $sakitCount }}</p>
-        <p class="text-xs text-gray-400 mt-1">Dalam pantauan kesehatan</p>
+        <p class="text-xs text-gray-600 mt-1">Siswa telah terdata hadir</p>
     </div>
     <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
             <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
-                <span class="material-symbols-outlined text-purple-600" style="font-variation-settings: 'FILL' 1;">mail</span>
+                <span class="material-symbols-outlined text-purple-700" style="font-variation-settings: 'FILL' 1;">medical_services</span>
             </div>
-            <span class="text-sm font-bold text-purple-700">Izin</span>
+            <span class="text-sm font-bold text-purple-700">Sakit</span>
+        </div>
+        <p class="text-3xl font-bold text-gray-900">{{ $sakitCount }}</p>
+        <p class="text-xs text-gray-600 mt-1">Dalam pantauan kesehatan</p>
+    </div>
+    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+                <span class="material-symbols-outlined text-amber-700" style="font-variation-settings: 'FILL' 1;">mail</span>
+            </div>
+            <span class="text-sm font-bold text-amber-700">Izin</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $izinCount }}</p>
-        <p class="text-xs text-gray-400 mt-1">Disetujui pihak sekolah</p>
+        <p class="text-xs text-gray-600 mt-1">Disetujui pihak sekolah</p>
     </div>
     <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
             <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
-                <span class="material-symbols-outlined text-red-600" style="font-variation-settings: 'FILL' 1;">cancel</span>
+                <span class="material-symbols-outlined text-red-700" style="font-variation-settings: 'FILL' 1;">cancel</span>
             </div>
-            <span class="text-sm font-bold text-red-700">Alfa</span>
+            <span class="text-sm font-bold text-red-700">Alpa</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $alpaCount }}</p>
-        <p class="text-xs text-gray-400 mt-1">Tanpa keterangan valid</p>
+        <p class="text-xs text-gray-600 mt-1">Tanpa keterangan valid</p>
     </div>
 </div>
 
@@ -168,10 +159,10 @@
                                                 {{ $currentStatus == $code ? 'checked' : '' }}>
                                             <span class="block px-4 py-2 rounded-lg text-[11px] font-bold transition-all border
                                                 peer-checked:border-transparent peer-checked:text-white peer-checked:shadow-md
-                                                @if($code == 'H') peer-checked:bg-blue-600 border-gray-200 text-gray-500 hover:bg-blue-50
-                                                @elseif($code == 'S') peer-checked:bg-blue-600 border-gray-200 text-gray-500 hover:bg-blue-50
-                                                @elseif($code == 'I') peer-checked:bg-amber-500 border-gray-200 text-gray-500 hover:bg-amber-50
-                                                @else peer-checked:bg-red-600 border-gray-200 text-gray-500 hover:bg-red-50
+                                                @if($code == 'H') peer-checked:bg-green-700 border-gray-200 text-gray-600 hover:bg-green-50
+                                                @elseif($code == 'S') peer-checked:bg-purple-600 border-gray-200 text-gray-600 hover:bg-purple-50
+                                                @elseif($code == 'I') peer-checked:bg-amber-700 border-gray-200 text-gray-600 hover:bg-amber-50
+                                                @else peer-checked:bg-red-600 border-gray-200 text-gray-600 hover:bg-red-50
                                                 @endif">
                                                 {{ $label }}
                                             </span>

@@ -47,14 +47,8 @@
             <p class="text-sm text-gray-500 mt-0.5">Periode: <strong class="text-gray-900">{{ $periodeLabel }}</strong></p>
         </div>
         <div class="flex gap-2">
-            <a href="{{ route('presensi-guru.rekap.export.pdf', $exportQuery) }}" target="_blank"
-                class="btn btn-secondary flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm">
-                <span class="material-symbols-outlined text-sm">picture_as_pdf</span> PDF
-            </a>
-            <a href="{{ route('presensi-guru.rekap.export.csv', $exportQuery) }}"
-                class="btn btn-secondary flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm">
-                <span class="material-symbols-outlined text-sm">csv</span> CSV
-            </a>
+            <x-export-button type="pdf" :href="route('presensi-guru.rekap.export.pdf', $exportQuery)" />
+            <x-export-button type="csv" :href="route('presensi-guru.rekap.export.csv', $exportQuery)" />
         </div>
     </div>
 
