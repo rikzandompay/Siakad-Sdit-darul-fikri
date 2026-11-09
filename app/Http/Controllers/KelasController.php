@@ -52,7 +52,7 @@ class KelasController extends Controller
             'mapel' => $jadwal->first()->mataPelajaran,
             'guru' => $jadwal->pluck('guru.nama_lengkap')->filter()->unique()->values(),
             'jumlah' => (int) ($jumlahTugas[$jadwal->first()->pelajaran_id] ?? 0),
-            'boleh' => $user->isAdmin() || $jadwal->contains('guru_id', $user->id),
+            'boleh' => $jadwal->contains('guru_id', $user->id),
         ])->values();
 
         return view('kelasmapel', compact('kelas', 'ruangTugas'));

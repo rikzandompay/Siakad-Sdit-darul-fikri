@@ -307,9 +307,15 @@ class FiturPendukungAplikasiTest extends TestCase
         $this->actingAs($this->guruLain)->delete('/tugas/'.$tugas->id)->assertStatus(403);
         $this->assertNull(Tugas::firstWhere('judul', 'Selundupan'));
 
-        // Admin boleh semua ruang. Kelas lain / mapel yang tidak diajar di kelas itu tetap tertutup untuk guru.
-        $this->actingAs($this->sinta)->get($this->ruangUrl())->assertOk();
-        $this->actingAs($this->sinta)->get($this->ruangUrl(null, $bahasa))->assertOk();
+        // Kepala sekolah/admin tidak ikut memberi tugas: ruang tugas hanya untuk guru pengampu.
+        $this->actingAs($this->sinta)->get($this->ruangUrl())->assertStatus(403);
+        $this->actingAs($this->sinta)->get($this->ruangUrl(null, $bahasa))->assertStatus(403);
+        $this->actingAs($this->sinta)->post($this->ruangUrl(), ['judul' => 'Dari Kepala Sekolah'])->assertStatus(403);
+        $this->actingAs($this->sinta)->get('/tugas/'.$tugas->id)->assertStatus(403);
+        $this->actingAs($this->sinta)->delete('/tugas/'.$tugas->id)->assertStatus(403);
+        $this->assertNull(Tugas::firstWhere('judul', 'Dari Kepala Sekolah'));
+
+        // Kelas lain / mapel yang tidak diajar di kelas itu tetap tertutup untuk guru.
         $kelasLain = Kelas::create(['nama_kelas' => 'Kelas 4B']);
         $this->actingAs($this->guruMapel)->get($this->ruangUrl($kelasLain))->assertStatus(403);
 
@@ -330,6 +336,10 @@ class FiturPendukungAplikasiTest extends TestCase
         $this->actingAs($this->guruLain)->get('/kelas/'.$this->kelas->id)->assertOk()
             ->assertDontSee($this->ruangUrl())
             ->assertSee('Bukan mata pelajaran Anda')
+            ->assertViewHas('ruangTugas', fn ($r) => $r[0]['boleh'] === false);
+
+        // Kepala sekolah bukan pengampu: ruang tugas tertutup walau ia admin.
+        $this->actingAs($this->sinta)->get('/kelas/'.$this->kelas->id)->assertOk()
             ->assertViewHas('ruangTugas', fn ($r) => $r[0]['boleh'] === false);
     }
 

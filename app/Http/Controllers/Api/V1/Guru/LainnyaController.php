@@ -22,18 +22,19 @@ class LainnyaController extends Controller
     public function tugas(Request $request): JsonResponse
     {
         $user = $request->user();
+        // Hanya kelas + mata pelajaran yang ia ajar sendiri; kepala sekolah tidak melihat semua kelas.
         $pilihan = JadwalPelajaran::with(['kelas', 'mataPelajaran'])
-            ->when(! $user->isAdmin(), fn ($q) => $q->where('guru_id', $user->id))->get()
+            ->where('guru_id', $user->id)->get()
             ->unique(fn ($j) => $j->kelas_id.'-'.$j->pelajaran_id)
             ->map(fn ($j) => ['kelas_id' => $j->kelas_id, 'pelajaran_id' => $j->pelajaran_id, 'label' => ($j->mataPelajaran?->nama_pelajaran).' - '.($j->kelas?->nama_kelas)])
             ->sortBy('label')->values();
 
-        // Guru: hanya tugas di pasangan kelas + mapel yang ia ajar (ruang tugas mapel).
+        // Hanya tugas di pasangan kelas + mapel yang ia ajar (ruang tugas mapel).
         $pasangan = $pilihan->map(fn ($p) => $p['kelas_id'].'-'.$p['pelajaran_id'])->all();
         $tugas = Tugas::with(['kelas', 'mataPelajaran'])->withCount(['nilai as dinilai' => fn ($q) => $q->whereNotNull('nilai')])
-            ->when(! $user->isAdmin(), fn ($q) => $q->whereIn('kelas_id', $pilihan->pluck('kelas_id')))
+            ->whereIn('kelas_id', $pilihan->pluck('kelas_id'))
             ->latest()->limit(100)->get()
-            ->filter(fn ($t) => $user->isAdmin() || in_array($t->kelas_id.'-'.$t->pelajaran_id, $pasangan, true))
+            ->filter(fn ($t) => in_array($t->kelas_id.'-'.$t->pelajaran_id, $pasangan, true))
             ->take(50);
 
         return response()->json([

@@ -228,7 +228,13 @@ class WaliAdminApiTest extends TestCase
         $this->req($g)->getJson('/api/v1/guru/tugas/'.$id)->assertJsonPath('data.0.nilai', 90);
         $this->req($this->wali())->getJson('/api/v1/wali/tugas')->assertJsonPath('data.0.nilai', 90);
 
-        $this->req($this->as($this->sinta, 'guru'))->postJson('/api/v1/guru/tugas', ['kelas_id' => $this->lain->kelas_id, 'pelajaran_id' => $this->mtk->id, 'judul' => 'x'])->assertCreated();
+        // Kepala sekolah tidak ikut memberi tugas: hanya guru yang mengajar mapel itu di kelas itu.
+        $sinta = $this->as($this->sinta, 'guru');
+        $this->req($sinta)->getJson('/api/v1/guru/tugas')->assertOk()->assertJsonCount(0, 'pilihan')->assertJsonCount(0, 'data');
+        $this->req($sinta)->postJson('/api/v1/guru/tugas', ['kelas_id' => $this->kelas->id, 'pelajaran_id' => $this->mtk->id, 'judul' => 'x'])->assertStatus(403);
+        $this->req($sinta)->postJson('/api/v1/guru/tugas', ['kelas_id' => $this->lain->kelas_id, 'pelajaran_id' => $this->mtk->id, 'judul' => 'x'])->assertStatus(403);
+        $this->req($sinta)->getJson('/api/v1/guru/tugas/'.$id)->assertStatus(403);
+        $this->req($sinta)->postJson('/api/v1/guru/tugas/'.$id.'/nilai', ['nilai' => [['siswa_id' => $this->zaki->id, 'nilai' => 10]]])->assertStatus(403);
         $this->req($g)->postJson('/api/v1/guru/tugas', ['kelas_id' => $this->lain->kelas_id, 'pelajaran_id' => $this->mtk->id, 'judul' => 'x'])->assertStatus(403);
     }
 

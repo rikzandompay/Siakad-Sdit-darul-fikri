@@ -64,7 +64,7 @@
         <span class="material-symbols-outlined text-blue-600">assignment</span>
         <h3 class="font-bold text-lg text-gray-900">Ruang Tugas per Mata Pelajaran</h3>
     </div>
-    <p class="text-sm text-gray-500 mb-5">Tiap mata pelajaran punya ruang tugas sendiri untuk {{ $kelas->nama_kelas }}. Hanya guru pengampu dan admin yang bisa membukanya.</p>
+    <p class="text-sm text-gray-500 mb-5">Tiap mata pelajaran punya ruang tugas sendiri untuk {{ $kelas->nama_kelas }}. Hanya guru pengampu yang bisa membukanya.</p>
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         @forelse($ruangTugas as $r)
             @php $tag = $r['boleh'] ? 'a' : 'div'; @endphp

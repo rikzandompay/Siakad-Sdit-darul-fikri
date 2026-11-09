@@ -36,16 +36,19 @@ class Tugas extends Model
         return $this->hasMany(NilaiTugas::class, 'tugas_id');
     }
 
-    /** Admin melihat semua; guru hanya tugas miliknya. */
+    /** Hanya tugas milik guru itu sendiri. Kepala sekolah/admin tidak otomatis melihat semuanya. */
     public function scopeTerlihatOleh(Builder $query, User $user): Builder
     {
-        return $user->isAdmin() ? $query : $query->where('guru_id', $user->id);
+        return $query->where('guru_id', $user->id);
     }
 
-    /** Ruang tugas milik mata pelajaran di kelas: admin atau guru yang mengajarnya di kelas itu. */
+    /**
+     * Ruang tugas milik mata pelajaran di kelas: hanya guru yang mengajarnya di kelas itu (guru pengampu).
+     * Kepala sekolah/admin tidak ikut memberi tugas kecuali ia sendiri mengampu mata pelajaran itu.
+     */
     public static function bisaMengelolaRuang(User $user, int $kelasId, int $pelajaranId): bool
     {
-        return $user->isAdmin() || JadwalPelajaran::where('guru_id', $user->id)
+        return JadwalPelajaran::where('guru_id', $user->id)
             ->where('kelas_id', $kelasId)
             ->where('pelajaran_id', $pelajaranId)
             ->exists();

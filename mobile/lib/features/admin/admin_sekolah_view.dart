@@ -88,7 +88,6 @@ class AdminSekolahView extends StatelessWidget {
             ('Pengampu Konseling', 'konseling', '/admin/pengampu', 0),
             ('Akun Wali', 'izin', '/admin/wali', 0),
             ('Foto Guru', 'absen', '/admin/foto-pengajuan', (d['foto_menunggu'] as int?) ?? 0),
-            ('Tugas Semua Kelas', 'tugas', '/guru/tugas', 0),
           ]),
         ]);
       },

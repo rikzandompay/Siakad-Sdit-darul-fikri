@@ -12,8 +12,8 @@ use Illuminate\Validation\Rule;
 
 /**
  * Tugas dan nilai tugas. Setiap mata pelajaran di sebuah kelas punya "ruang tugas" sendiri
- * (dibuka dari Kelas & Mapel). Admin dan guru yang mengajar mata pelajaran itu di kelas tersebut
- * boleh mengelola isinya.
+ * (dibuka dari Kelas & Mapel). Hanya guru yang mengajar mata pelajaran itu di kelas tersebut
+ * (guru pengampu) yang boleh mengelola isinya; kepala sekolah/admin tidak ikut memberi tugas.
  */
 class TugasController extends Controller
 {
