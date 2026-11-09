@@ -13,8 +13,7 @@
             $now->hour < 18 => 'Selamat sore',
             default => 'Selamat malam',
         };
-        $perHari = $jadwalSepekan->groupBy('hari');
-        $hariSekolah = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'];
+        $nama = Auth::user()->nama_lengkap ?? Auth::user()->name;
         $totalPresensi = $hadirCount + $sakitCount + $izinCount + $alpaCount;
         $status = [
             ['Hadir', $hadirCount, 'bg-green-700'],
@@ -22,34 +21,22 @@
             ['Izin', $izinCount, 'bg-amber-500'],
             ['Alpa', $alpaCount, 'bg-red-600'],
         ];
-        $nama = Auth::user()->nama_lengkap ?? Auth::user()->name;
+        $jadwalHariIni = $jadwalSepekan->where('hari', $hariIni)->values();
 
-        // Grafik garis per hari presensi, satu garis untuk tiap status, supaya tetap terbaca
-        // walau kehadirannya nol: garis sakit, izin, atau alpa yang naik.
-        // Data lama di cache bisa belum punya hitungan sakit/izin/alpa: anggap 0 agar halaman tidak error.
-        $tren = collect($trenKehadiran)->map(fn ($t) => $t + ['sakit' => 0, 'izin' => 0, 'alpa' => 0])->values();
-        $adaTren = $tren->isNotEmpty();
+        // Kehadiran per kelas: kelas dengan persen hadir terendah ditaruh paling atas.
+        $kelasTren = collect($trenKehadiran)
+            ->map(fn ($k) => $k + ['persen' => $k['total'] > 0 ? round($k['hadir'] / $k['total'] * 100, 1) : 0])
+            ->sortBy('persen')->values();
+        $adaTren = $kelasTren->isNotEmpty();
         if ($adaTren) {
-            $jumlahHari = $tren->count();
-            $labelSetiapBatang = $jumlahHari <= 12;
-            $rataRata = round($tren->sum('hadir') / max(1, $tren->sum('total')) * 100, 1);
-            $persenPerHari = $tren->groupBy(fn ($t) => \App\Support\Sekolah::hari(\Carbon\Carbon::parse($t['tanggal'])))
-                ->map(fn ($g) => round($g->sum('hadir') / max(1, $g->sum('total')) * 100, 1));
-            $hariTerendah = $jumlahHari >= 5 && $persenPerHari->count() > 1 ? $persenPerHari->sort()->keys()->first() : null;
-            // Satu garis per status, nilainya persen siswa pada hari itu. Titik x diberi jarak 2% di tepi agar tidak terpotong.
-            $xTitik = fn ($i) => $jumlahHari > 1 ? round(2 + $i / ($jumlahHari - 1) * 96, 2) : 50;
-            $yTitik = fn ($nilai, $total) => round(100 - ($total > 0 ? $nilai / $total * 100 : 0), 2);
-            $seriGrafik = [
-                ['alpa', 'Alpa', 'text-red-600', 2],
-                ['izin', 'Izin', 'text-amber-500', 2],
-                ['sakit', 'Sakit', 'text-purple-600', 2],
-                ['hadir', 'Hadir', 'text-green-700', 3],
-            ];
-            $jumlahStatus = [
-                ['Hadir', $tren->sum('hadir'), 'bg-green-700'],
-                ['Sakit', $tren->sum('sakit'), 'bg-purple-600'],
-                ['Izin', $tren->sum('izin'), 'bg-amber-500'],
-                ['Alpa', $tren->sum('alpa'), 'bg-red-600'],
+            $totalSemua = max(1, $kelasTren->sum('total'));
+            $rataRata = round($kelasTren->sum('hadir') / $totalSemua * 100, 1);
+            $terendah = $kelasTren->count() > 1 ? $kelasTren->first() : null;
+            $komposisi = [
+                ['hadir', 'Hadir', 'bg-green-700'],
+                ['sakit', 'Sakit', 'bg-purple-600'],
+                ['izin', 'Izin', 'bg-amber-500'],
+                ['alpa', 'Alpa', 'bg-red-600'],
             ];
         }
     @endphp
@@ -63,131 +50,101 @@
     </div>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        {{-- Kiri: kehadiran 30 hari di atas, lalu jadwal mengajar --}}
+        {{-- Kiri: kehadiran per kelas, lalu jadwal mengajar hari ini --}}
         <div class="min-w-0 space-y-6">
-            <section class="rounded-2xl border border-gray-200 bg-white" aria-labelledby="judul-tren">
+            <section class="rounded-xl border border-gray-200 bg-white" aria-labelledby="judul-kelas-tren">
                 <div class="flex flex-wrap items-baseline justify-between gap-x-3 border-b border-gray-200 px-5 py-4 md:px-6">
-                    <h2 id="judul-tren" class="text-lg font-bold text-gray-900">Kehadiran siswa 30 hari terakhir</h2>
+                    <h2 id="judul-kelas-tren" class="text-lg font-bold text-gray-900">Kehadiran per kelas, 30 hari terakhir</h2>
                     <p class="text-sm text-gray-600">{{ ucfirst($cakupanTren) }}</p>
                 </div>
                 @if ($adaTren)
                     <div class="px-5 pb-5 pt-4 md:px-6">
                         <p class="text-sm text-gray-700">
-                            Rata-rata <span class="tabular font-bold text-gray-900">{{ $rataRata }}%</span> hadir dalam {{ $jumlahHari }} hari presensi.
-                            @if ($hariTerendah)
-                                Paling rendah pada hari <span class="font-bold text-gray-900">{{ $hariTerendah }}</span> (<span class="tabular">{{ $persenPerHari[$hariTerendah] }}%</span>).
+                            Rata-rata <span class="tabular font-bold text-gray-900">{{ $rataRata }}%</span> hadir di {{ $kelasTren->count() }} kelas.
+                            @if ($terendah)
+                                Terendah: <span class="font-semibold text-gray-900">{{ $terendah['nama_kelas'] }}</span> (<span class="tabular">{{ $terendah['persen'] }}%</span>).
                             @endif
                         </p>
 
-                        <div class="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3" aria-hidden="true">
-                            <div class="tabular relative h-44 text-right text-xs text-gray-600">
-                                <span class="absolute right-0 top-0 -translate-y-1/2">100%</span>
-                                <span class="absolute right-0 top-1/2 -translate-y-1/2">50%</span>
-                                <span class="absolute right-0 top-full -translate-y-1/2">0%</span>
-                            </div>
-                            <div class="min-w-0">
-                                <div class="relative h-44">
-                                    <svg class="absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
-                                        @foreach ([0, 50, 100] as $g)
-                                            <line x1="0" x2="100" y1="{{ $g }}" y2="{{ $g }}" class="text-gray-200" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" />
-                                        @endforeach
-                                        {{-- Urutan gambar: alpa, izin, sakit, hadir, agar garis hadir paling atas. Titik = garis nol panjang berujung bulat. --}}
-                                        @foreach ($seriGrafik as [$kunci, $label, $warna, $tebal])
-                                            <polyline fill="none" class="{{ $warna }}" stroke="currentColor" stroke-width="{{ $tebal }}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"
-                                                points="{{ $tren->map(fn ($t, $i) => $xTitik($i).','.$yTitik($t[$kunci], $t['total']))->implode(' ') }}" />
-                                            @foreach ($tren as $i => $t)
-                                                <path d="M{{ $xTitik($i) }},{{ $yTitik($t[$kunci], $t['total']) }} l0,0" class="{{ $warna }}" stroke="currentColor" stroke-width="{{ $tebal + 5 }}" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+                        <ul class="mt-5 space-y-3" aria-hidden="true">
+                            @foreach ($kelasTren as $k)
+                                <li class="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)_3.25rem] items-center gap-3">
+                                    <span class="truncate text-sm font-semibold text-gray-900">{{ $k['nama_kelas'] }}</span>
+                                    <div class="flex h-5 overflow-hidden rounded-md bg-gray-100">
+                                        @if ($k['total'] > 0)
+                                            @foreach ($komposisi as [$kunci, $label, $warna])
+                                                @if ($k[$kunci] > 0)
+                                                    <span class="{{ $warna }}" style="width: {{ round($k[$kunci] / $k['total'] * 100, 2) }}%"></span>
+                                                @endif
                                             @endforeach
-                                        @endforeach
-                                    </svg>
-                                </div>
-                                <div class="relative mt-2 h-4 text-xs text-gray-600">
-                                    @if ($labelSetiapBatang)
-                                        @foreach ($tren as $i => $t)
-                                            <span class="absolute -translate-x-1/2 whitespace-nowrap" style="left: {{ $xTitik($i) }}%">{{ \Carbon\Carbon::parse($t['tanggal'])->translatedFormat('j M') }}</span>
-                                        @endforeach
-                                    @else
-                                        <span class="absolute left-0">{{ \Carbon\Carbon::parse($tren->first()['tanggal'])->translatedFormat('j M') }}</span>
-                                        <span class="absolute right-0">{{ \Carbon\Carbon::parse($tren->last()['tanggal'])->translatedFormat('j M') }}</span>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
+                                        @endif
+                                    </div>
+                                    <span class="tabular text-right text-sm font-bold text-gray-900">{{ $k['persen'] }}%</span>
+                                </li>
+                            @endforeach
+                        </ul>
 
-                        <dl class="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-t border-gray-100 pt-4" aria-hidden="true">
-                            @foreach ($jumlahStatus as [$label, $jumlah, $warna])
+                        <dl class="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-gray-100 pt-4" aria-hidden="true">
+                            @foreach ($komposisi as [$kunci, $label, $warna])
                                 <div class="flex items-center gap-2 text-sm">
                                     <span class="h-2.5 w-2.5 rounded-sm {{ $warna }}"></span>
                                     <dt class="text-gray-600">{{ $label }}</dt>
-                                    <dd class="tabular font-bold text-gray-900">{{ $jumlah }}</dd>
+                                    <dd class="tabular font-bold text-gray-900">{{ $kelasTren->sum($kunci) }}</dd>
                                 </div>
                             @endforeach
                         </dl>
 
-                        <div class="sr-only"><table>
-                            <caption>Kehadiran siswa per hari presensi</caption>
-                            <thead><tr><th scope="col">Tanggal</th><th scope="col">Hadir</th><th scope="col">Sakit</th><th scope="col">Izin</th><th scope="col">Alpa</th><th scope="col">Persen hadir</th></tr></thead>
-                            <tbody>
-                                @foreach ($tren as $t)
-                                    <tr><td>{{ \Carbon\Carbon::parse($t['tanggal'])->translatedFormat('j F Y') }}</td><td>{{ $t['hadir'] }}</td><td>{{ $t['sakit'] }}</td><td>{{ $t['izin'] }}</td><td>{{ $t['alpa'] }}</td><td>{{ $t['persen'] }}%</td></tr>
-                                @endforeach
-                            </tbody>
-                        </table></div>
+                        <div class="sr-only">
+                            <table>
+                                <caption>Kehadiran siswa per kelas selama 30 hari terakhir</caption>
+                                <thead><tr><th scope="col">Kelas</th><th scope="col">Hadir</th><th scope="col">Sakit</th><th scope="col">Izin</th><th scope="col">Alpa</th><th scope="col">Persen hadir</th></tr></thead>
+                                <tbody>
+                                    @foreach ($kelasTren as $k)
+                                        <tr><td>{{ $k['nama_kelas'] }}</td><td>{{ $k['hadir'] }}</td><td>{{ $k['sakit'] }}</td><td>{{ $k['izin'] }}</td><td>{{ $k['alpa'] }}</td><td>{{ $k['persen'] }}%</td></tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 @else
                     <p class="px-6 py-10 text-sm text-gray-600">Belum ada presensi kelas dalam 30 hari terakhir. Grafik muncul setelah guru mengisi presensi.</p>
                 @endif
             </section>
 
-            {{-- Jadwal mengajar: kotak berpembatas tipis, hanya hari yang ada jadwalnya --}}
-            @php
-                $hariAda = collect($hariSekolah)->filter(fn ($h) => $perHari->get($h, collect())->isNotEmpty())->values();
-                $kolom = min(3, max(1, $hariAda->count()));
-            @endphp
-            <section aria-labelledby="judul-jadwal">
-                <div class="mb-3 flex items-baseline justify-between gap-3">
-                    <h2 id="judul-jadwal" class="text-lg font-bold text-gray-900">Jadwal mengajar</h2>
-                    <p class="text-sm text-gray-600">{{ $jadwalSepekan->count() }} sesi pekan ini</p>
+            <section class="overflow-hidden rounded-xl border border-gray-200 bg-white" aria-labelledby="judul-hari-ini">
+                <div class="flex items-baseline justify-between gap-3 border-b border-gray-200 px-5 py-4 md:px-6">
+                    <h2 id="judul-hari-ini" class="text-lg font-bold text-gray-900">Jadwal mengajar hari ini</h2>
+                    <p class="text-sm text-gray-600">{{ $jadwalHariIni->count() }} sesi</p>
                 </div>
-                @if ($hariAda->isEmpty())
-                    <p class="rounded-2xl border border-gray-200 bg-white px-6 py-10 text-sm text-gray-600">Anda belum punya jadwal mengajar.</p>
-                @else
-                    <div class="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 sm:grid-cols-2 {{ $kolom === 3 ? 'lg:grid-cols-3' : '' }}">
-                        @foreach ($hariAda as $hari)
-                            @php $daftar = $perHari->get($hari)->values(); $hariItu = $hari === $hariIni; @endphp
-                            <div class="min-w-0 bg-white p-5 md:p-6">
-                                <h3 class="flex items-center gap-2 text-sm font-bold text-gray-900">
-                                    <span class="material-symbols-outlined text-[20px] {{ $hariItu ? 'text-blue-600' : 'text-gray-600' }}" aria-hidden="true">{{ $hariItu ? 'today' : 'calendar_today' }}</span>
-                                    {{ $hari }}
-                                    @if ($hariItu)<span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">Hari ini</span>@endif
-                                </h3>
-                                <ul class="mt-3 space-y-3">
-                                    @foreach ($daftar as $jadwal)
-                                        @php
-                                            $mulai = \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i');
-                                            $selesai = \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i');
-                                            $berlangsung = $hariItu && $mulai <= $jamSekarang && $jamSekarang < $selesai;
-                                        @endphp
-                                        <li class="text-sm">
-                                            <p class="tabular text-gray-600">{{ $mulai }} - {{ $selesai }}@if ($berlangsung) <span class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Berlangsung</span>@endif</p>
-                                            <p class="font-semibold text-gray-900">{{ $jadwal->mataPelajaran->nama_pelajaran ?? '-' }}</p>
-                                            <p class="text-gray-600">{{ $jadwal->kelas->nama_kelas ?? '-' }}</p>
-                                            @if ($hariItu)
-                                                <a href="{{ route('presensi.show', $jadwal->kelas_id) }}?jadwal_id={{ $jadwal->id }}" class="mt-1 inline-block font-semibold text-blue-700 hover:underline">Isi presensi</a>
-                                            @endif
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endforeach
+                @forelse ($jadwalHariIni as $jadwal)
+                    @php
+                        $mulai = \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i');
+                        $selesai = \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i');
+                        $berlangsung = $mulai <= $jamSekarang && $jamSekarang < $selesai;
+                    @endphp
+                    <div class="flex items-center gap-4 px-5 py-4 md:gap-5 md:px-6 {{ $berlangsung ? 'bg-blue-50' : '' }} {{ ! $loop->last ? 'border-b border-gray-100' : '' }}">
+                        <div class="w-14 shrink-0 tabular">
+                            <p class="text-sm font-bold text-gray-900">{{ $mulai }}</p>
+                            <p class="text-xs text-gray-600">{{ $selesai }}</p>
+                        </div>
+                        <span class="hidden h-3 w-3 shrink-0 rounded-full sm:block {{ $berlangsung ? 'bg-amber-400 ring-2 ring-blue-600' : 'bg-blue-200' }}" aria-hidden="true"></span>
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate font-semibold text-gray-900">{{ $jadwal->mataPelajaran->nama_pelajaran ?? '-' }}</p>
+                            <p class="truncate text-sm text-gray-600">{{ $jadwal->kelas->nama_kelas ?? '-' }}@if ($berlangsung), sedang berlangsung @endif</p>
+                        </div>
+                        <a href="{{ route('presensi.show', $jadwal->kelas_id) }}?jadwal_id={{ $jadwal->id }}" class="btn btn-secondary shrink-0">Isi presensi</a>
                     </div>
-                @endif
+                @empty
+                    <p class="px-6 py-10 text-sm text-gray-600">
+                        {{ $jadwalSepekan->isEmpty() ? 'Anda belum punya jadwal mengajar.' : 'Tidak ada jadwal mengajar hari ini.' }}
+                    </p>
+                @endforelse
             </section>
         </div>
 
         {{-- Kanan: kondisi sekolah --}}
         <div class="min-w-0 space-y-6">
-            <section class="rounded-2xl border border-gray-200 bg-white p-5 md:p-6" aria-labelledby="judul-kehadiran">
+            <section class="rounded-xl border border-gray-200 bg-white p-5 md:p-6" aria-labelledby="judul-kehadiran">
                 <h2 id="judul-kehadiran" class="text-lg font-bold text-gray-900">Kehadiran siswa hari ini</h2>
                 @if ($totalPresensi === 0)
                     <p class="mt-3 text-sm text-gray-600">Belum ada presensi kelas yang diisi hari ini.</p>
@@ -215,7 +172,7 @@
                 @endif
             </section>
 
-            <section class="rounded-2xl border border-gray-200 bg-white" aria-labelledby="judul-kelas">
+            <section class="rounded-xl border border-gray-200 bg-white" aria-labelledby="judul-kelas">
                 <div class="border-b border-gray-200 px-5 py-4 md:px-6">
                     <h2 id="judul-kelas" class="text-lg font-bold text-gray-900">Kelas</h2>
                     <p class="text-sm text-gray-600">{{ $totalSiswa }} siswa aktif di {{ $totalKelas }} kelas</p>

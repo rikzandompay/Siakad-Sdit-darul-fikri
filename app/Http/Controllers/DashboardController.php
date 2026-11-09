@@ -2,31 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Siswa;
-use App\Models\Kelas;
 use App\Models\JadwalPelajaran;
+use App\Models\Kelas;
 use App\Models\Presensi;
+use App\Models\Siswa;
 use App\Models\TahunAjaran;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 use App\Support\Sekolah;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
     public function index()
     {
         $userId = Auth::id();
-        
+
         // Cache stats for 5 minutes - Redis makes this nearly instant
-        $totalSiswa = Cache::remember('total_siswa_aktif', 300, fn() => Siswa::where('status', 'Aktif')->count());
-        $totalKelas = Cache::remember('total_kelas', 300, fn() => Kelas::count());
-        $tahunAktif = Cache::remember('tahun_aktif', 300, fn() => TahunAjaran::getAktif());
+        $totalSiswa = Cache::remember('total_siswa_aktif', 300, fn () => Siswa::where('status', 'Aktif')->count());
+        $totalKelas = Cache::remember('total_kelas', 300, fn () => Kelas::count());
+        $tahunAktif = Cache::remember('tahun_aktif', 300, fn () => TahunAjaran::getAktif());
 
         // Stats presensi hari ini
         $today = Carbon::today()->toDateString();
-        $statsPresensi = Cache::remember("stats_presensi_today_{$today}", 60, function() {
+        $statsPresensi = Cache::remember("stats_presensi_today_{$today}", 60, function () {
             $data = Presensi::where('tanggal', Carbon::today())
                 ->selectRaw("
                     COUNT(*) as total,
@@ -35,9 +34,10 @@ class DashboardController extends Controller
                     SUM(CASE WHEN status_kehadiran = 'I' THEN 1 ELSE 0 END) as izin,
                     SUM(CASE WHEN status_kehadiran = 'A' THEN 1 ELSE 0 END) as alpa
                 ")->first();
+
             return $data ? $data->toArray() : [];
         });
-        
+
         $totalPresensi = $statsPresensi['total'] ?? 0;
         $hadirCount = $statsPresensi['hadir'] ?? 0;
         $sakitCount = $statsPresensi['sakit'] ?? 0;
@@ -46,10 +46,9 @@ class DashboardController extends Controller
         $persenHadir = $totalPresensi > 0 ? round(($hadirCount / $totalPresensi) * 100, 1) : 0;
 
         // Jadwal mengajar guru sepekan (di-cache per user, 5 menit)
-        $jadwalSepekan = Cache::remember("jadwal_sepekan_guru_{$userId}", 300, fn() => 
-            JadwalPelajaran::where('guru_id', $userId)
-                ->with(['kelas', 'mataPelajaran'])
-                ->orderByRaw("
+        $jadwalSepekan = Cache::remember("jadwal_sepekan_guru_{$userId}", 300, fn () => JadwalPelajaran::where('guru_id', $userId)
+            ->with(['kelas', 'mataPelajaran'])
+            ->orderByRaw("
                     CASE hari
                         WHEN 'Senin' THEN 1
                         WHEN 'Selasa' THEN 2
@@ -62,8 +61,7 @@ class DashboardController extends Controller
         );
 
         // Daftar kelas (5 menit)
-        $kelasList = Cache::remember('kelas_list_dashboard', 300, fn() => 
-            Kelas::withCount('siswaAktif')->with('waliKelas')->get()
+        $kelasList = Cache::remember('kelas_list_dashboard', 300, fn () => Kelas::withCount('siswaAktif')->with('waliKelas')->get()
         );
 
         [$trenKehadiran, $cakupanTren] = $this->trenKehadiran();
@@ -76,40 +74,48 @@ class DashboardController extends Controller
     }
 
     /**
-     * Persen siswa hadir per hari selama 30 hari terakhir (hanya hari yang ada presensinya).
+     * Kehadiran per kelas selama 30 hari terakhir (hanya presensi yang sudah diisi).
      * Kepala sekolah/admin melihat seluruh sekolah; guru hanya kelas yang ia walikan atau ajar.
      *
-     * @return array{0: list<array{tanggal: string, total: int, hadir: int, sakit: int, izin: int, alpa: int, persen: float}>, 1: string}
+     * @return array{0: list<array{kelas_id: int, nama_kelas: string, total: int, hadir: int, sakit: int, izin: int, alpa: int}>, 1: string}
      */
     private function trenKehadiran(): array
     {
         $user = Auth::user();
         $mulai = Sekolah::now()->subDays(29)->toDateString();
-        $kunci = 'tren_kehadiran_v2_'.$user->id.'_'.Sekolah::now()->toDateString();
+        $kunci = 'kehadiran_kelas_v3_'.$user->id.'_'.Sekolah::now()->toDateString();
 
         $data = Cache::remember($kunci, 300, function () use ($user, $mulai) {
-            $query = Presensi::where('tanggal', '>=', $mulai);
+            $presensi = (new Presensi)->getTable();
+            $jadwal = (new JadwalPelajaran)->getTable();
+            $kelas = (new Kelas)->getTable();
+
+            $query = Presensi::query()
+                ->join($jadwal, "$presensi.jadwal_id", '=', "$jadwal.id")
+                ->join($kelas, "$jadwal.kelas_id", '=', "$kelas.id")
+                ->where("$presensi.tanggal", '>=', $mulai);
 
             if (! $user->isAdmin()) {
                 $kelasWali = Kelas::where('wali_kelas_id', $user->id)->pluck('id');
-                $jadwalIds = JadwalPelajaran::where(fn ($q) => $q->where('guru_id', $user->id)->orWhereIn('kelas_id', $kelasWali))->pluck('id');
-                $query->whereIn('jadwal_id', $jadwalIds);
+                $query->where(fn ($q) => $q->where("$jadwal.guru_id", $user->id)->orWhereIn("$jadwal.kelas_id", $kelasWali));
             }
 
-            return $query->selectRaw("tanggal, COUNT(*) as total,
-                    SUM(CASE WHEN status_kehadiran = 'H' THEN 1 ELSE 0 END) as hadir,
-                    SUM(CASE WHEN status_kehadiran = 'S' THEN 1 ELSE 0 END) as sakit,
-                    SUM(CASE WHEN status_kehadiran = 'I' THEN 1 ELSE 0 END) as izin,
-                    SUM(CASE WHEN status_kehadiran = 'A' THEN 1 ELSE 0 END) as alpa")
-                ->groupBy('tanggal')->orderBy('tanggal')->get()
+            return $query->selectRaw("$kelas.id as kelas_id, $kelas.nama_kelas, COUNT(*) as total,
+                    SUM(CASE WHEN $presensi.status_kehadiran = 'H' THEN 1 ELSE 0 END) as hadir,
+                    SUM(CASE WHEN $presensi.status_kehadiran = 'S' THEN 1 ELSE 0 END) as sakit,
+                    SUM(CASE WHEN $presensi.status_kehadiran = 'I' THEN 1 ELSE 0 END) as izin,
+                    SUM(CASE WHEN $presensi.status_kehadiran = 'A' THEN 1 ELSE 0 END) as alpa")
+                ->groupBy("$kelas.id", "$kelas.nama_kelas")
+                ->orderBy("$kelas.nama_kelas")
+                ->get()
                 ->map(fn ($r) => [
-                    'tanggal' => Carbon::parse($r->tanggal)->toDateString(),
+                    'kelas_id' => (int) $r->kelas_id,
+                    'nama_kelas' => $r->nama_kelas,
                     'total' => (int) $r->total,
                     'hadir' => (int) $r->hadir,
                     'sakit' => (int) $r->sakit,
                     'izin' => (int) $r->izin,
                     'alpa' => (int) $r->alpa,
-                    'persen' => round(((int) $r->hadir) / max(1, (int) $r->total) * 100, 1),
                 ])->all();
         });
 

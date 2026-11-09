@@ -23,6 +23,8 @@ class DashboardTrenTest extends TestCase
 
     private User $guruB;
 
+    private JadwalPelajaran $jadwalKelas1;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -35,14 +37,20 @@ class DashboardTrenTest extends TestCase
         $this->guruB = User::create(['name' => 'b', 'nama_lengkap' => 'Guru B', 'username' => 'guru-b', 'email' => 'b@s.id', 'password' => 'Rahasia123', 'status' => 'Aktif']);
         $mtk = MataPelajaran::create(['kode_pelajaran' => 'MTK', 'nama_pelajaran' => 'Matematika']);
 
-        foreach ([[$this->guruA, 'Kelas 1'], [$this->guruB, 'Kelas 2']] as $i => [$guru, $nama]) {
+        // Kelas 1: wali dan pengajar guru A, hadir 3 hari. Kelas 2: wali dan pengajar guru B, alpa 1 hari.
+        $rencana = [
+            [$this->guruA, 'Kelas 1', 'H', ['2026-11-04', '2026-11-05', '2026-11-06']],
+            [$this->guruB, 'Kelas 2', 'A', ['2026-11-06']],
+        ];
+        foreach ($rencana as $i => [$guru, $nama, $status, $hari]) {
             $kelas = Kelas::create(['nama_kelas' => $nama, 'wali_kelas_id' => $guru->id]);
             $jadwal = JadwalPelajaran::create(['kelas_id' => $kelas->id, 'pelajaran_id' => $mtk->id, 'guru_id' => $guru->id, 'hari' => 'Senin', 'jam_mulai' => '07:30', 'jam_selesai' => '09:00']);
+            if ($i === 0) {
+                $this->jadwalKelas1 = $jadwal;
+            }
             $siswa = Siswa::create(['nis' => '10'.$i, 'nisn' => '20'.$i, 'nama_siswa' => 'Siswa '.$i, 'tanggal_lahir' => '2018-01-01', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas->id, 'status' => 'Aktif', 'nama_wali' => 'Wali']);
-            // Kelas 1: hadir semua di 3 hari. Kelas 2: hanya satu hari presensi, alpa.
-            $hari = $i === 0 ? ['2026-11-04', '2026-11-05', '2026-11-06'] : ['2026-11-06'];
             foreach ($hari as $tgl) {
-                Presensi::create(['jadwal_id' => $jadwal->id, 'siswa_id' => $siswa->id, 'tanggal' => $tgl, 'status_kehadiran' => $i === 0 ? 'H' : 'A']);
+                Presensi::create(['jadwal_id' => $jadwal->id, 'siswa_id' => $siswa->id, 'tanggal' => $tgl, 'status_kehadiran' => $status]);
             }
         }
     }
@@ -53,27 +61,32 @@ class DashboardTrenTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_kepala_sekolah_melihat_tren_seluruh_sekolah(): void
+    public function test_kepala_sekolah_melihat_kehadiran_per_kelas_seluruh_sekolah(): void
     {
         $res = $this->actingAs($this->kepsek)->get('/dashboard')->assertOk()
-            ->assertSee('Kehadiran siswa 30 hari terakhir')->assertSee('Seluruh sekolah');
+            ->assertSee('Kehadiran per kelas, 30 hari terakhir')->assertSee('Seluruh sekolah');
 
-        $tren = collect($res->viewData('trenKehadiran'));
-        $this->assertSame(['2026-11-04', '2026-11-05', '2026-11-06'], $tren->pluck('tanggal')->all());
-        $this->assertSame([100.0, 100.0, 50.0], $tren->pluck('persen')->all(), 'Tanggal 6: satu hadir, satu alpa');
+        $kelas = collect($res->viewData('trenKehadiran'))->keyBy('nama_kelas');
+        $this->assertSame(2, $kelas->count());
+        $this->assertSame([3, 3], [$kelas['Kelas 1']['total'], $kelas['Kelas 1']['hadir']]);
+        $this->assertSame([1, 0, 1], [$kelas['Kelas 2']['total'], $kelas['Kelas 2']['hadir'], $kelas['Kelas 2']['alpa']]);
     }
 
     public function test_guru_hanya_melihat_kelasnya_sendiri(): void
     {
         $a = collect($this->actingAs($this->guruA)->get('/dashboard')->assertOk()->assertSee('Kelas Anda')->viewData('trenKehadiran'));
-        $this->assertCount(3, $a);
-        $this->assertSame([100.0], $a->pluck('persen')->unique()->values()->all());
+        $this->assertSame(['Kelas 1'], $a->pluck('nama_kelas')->all());
 
-        // Guru B punya satu hari presensi (alpa): tetap tampil sebagai satu batang dengan hitungan status.
-        Cache::flush();
-        $b = collect($this->actingAs($this->guruB)->get('/dashboard')->assertOk()->assertDontSee('Belum ada presensi kelas dalam 30 hari terakhir')->viewData('trenKehadiran'));
-        $this->assertCount(1, $b);
-        $this->assertSame([0, 0, 0, 1], [$b[0]['hadir'], $b[0]['sakit'], $b[0]['izin'], $b[0]['alpa']]);
+        $b = collect($this->actingAs($this->guruB)->get('/dashboard')->assertOk()->viewData('trenKehadiran'));
+        $this->assertSame(['Kelas 2'], $b->pluck('nama_kelas')->all());
+    }
+
+    public function test_data_lebih_dari_30_hari_tidak_ikut(): void
+    {
+        Presensi::create(['jadwal_id' => $this->jadwalKelas1->id, 'siswa_id' => Siswa::first()->id, 'tanggal' => '2026-09-01', 'status_kehadiran' => 'H']);
+
+        $kelas1 = collect($this->actingAs($this->kepsek)->get('/dashboard')->viewData('trenKehadiran'))->firstWhere('nama_kelas', 'Kelas 1');
+        $this->assertSame(3, $kelas1['total']);
     }
 
     public function test_tanpa_presensi_menampilkan_pesan_kosong(): void
@@ -81,14 +94,5 @@ class DashboardTrenTest extends TestCase
         $guruC = User::create(['name' => 'c', 'nama_lengkap' => 'Guru C', 'username' => 'guru-c', 'email' => 'c@s.id', 'password' => 'Rahasia123', 'status' => 'Aktif']);
 
         $this->actingAs($guruC)->get('/dashboard')->assertOk()->assertSee('Belum ada presensi kelas dalam 30 hari terakhir');
-    }
-
-    public function test_data_lebih_dari_30_hari_tidak_ikut(): void
-    {
-        $jadwal = JadwalPelajaran::first();
-        Presensi::create(['jadwal_id' => $jadwal->id, 'siswa_id' => Siswa::first()->id, 'tanggal' => '2026-09-01', 'status_kehadiran' => 'H']);
-
-        $tren = collect($this->actingAs($this->kepsek)->get('/dashboard')->viewData('trenKehadiran'));
-        $this->assertNotContains('2026-09-01', $tren->pluck('tanggal')->all());
     }
 }
