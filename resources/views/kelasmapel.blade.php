@@ -22,39 +22,43 @@
 
 <!-- Header Info -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
-    <div class="bg-white p-6 rounded-xl border border-gray-200 space-y-3">
-        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+    <div class="p-6 rounded-xl border border-blue-200/80 shadow-sm space-y-3 hover:shadow-md transition-all duration-200"
+        style="background: linear-gradient(180deg, #ffffff 0%, #aadaf5 100%);">
+        <div class="w-10 h-10 rounded-lg bg-blue-100/80 flex items-center justify-center">
             <span class="material-symbols-outlined text-blue-700" aria-hidden="true">person</span>
         </div>
         <div>
-            <p class="text-xs font-medium text-gray-600">Wali kelas</p>
+            <p class="text-xs font-semibold text-gray-700">Wali kelas</p>
             <p class="font-bold text-gray-900">{{ $kelas->waliKelas?->nama_lengkap ?? '-' }}</p>
         </div>
     </div>
-    <div class="bg-white p-6 rounded-xl border border-gray-200 space-y-3">
-        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+    <div class="p-6 rounded-xl border border-blue-200/80 shadow-sm space-y-3 hover:shadow-md transition-all duration-200"
+        style="background: linear-gradient(180deg, #ffffff 0%, #aadaf5 100%);">
+        <div class="w-10 h-10 rounded-lg bg-blue-100/80 flex items-center justify-center">
             <span class="material-symbols-outlined text-blue-700" aria-hidden="true">groups</span>
         </div>
         <div>
-            <p class="text-xs font-medium text-gray-600">Jumlah siswa</p>
+            <p class="text-xs font-semibold text-gray-700">Jumlah siswa</p>
             <p class="font-bold text-gray-900">{{ $kelas->siswa->count() }} Siswa</p>
         </div>
     </div>
-    <div class="bg-white p-6 rounded-xl border border-gray-200 space-y-3">
-        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+    <div class="p-6 rounded-xl border border-blue-200/80 shadow-sm space-y-3 hover:shadow-md transition-all duration-200"
+        style="background: linear-gradient(180deg, #ffffff 0%, #aadaf5 100%);">
+        <div class="w-10 h-10 rounded-lg bg-blue-100/80 flex items-center justify-center">
             <span class="material-symbols-outlined text-blue-700" aria-hidden="true">book</span>
         </div>
         <div>
-            <p class="text-xs font-medium text-gray-600">Total mata pelajaran</p>
+            <p class="text-xs font-semibold text-gray-700">Total mata pelajaran</p>
             <p class="font-bold text-gray-900">{{ $kelas->jadwalPelajaran->unique('pelajaran_id')->count() }} Subjek</p>
         </div>
     </div>
-    <div class="bg-white p-6 rounded-xl border border-gray-200 space-y-3">
-        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+    <div class="p-6 rounded-xl border border-blue-200/80 shadow-sm space-y-3 hover:shadow-md transition-all duration-200"
+        style="background: linear-gradient(180deg, #ffffff 0%, #aadaf5 100%);">
+        <div class="w-10 h-10 rounded-lg bg-blue-100/80 flex items-center justify-center">
             <span class="material-symbols-outlined text-blue-700" aria-hidden="true">calendar_today</span>
         </div>
         <div>
-            <p class="text-xs font-medium text-gray-600">Total jadwal</p>
+            <p class="text-xs font-semibold text-gray-700">Total jadwal</p>
             <p class="font-bold text-gray-900">{{ $kelas->jadwalPelajaran->count() }} Sesi/Minggu</p>
         </div>
     </div>

@@ -19,37 +19,38 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
     @foreach($kelasList as $kelas)
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-            <div class="h-28 bg-white border-b border-gray-100 relative overflow-hidden flex items-end p-6">
+        <div class="rounded-xl border border-blue-200/80 shadow-sm overflow-hidden hover:shadow-md transition-all duration-200"
+            style="background: linear-gradient(180deg, #ffffff 0%, #aadaf5 100%);">
+            <div class="h-28 bg-white/70 border-b border-blue-100/80 relative overflow-hidden flex items-end p-6">
                 <div class="relative z-10">
-                    <h3 class="text-blue-600 font-bold text-lg leading-none">{{ $kelas->nama_kelas }}</h3>
-                    <p class="text-gray-500 text-xs mt-1">{{ $kelas->waliKelas?->nama_lengkap ?? 'Belum ada wali' }}</p>
+                    <h3 class="text-blue-700 font-bold text-lg leading-none">{{ $kelas->nama_kelas }}</h3>
+                    <p class="text-gray-700 text-xs mt-1 font-medium">{{ $kelas->waliKelas?->nama_lengkap ?? 'Belum ada wali' }}</p>
                 </div>
-                <span class="material-symbols-outlined absolute -bottom-4 -right-4 text-gray-100 text-8xl opacity-50">class</span>
+                <span class="material-symbols-outlined absolute -bottom-4 -right-4 text-blue-200/50 text-8xl" aria-hidden="true">class</span>
             </div>
             <div class="p-6 space-y-4">
                 <div class="flex items-center justify-between text-sm">
-                    <span class="text-gray-500">Total Siswa</span>
+                    <span class="text-gray-700 font-medium">Total Siswa</span>
                     <span class="font-bold text-gray-900">{{ $kelas->siswa_aktif_count }} Siswa</span>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <a href="{{ route('kelas.show', $kelas->id) }}"
-                        class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        class="bg-white/90 hover:bg-white text-blue-700 border border-blue-200 font-bold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-xs">
                         <span class="material-symbols-outlined text-sm">visibility</span>
                         Detail
                     </a>
                     <a href="{{ route('presensi.show', $kelas->id) }}"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        class="btn btn-primary font-bold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-sm">how_to_reg</span>
                         Presensi
                     </a>
                 </div>
                 @if(auth()->user()->isAdmin())
-                <div class="flex gap-2">
-                    <button onclick="openEditKelas({{ json_encode($kelas) }})" class="flex-1 text-xs text-gray-500 hover:text-blue-600 py-1 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">Edit</button>
+                <div class="flex gap-2 pt-1">
+                    <button onclick="openEditKelas({{ json_encode($kelas) }})" class="flex-1 text-xs text-gray-700 hover:text-blue-700 py-1.5 border border-blue-200/80 bg-white/80 rounded-lg hover:bg-white transition-colors font-medium">Edit</button>
                     <form method="POST" action="{{ route('kelas.destroy', $kelas->id) }}" onsubmit="return confirm('Yakin hapus kelas ini?')" class="flex-1">
                         @csrf @method('DELETE')
-                        <button type="submit" class="w-full text-xs text-gray-500 hover:text-red-600 py-1 border border-gray-200 rounded-lg hover:bg-red-50 transition-colors">Hapus</button>
+                        <button type="submit" class="w-full text-xs text-gray-700 hover:text-red-700 py-1.5 border border-red-200/80 bg-white/80 rounded-lg hover:bg-red-50 transition-colors font-medium">Hapus</button>
                     </form>
                 </div>
                 @endif
