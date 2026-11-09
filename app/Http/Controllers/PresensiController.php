@@ -15,9 +15,9 @@ use Carbon\Carbon;
 
 class PresensiController extends Controller
 {
-    protected function ensureTeacherCanAccessKelas(int $kelasId): void
+    protected function ensureTeacherCanAccessKelas(int $kelasId, bool $allowAdminForRekap = false): void
     {
-        if (auth()->user()->isAdmin()) {
+        if ($allowAdminForRekap && auth()->user()->isAdmin()) {
             return;
         }
 
@@ -34,16 +34,16 @@ class PresensiController extends Controller
 
     protected function ensureJadwalOwnership(int $jadwalId): void
     {
-        if (auth()->user()->isAdmin()) {
-            return;
+        $guruId = Auth::id();
+        $jadwal = JadwalPelajaran::find($jadwalId);
+        if (!$jadwal) {
+            abort(404, 'Jadwal tidak ditemukan.');
         }
 
-        $guruId = Auth::id();
-        $isOwner = JadwalPelajaran::where('id', $jadwalId)
-            ->where('guru_id', $guruId)
-            ->exists();
+        $isWaliKelas = Kelas::where('id', $jadwal->kelas_id)->where('wali_kelas_id', $guruId)->exists();
+        $isGuruPengajar = $jadwal->guru_id === $guruId;
 
-        if (!$isOwner) {
+        if (!$isWaliKelas && !$isGuruPengajar) {
             abort(403, 'Anda tidak memiliki akses ke jadwal ini.');
         }
     }
@@ -55,10 +55,11 @@ class PresensiController extends Controller
     {
         $guruId = Auth::id();
 
-        // Presensi kelas hanya diisi wali kelas; admin melihat semua kelas.
-        $isAdmin = auth()->user()->isAdmin();
-        // Tanpa cache: penunjukan wali kelas bisa berubah kapan saja.
-        $kelasIdsGuru = Kelas::when(! $isAdmin, fn ($q) => $q->where('wali_kelas_id', $guruId))->pluck('id')->toArray();
+        // Presensi kelas hanya untuk kelas yang diampu (wali kelas atau guru pengajar), termasuk bagi kepala sekolah.
+        $kelasIdsGuru = Kelas::where('wali_kelas_id', $guruId)
+            ->orWhereHas('jadwalPelajaran', fn ($q) => $q->where('guru_id', $guruId))
+            ->pluck('id')
+            ->toArray();
 
         $kelasList = Kelas::withCount('siswaAktif')
             ->with('waliKelas')
@@ -184,7 +185,11 @@ class PresensiController extends Controller
      */
     public function store(Request $request)
     {
-        $jadwalKelasId = JadwalPelajaran::whereKey($request->input('jadwal_id'))->value('kelas_id') ?? 0;
+        $jadwal = JadwalPelajaran::findOrFail($request->input('jadwal_id'));
+        $this->ensureTeacherCanAccessKelas($jadwal->kelas_id);
+        $this->ensureJadwalOwnership($jadwal->id);
+
+        $jadwalKelasId = $jadwal->kelas_id;
 
         $validated = $request->validate([
             'jadwal_id' => 'required|exists:jadwal_pelajaran,id',
@@ -363,14 +368,17 @@ class PresensiController extends Controller
         $selectedKelas = null;
 
         if ($selectedKelasId) {
-            $this->ensureTeacherCanAccessKelas($selectedKelasId);
+            $this->ensureTeacherCanAccessKelas($selectedKelasId, allowAdminForRekap: true);
             $selectedKelas = Kelas::find($selectedKelasId);
             $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
 
-            // Get all presensi for this date range and class filtering by logged-in teacher
-            $presensiQuery = Presensi::whereHas('jadwal', function($q) use ($selectedKelasId, $selectedPelajaranId, $guruId) {
-                    $q->where('kelas_id', $selectedKelasId)
-                      ->where('guru_id', $guruId);
+            $isAdmin = auth()->user()->isAdmin();
+            // Get all presensi for this date range and class filtering by logged-in teacher (or all for admin)
+            $presensiQuery = Presensi::whereHas('jadwal', function($q) use ($selectedKelasId, $selectedPelajaranId, $guruId, $isAdmin) {
+                    $q->where('kelas_id', $selectedKelasId);
+                    if (!$isAdmin) {
+                        $q->where('guru_id', $guruId);
+                    }
                     if ($selectedPelajaranId) {
                         $q->where('pelajaran_id', $selectedPelajaranId);
                     }
@@ -408,7 +416,7 @@ class PresensiController extends Controller
             return ['selectedKelas' => null, 'rekapData' => [], 'periodeLabel' => '', 'selectedPelajaran' => null];
         }
 
-        $this->ensureTeacherCanAccessKelas($selectedKelasId);
+        $this->ensureTeacherCanAccessKelas($selectedKelasId, allowAdminForRekap: true);
         $selectedKelas = Kelas::find($selectedKelasId);
         $selectedPelajaran = $selectedPelajaranId ? MataPelajaran::find($selectedPelajaranId) : null;
         $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
@@ -416,9 +424,12 @@ class PresensiController extends Controller
         $dateRange = $this->getDateRange($rentang, $tanggal);
         $periodeLabel = $this->getPeriodeLabelWithDate($rentang, $tanggal);
 
-        $presensiQuery = Presensi::whereHas('jadwal', function($q) use ($selectedKelasId, $selectedPelajaranId, $guruId) {
-                $q->where('kelas_id', $selectedKelasId)
-                  ->where('guru_id', $guruId);
+        $isAdmin = auth()->user()->isAdmin();
+        $presensiQuery = Presensi::whereHas('jadwal', function($q) use ($selectedKelasId, $selectedPelajaranId, $guruId, $isAdmin) {
+                $q->where('kelas_id', $selectedKelasId);
+                if (!$isAdmin) {
+                    $q->where('guru_id', $guruId);
+                }
                 if ($selectedPelajaranId) {
                     $q->where('pelajaran_id', $selectedPelajaranId);
                 }
