@@ -10,7 +10,7 @@
     </div>
     <form method="POST" action="{{ route('wali.sinkron') }}" onsubmit="return confirm('Sinkronkan akun wali dengan data siswa sekarang?')">
         @csrf
-        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-50">
+        <button type="submit" class="btn btn-secondary inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
             <span class="material-symbols-outlined text-sm">sync</span> Sinkronkan dari Data Siswa
         </button>
     </form>

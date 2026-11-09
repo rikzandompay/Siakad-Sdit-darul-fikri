@@ -12,13 +12,13 @@
             <div class="flex items-center gap-2 flex-wrap">
                 <a href="{{ route('nilai.export.pdf', ['tahun_ajaran_id' => $tahunAjaranId, 'kelas_id' => $kelasId, 'pelajaran_id' => $pelajaranId]) }}"
                     target="_blank"
-                    class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-                    <span class="material-symbols-outlined text-sm text-red-500">picture_as_pdf</span>
+                    class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
+                    <span class="material-symbols-outlined text-sm">picture_as_pdf</span>
                     Export PDF
                 </a>
                 <a href="{{ route('nilai.export.csv', ['tahun_ajaran_id' => $tahunAjaranId, 'kelas_id' => $kelasId, 'pelajaran_id' => $pelajaranId]) }}"
-                    class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-                    <span class="material-symbols-outlined text-sm text-blue-600">table_chart</span>
+                    class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
+                    <span class="material-symbols-outlined text-sm">table_chart</span>
                     Export CSV
                 </a>
             </div>
@@ -443,7 +443,7 @@
             <!-- Save Button -->
             <div class="flex justify-end mt-6">
                 <button type="submit"
-                    class="px-8 py-3 text-white font-bold rounded-xl transition-all shadow-lg flex items-center gap-2 transform hover:scale-105"
+                    class="btn btn-primary px-8 py-3 rounded-xl transition-all flex items-center gap-2 hover:scale-105"
                     style="background: linear-gradient(to right, #f59e0b, #d97706); box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.3);">
                     <span class="material-symbols-outlined">save</span>
                     Simpan Rekap Nilai

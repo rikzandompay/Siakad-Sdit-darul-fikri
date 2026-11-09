@@ -12,13 +12,13 @@
     <div class="flex items-center gap-2 flex-wrap">
         <a href="{{ route('nilai.rekap.export.pdf', ['tahun_ajaran_id' => $tahunAjaranId, 'kelas_id' => $kelasId]) }}"
            target="_blank"
-           class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-            <span class="material-symbols-outlined text-sm text-red-500">picture_as_pdf</span>
+           class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
+            <span class="material-symbols-outlined text-sm">picture_as_pdf</span>
             Export PDF
         </a>
         <a href="{{ route('nilai.rekap.export.csv', ['tahun_ajaran_id' => $tahunAjaranId, 'kelas_id' => $kelasId]) }}"
-           class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-            <span class="material-symbols-outlined text-sm text-blue-600">table_chart</span>
+           class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
+            <span class="material-symbols-outlined text-sm">table_chart</span>
             Export CSV
         </a>
     </div>

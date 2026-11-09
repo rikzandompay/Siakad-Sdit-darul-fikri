@@ -68,7 +68,7 @@
                                 </form>
                                 <form method="POST" action="{{ route('konseling.pesan.destroy', [$percakapan, $pesan]) }}" onsubmit="return confirm('Hapus pesan ini? Wali murid tidak akan melihatnya lagi.')">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-xs font-bold">Hapus pesan</button>
+                                    <button type="submit" class="btn btn-alert px-3 py-1.5 rounded-lg text-xs">Hapus pesan</button>
                                 </form>
                             </div>
                         </details>

@@ -22,39 +22,41 @@
 
 <!-- Header Info -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
-    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-3">
+    <div class="bg-white p-6 rounded-xl border border-gray-200 space-y-3">
         <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <span class="material-symbols-outlined text-blue-600">person</span>
+            <span class="material-symbols-outlined text-blue-700" aria-hidden="true">person</span>
         </div>
         <div>
-            <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Wali Kelas</p>
+            <p class="text-xs font-medium text-gray-600">Wali kelas</p>
             <p class="font-bold text-gray-900">{{ $kelas->waliKelas?->nama_lengkap ?? '-' }}</p>
         </div>
     </div>
-    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-3">
-        <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <span class="material-symbols-outlined text-amber-700">groups</span>
+    <div class="bg-white p-6 rounded-xl border border-gray-200 space-y-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+            <span class="material-symbols-outlined text-blue-700" aria-hidden="true">groups</span>
         </div>
         <div>
-            <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Jumlah Siswa</p>
+            <p class="text-xs font-medium text-gray-600">Jumlah siswa</p>
             <p class="font-bold text-gray-900">{{ $kelas->siswa->count() }} Siswa</p>
         </div>
     </div>
-    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-3">
+    <div class="bg-white p-6 rounded-xl border border-gray-200 space-y-3">
         <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <span class="material-symbols-outlined text-blue-600">book</span>
+            <span class="material-symbols-outlined text-blue-700" aria-hidden="true">book</span>
         </div>
         <div>
-            <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Mata Pelajaran</p>
+            <p class="text-xs font-medium text-gray-600">Total mata pelajaran</p>
             <p class="font-bold text-gray-900">{{ $kelas->jadwalPelajaran->unique('pelajaran_id')->count() }} Subjek</p>
         </div>
     </div>
-    <div class="bg-blue-800 p-6 rounded-xl space-y-3 relative overflow-hidden">
-        <div class="relative z-10">
-            <p class="text-xs text-blue-200 font-semibold">Total jadwal</p>
-            <p class="font-bold text-white text-xl">{{ $kelas->jadwalPelajaran->count() }} Sesi/Minggu</p>
+    <div class="bg-white p-6 rounded-xl border border-gray-200 space-y-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+            <span class="material-symbols-outlined text-blue-700" aria-hidden="true">calendar_today</span>
         </div>
-        <span class="material-symbols-outlined absolute -bottom-4 -right-4 text-blue-600 text-8xl opacity-30">calendar_today</span>
+        <div>
+            <p class="text-xs font-medium text-gray-600">Total jadwal</p>
+            <p class="font-bold text-gray-900">{{ $kelas->jadwalPelajaran->count() }} Sesi/Minggu</p>
+        </div>
     </div>
 </div>
 
@@ -91,11 +93,11 @@
     <div class="px-4 md:px-8 py-6 border-b border-gray-100 flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4">
         <h3 class="font-bold text-lg text-gray-900">Rincian Jadwal Pelajaran Mingguan</h3>
         <div class="flex flex-wrap items-center gap-3">
-            <a href="{{ route('jadwal.export.csv', $kelas->id) }}" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-50 transition-colors shadow-sm">
+            <a href="{{ route('jadwal.export.csv', $kelas->id) }}" class="btn btn-secondary flex items-center gap-2 px-4 py-2 rounded-lg text-sm">
                 <span class="material-symbols-outlined text-sm">download</span>
                 CSV
             </a>
-            <a href="{{ route('jadwal.export.pdf', $kelas->id) }}" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors shadow-sm">
+            <a href="{{ route('jadwal.export.pdf', $kelas->id) }}" target="_blank" class="btn btn-secondary flex items-center gap-2 px-4 py-2 rounded-lg text-sm">
                 <span class="material-symbols-outlined text-sm">picture_as_pdf</span>
                 PDF
             </a>
@@ -215,7 +217,7 @@
                 </div>
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <button type="button" onclick="document.getElementById('modal-tambah-jadwal').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600">Batal</button>
+                <button type="button" onclick="document.getElementById('modal-tambah-jadwal').classList.add('hidden')" class="btn btn-tertiary px-6 py-2.5 rounded-lg text-sm">Batal</button>
                 <button type="submit" class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold">Simpan</button>
             </div>
         </form>
@@ -269,7 +271,7 @@
                 </div>
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <button type="button" onclick="document.getElementById('modal-edit-jadwal').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600">Batal</button>
+                <button type="button" onclick="document.getElementById('modal-edit-jadwal').classList.add('hidden')" class="btn btn-tertiary px-6 py-2.5 rounded-lg text-sm">Batal</button>
                 <button type="submit" class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold">Perbarui</button>
             </div>
         </form>

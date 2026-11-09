@@ -32,7 +32,7 @@
             <input id="tenggat" name="tenggat" type="date" value="{{ old('tenggat', $tugas->tenggat?->format('Y-m-d')) }}" class="w-full border border-gray-200 rounded-lg text-sm h-11 px-3">
         </div>
         <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-            <a href="{{ route('tugas.ruang', [$kelas, $mapel]) }}" class="px-5 py-2.5 text-center rounded-lg border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50">Batal</a>
+            <a href="{{ route('tugas.ruang', [$kelas, $mapel]) }}" class="btn btn-tertiary px-5 py-2.5 text-center rounded-lg text-sm">Batal</a>
             <button type="submit" class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold">{{ $baru ? 'Bagikan Tugas' : 'Simpan' }}</button>
         </div>
     </form>

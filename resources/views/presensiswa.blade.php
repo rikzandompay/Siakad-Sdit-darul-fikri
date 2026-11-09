@@ -17,13 +17,13 @@
     <div class="flex items-center gap-2 flex-wrap">
         <a href="{{ route('presensi.export.pdf', ['kelas' => $kelas->id, 'jadwal_id' => $jadwalId, 'tanggal' => $tanggal]) }}"
            target="_blank"
-           class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-            <span class="material-symbols-outlined text-sm text-red-500">picture_as_pdf</span>
+           class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
+            <span class="material-symbols-outlined text-sm">picture_as_pdf</span>
             Export PDF
         </a>
         <a href="{{ route('presensi.export.csv', ['kelas' => $kelas->id, 'jadwal_id' => $jadwalId, 'tanggal' => $tanggal]) }}"
-           class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-            <span class="material-symbols-outlined text-sm text-blue-600">table_chart</span>
+           class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
+            <span class="material-symbols-outlined text-sm">table_chart</span>
             Export CSV
         </a>
         @if($jadwalId)

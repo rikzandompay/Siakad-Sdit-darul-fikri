@@ -15,13 +15,13 @@
         </div>
         <div class="flex items-center gap-2 flex-wrap">
             <a href="{{ route('guru.export.pdf', request()->query()) }}" target="_blank"
-                class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-                <span class="material-symbols-outlined text-sm text-red-500">picture_as_pdf</span>
+                class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
+                <span class="material-symbols-outlined text-sm">picture_as_pdf</span>
                 Export PDF
             </a>
             <a href="{{ route('guru.export.csv', request()->query()) }}"
-                class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-                <span class="material-symbols-outlined text-sm text-blue-600">table_chart</span>
+                class="btn btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
+                <span class="material-symbols-outlined text-sm">table_chart</span>
                 Export CSV
             </a>
             <button onclick="document.getElementById('modal-tambah').classList.remove('hidden')"
@@ -277,7 +277,7 @@
                 </div>
                 <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                     <button type="button" onclick="document.getElementById('modal-tambah').classList.add('hidden')"
-                        class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">Batal</button>
+                        class="btn btn-tertiary px-6 py-2.5 rounded-lg text-sm">Batal</button>
                     <button type="submit"
                         class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold">Simpan</button>
                 </div>
@@ -354,7 +354,7 @@
                 </div>
                 <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                     <button type="button" onclick="document.getElementById('modal-edit').classList.add('hidden')"
-                        class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">Batal</button>
+                        class="btn btn-tertiary px-6 py-2.5 rounded-lg text-sm">Batal</button>
                     <button type="submit"
                         class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold">Perbarui</button>
                 </div>

@@ -48,11 +48,11 @@
         </div>
         <div class="flex gap-2">
             <a href="{{ route('presensi-guru.rekap.export.pdf', $exportQuery) }}" target="_blank"
-                class="flex items-center gap-1.5 bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-100 border border-red-100">
+                class="btn btn-secondary flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm">
                 <span class="material-symbols-outlined text-sm">picture_as_pdf</span> PDF
             </a>
             <a href="{{ route('presensi-guru.rekap.export.csv', $exportQuery) }}"
-                class="flex items-center gap-1.5 bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-100 border border-blue-200">
+                class="btn btn-secondary flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm">
                 <span class="material-symbols-outlined text-sm">csv</span> CSV
             </a>
         </div>
@@ -155,11 +155,11 @@
                     <div class="flex items-center gap-2">
                         <form method="POST" action="{{ route('presensi-guru.foto.setujui', $g) }}">
                             @csrf
-                            <button type="submit" class="btn btn-primary px-4 h-10 rounded-lg text-sm font-bold">Setujui</button>
+                            <button type="submit" class="btn btn-success px-4 h-10 rounded-lg text-sm">Setujui</button>
                         </form>
                         <form method="POST" action="{{ route('presensi-guru.foto.tolak', $g) }}">
                             @csrf
-                            <button type="submit" class="btn btn-danger px-4 h-10 rounded-lg text-sm font-bold">Tolak</button>
+                            <button type="submit" class="btn btn-alert px-4 h-10 rounded-lg text-sm">Tolak</button>
                         </form>
                     </div>
                 </div>
@@ -224,7 +224,7 @@
                 <p class="text-xs text-gray-500 mt-1">Sejak {{ $wajah->didaftarkan_pada->translatedFormat('d M Y, H:i') }}. Template disimpan terenkripsi dan tidak bisa dilihat di web.</p>
                 <form method="POST" action="{{ route('presensi-guru.wajah.reset', $selectedGuru) }}" class="mt-4" onsubmit="return confirm('Hapus data wajah? Guru harus mendaftarkan wajah lagi di aplikasi sebelum bisa absen.')">
                     @csrf @method('DELETE')
-                    <button type="submit" class="px-4 h-10 rounded-lg bg-white border border-red-200 text-red-600 text-sm font-bold hover:bg-red-50">Reset data wajah</button>
+                    <button type="submit" class="btn btn-warning px-4 h-10 rounded-lg text-sm">Reset data wajah</button>
                 </form>
             @else
                 <p class="text-sm text-amber-700 font-semibold mt-2 flex items-center gap-1"><span class="material-symbols-outlined text-base">face_retouching_off</span> Belum terdaftar</p>

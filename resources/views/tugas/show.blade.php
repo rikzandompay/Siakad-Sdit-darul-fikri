@@ -17,10 +17,10 @@
         @if($tugas->deskripsi)<p class="text-sm text-gray-700 mt-3 whitespace-pre-line break-words max-w-3xl">{{ $tugas->deskripsi }}</p>@endif
     </div>
     <div class="flex gap-2 shrink-0">
-        <a href="{{ route('tugas.edit', $tugas) }}" class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50"><span class="material-symbols-outlined text-sm">edit</span> Ubah</a>
+        <a href="{{ route('tugas.edit', $tugas) }}" class="btn btn-secondary inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm"><span class="material-symbols-outlined text-sm">edit</span> Ubah</a>
         <form method="POST" action="{{ route('tugas.destroy', $tugas) }}" onsubmit="return confirm('Hapus tugas ini beserta semua nilainya?')">
             @csrf @method('DELETE')
-            <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border border-red-200 rounded-lg text-sm font-bold text-red-600 hover:bg-red-50"><span class="material-symbols-outlined text-sm">delete</span> Hapus</button>
+            <button type="submit" class="btn btn-alert inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm"><span class="material-symbols-outlined text-sm">delete</span> Hapus</button>
         </form>
     </div>
 </div>

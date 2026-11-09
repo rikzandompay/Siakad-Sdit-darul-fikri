@@ -54,7 +54,7 @@
                         <div class="flex flex-col sm:flex-row gap-2 md:w-[28rem] shrink-0">
                             <form method="POST" action="{{ route('izin.approve', $izin) }}" class="sm:flex-none">
                                 @csrf
-                                <button type="submit" class="btn btn-primary w-full h-10 px-4 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 whitespace-nowrap">
+                                <button type="submit" class="btn btn-success w-full h-10 px-4 rounded-lg text-sm flex items-center justify-center gap-1.5 whitespace-nowrap">
                                     <span class="material-symbols-outlined text-sm">check</span> Setujui
                                 </button>
                             </form>
@@ -63,7 +63,7 @@
                                 <label for="catatan-{{ $izin->id }}" class="sr-only">Alasan penolakan</label>
                                 <input id="catatan-{{ $izin->id }}" name="catatan" type="text" required maxlength="255" placeholder="Alasan jika ditolak"
                                     class="min-w-0 flex-1 border border-gray-200 rounded-lg text-sm h-10 px-3">
-                                <button type="submit" class="btn btn-danger h-10 px-3 rounded-lg text-sm font-bold">Tolak</button>
+                                <button type="submit" class="btn btn-alert h-10 px-3 rounded-lg text-sm">Tolak</button>
                             </form>
                         </div>
                     @endif
