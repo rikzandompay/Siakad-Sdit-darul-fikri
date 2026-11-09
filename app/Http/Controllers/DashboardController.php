@@ -10,6 +10,7 @@ use App\Models\TahunAjaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use App\Support\Sekolah;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -65,10 +66,46 @@ class DashboardController extends Controller
             Kelas::withCount('siswaAktif')->with('waliKelas')->get()
         );
 
+        [$trenKehadiran, $cakupanTren] = $this->trenKehadiran();
+
         return view('dashboard', compact(
             'totalSiswa', 'totalKelas', 'tahunAktif',
             'hadirCount', 'sakitCount', 'izinCount', 'alpaCount', 'persenHadir',
-            'jadwalSepekan', 'kelasList'
+            'jadwalSepekan', 'kelasList', 'trenKehadiran', 'cakupanTren'
         ));
+    }
+
+    /**
+     * Persen siswa hadir per hari selama 30 hari terakhir (hanya hari yang ada presensinya).
+     * Kepala sekolah/admin melihat seluruh sekolah; guru hanya kelas yang ia walikan atau ajar.
+     *
+     * @return array{0: list<array{tanggal: string, total: int, hadir: int, persen: float}>, 1: string}
+     */
+    private function trenKehadiran(): array
+    {
+        $user = Auth::user();
+        $mulai = Sekolah::now()->subDays(29)->toDateString();
+        $kunci = 'tren_kehadiran_'.$user->id.'_'.Sekolah::now()->toDateString();
+
+        $data = Cache::remember($kunci, 300, function () use ($user, $mulai) {
+            $query = Presensi::where('tanggal', '>=', $mulai);
+
+            if (! $user->isAdmin()) {
+                $kelasWali = Kelas::where('wali_kelas_id', $user->id)->pluck('id');
+                $jadwalIds = JadwalPelajaran::where(fn ($q) => $q->where('guru_id', $user->id)->orWhereIn('kelas_id', $kelasWali))->pluck('id');
+                $query->whereIn('jadwal_id', $jadwalIds);
+            }
+
+            return $query->selectRaw("tanggal, COUNT(*) as total, SUM(CASE WHEN status_kehadiran = 'H' THEN 1 ELSE 0 END) as hadir")
+                ->groupBy('tanggal')->orderBy('tanggal')->get()
+                ->map(fn ($r) => [
+                    'tanggal' => Carbon::parse($r->tanggal)->toDateString(),
+                    'total' => (int) $r->total,
+                    'hadir' => (int) $r->hadir,
+                    'persen' => round(((int) $r->hadir) / max(1, (int) $r->total) * 100, 1),
+                ])->all();
+        });
+
+        return [$data, $user->isAdmin() ? 'seluruh sekolah' : 'kelas Anda'];
     }
 }

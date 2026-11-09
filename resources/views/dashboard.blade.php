@@ -23,6 +23,26 @@
             ['Alpa', $alpaCount, 'bg-red-600', 'text-red-700'],
         ];
         $nama = Auth::user()->nama_lengkap ?? Auth::user()->name;
+
+        // Tren kehadiran: skala sumbu-y mulai dari kelipatan 10 di bawah nilai terendah supaya perubahan terlihat.
+        $tren = collect($trenKehadiran);
+        $adaTren = $tren->count() >= 2;
+        if ($adaTren) {
+            $yMin = max(0, (int) (floor(($tren->min('persen') - 5) / 10) * 10));
+            $yMid = (int) round(($yMin + 100) / 2);
+            $posisi = fn ($p) => round(($p - $yMin) / (100 - $yMin) * 100, 2);
+            $titik = $tren->values()->map(fn ($t, $i) => [
+                'x' => round($i / ($tren->count() - 1) * 100, 2),
+                'y' => $posisi($t['persen']),
+                'tanggal' => \Carbon\Carbon::parse($t['tanggal']),
+                'persen' => $t['persen'],
+            ]);
+            $rataRata = round($tren->sum('hadir') / max(1, $tren->sum('total')) * 100, 1);
+            $persenPerHari = $tren->groupBy(fn ($t) => \App\Support\Sekolah::hari(\Carbon\Carbon::parse($t['tanggal'])))
+                ->map(fn ($g) => round($g->sum('hadir') / max(1, $g->sum('total')) * 100, 1));
+            $hariTerendah = $tren->count() >= 5 && $persenPerHari->count() > 1 ? $persenPerHari->sort()->keys()->first() : null;
+            $terakhir = $titik->last();
+        }
     @endphp
 
     <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
@@ -71,6 +91,63 @@
                         @endif
                     </p>
                 @endforelse
+            </section>
+
+            <section class="rounded-xl border border-gray-200 bg-white" aria-labelledby="judul-tren">
+                <div class="flex flex-wrap items-baseline justify-between gap-x-3 border-b border-gray-200 px-5 py-4 md:px-6">
+                    <h2 id="judul-tren" class="text-lg font-bold text-gray-900">Kehadiran siswa 30 hari terakhir</h2>
+                    <p class="text-sm text-gray-600">{{ ucfirst($cakupanTren) }}</p>
+                </div>
+                @if ($adaTren)
+                    <div class="px-5 pb-5 pt-4 md:px-6">
+                        <p class="text-sm text-gray-700">
+                            Rata-rata <span class="tabular font-bold text-gray-900">{{ $rataRata }}%</span> hadir dalam {{ $tren->count() }} hari presensi.
+                            @if ($hariTerendah)
+                                Paling rendah pada hari <span class="font-bold text-gray-900">{{ $hariTerendah }}</span> (<span class="tabular">{{ $persenPerHari[$hariTerendah] }}%</span>).
+                            @endif
+                        </p>
+                        <div class="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3">
+                            <div class="tabular relative h-44 text-right text-xs text-gray-600" aria-hidden="true">
+                                <span class="absolute right-0 top-0 -translate-y-1/2">100%</span>
+                                <span class="absolute right-0 top-1/2 -translate-y-1/2">{{ $yMid }}%</span>
+                                <span class="absolute right-0 top-full -translate-y-1/2">{{ $yMin }}%</span>
+                            </div>
+                            <div class="relative h-44">
+                                <svg class="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                    @foreach ([0, 50, 100] as $g)
+                                        <line x1="0" x2="100" y1="{{ $g }}" y2="{{ $g }}" class="text-gray-200" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" />
+                                    @endforeach
+                                    <polyline fill="none" class="text-blue-800" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"
+                                        points="{{ $titik->map(fn ($t) => $t['x'].','.(100 - $t['y']))->implode(' ') }}" />
+                                </svg>
+                                @foreach ($titik as $t)
+                                    @if (! $loop->last)
+                                        <span class="absolute h-2 w-2 -translate-x-1/2 translate-y-1/2 rounded-full bg-blue-800" style="left: {{ $t['x'] }}%; bottom: {{ $t['y'] }}%"
+                                            title="{{ $t['tanggal']->translatedFormat('j M') }}: {{ $t['persen'] }}%"></span>
+                                    @endif
+                                @endforeach
+                                <span class="absolute h-3.5 w-3.5 -translate-x-1/2 translate-y-1/2 rounded-full bg-amber-400 ring-2 ring-blue-800" style="left: {{ $terakhir['x'] }}%; bottom: {{ $terakhir['y'] }}%"
+                                    title="{{ $terakhir['tanggal']->translatedFormat('j M') }}: {{ $terakhir['persen'] }}%"></span>
+                            </div>
+                            <span></span>
+                            <div class="mt-2 flex items-start justify-between text-xs text-gray-600" aria-hidden="true">
+                                <span>{{ $titik->first()['tanggal']->translatedFormat('j M') }}</span>
+                                <span class="text-right font-semibold text-gray-900">{{ $terakhir['tanggal']->translatedFormat('j M') }}: <span class="tabular">{{ $terakhir['persen'] }}%</span></span>
+                            </div>
+                        </div>
+                        <table class="sr-only">
+                            <caption>Persen siswa hadir per hari presensi</caption>
+                            <thead><tr><th scope="col">Tanggal</th><th scope="col">Hadir</th></tr></thead>
+                            <tbody>
+                                @foreach ($titik as $t)
+                                    <tr><td>{{ $t['tanggal']->translatedFormat('j F Y') }}</td><td>{{ $t['persen'] }}%</td></tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <p class="px-6 py-10 text-sm text-gray-600">Grafik muncul setelah ada presensi kelas di minimal dua hari. Isi presensi dari tombol "Isi presensi" di atas.</p>
+                @endif
             </section>
 
             <section class="rounded-xl border border-gray-200 bg-white" aria-labelledby="judul-sepekan">
