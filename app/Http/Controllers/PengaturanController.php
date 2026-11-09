@@ -41,16 +41,29 @@ class PengaturanController extends Controller
     public function updateFoto(Request $request)
     {
         $request->validate(['foto' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120']);
-        Auth::user()->simpanFoto($request->file('foto'));
+        $aktif = Auth::user()->unggahFoto($request->file('foto'));
 
-        return redirect()->route('pengaturan.index')->with('success', 'Foto profil diperbarui. Foto yang sama dipakai di aplikasi dan Kartu Guru.');
+        return redirect()->route('pengaturan.index')->with('success', $aktif
+            ? 'Foto profil diperbarui. Foto yang sama dipakai di aplikasi dan Kartu Guru.'
+            : 'Foto terkirim dan menunggu persetujuan kepala sekolah.');
     }
 
+    /** Admin menghapus fotonya sendiri; guru hanya bisa membatalkan pengajuan yang menunggu. */
     public function hapusFoto()
     {
-        Auth::user()->hapusFoto();
+        $user = Auth::user();
+        if ($user->isAdmin()) {
+            $user->hapusFoto();
 
-        return redirect()->route('pengaturan.index')->with('success', 'Foto profil dihapus.');
+            return redirect()->route('pengaturan.index')->with('success', 'Foto profil dihapus.');
+        }
+
+        if (! $user->foto_pengajuan) {
+            return redirect()->route('pengaturan.index')->withErrors(['foto' => 'Foto profil hanya bisa diganti lewat pengajuan foto baru.']);
+        }
+        $user->batalkanFotoPengajuan();
+
+        return redirect()->route('pengaturan.index')->with('success', 'Pengajuan foto dibatalkan.');
     }
 
     public function updatePassword(Request $request)

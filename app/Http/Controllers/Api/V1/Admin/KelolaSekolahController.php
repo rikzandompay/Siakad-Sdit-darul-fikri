@@ -8,6 +8,7 @@ use App\Models\Kelas;
 use App\Models\PengaturanSekolah;
 use App\Models\PresensiGuru;
 use App\Models\User;
+use App\Models\WajahGuru;
 use App\Models\Wali;
 use App\Support\Sekolah;
 use Carbon\Carbon;
@@ -170,9 +171,48 @@ class KelolaSekolahController extends Controller
     public function resetWajah(User $guru): JsonResponse
     {
         $this->pastikanGuru($guru);
-        $guru->wajah()->delete();
+        $guru->hapusWajah();
 
         return response()->json(['message' => 'Data wajah dihapus. Guru perlu mendaftarkan wajah lagi di aplikasi.']);
+    }
+
+    /** Foto profil yang menunggu persetujuan dan pasangan guru yang wajahnya sangat mirip. */
+    public function fotoPengajuan(): JsonResponse
+    {
+        return response()->json([
+            'data' => User::whereNotNull('foto_pengajuan')->orderBy('foto_pengajuan_pada')->get()->map(fn (User $g) => [
+                'id' => $g->id,
+                'nama' => $g->nama_lengkap ?? $g->name,
+                'inisial' => Sekolah::inisial($g->nama_lengkap ?? $g->name),
+                'foto_url' => $g->fotoUrl(),
+                'foto_pengajuan_url' => $g->fotoPengajuanUrl(),
+                'diajukan' => $g->foto_pengajuan_pada?->toIso8601String(),
+            ])->values(),
+            'wajah_mirip' => WajahGuru::with(['guru', 'miripGuru'])->whereNotNull('mirip_guru_id')->get()
+                ->filter(fn (WajahGuru $w) => $w->guru_id < $w->mirip_guru_id)
+                ->map(fn (WajahGuru $w) => [
+                    'guru' => $w->guru?->nama_lengkap ?? $w->guru?->name,
+                    'mirip_dengan' => $w->miripGuru?->nama_lengkap ?? $w->miripGuru?->name,
+                    'skor' => $w->mirip_skor,
+                ])->values(),
+        ]);
+    }
+
+    public function setujuiFoto(User $guru): JsonResponse
+    {
+        abort_unless($guru->foto_pengajuan, 409, 'Tidak ada foto yang menunggu persetujuan.');
+        $guru->setujuiFotoPengajuan();
+
+        return response()->json(['message' => 'Foto disetujui. Guru perlu mendaftarkan wajah lagi di aplikasi.']);
+    }
+
+    public function tolakFoto(Request $request, User $guru): JsonResponse
+    {
+        abort_unless($guru->foto_pengajuan, 409, 'Tidak ada foto yang menunggu persetujuan.');
+        $data = $request->validate(['catatan' => 'nullable|string|max:200']);
+        $guru->tolakFotoPengajuan($data['catatan'] ?? null);
+
+        return response()->json(['message' => 'Foto ditolak.']);
     }
 
     // ── Akun wali ────────────────────────────────────────────────────

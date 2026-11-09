@@ -3,12 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/session.dart';
 import '../../../core/theme.dart';
 import '../../../widgets/common.dart';
 import '../../face/face_capture.dart';
 import '../../face/face_service.dart';
 
-/// Pendaftaran wajah sekali sebelum absen pertama. Mengirim template (embedding), bukan foto.
+/// Pendaftaran wajah sekali sebelum absen pertama. Wajah di kamera harus cocok dengan foto profil
+/// yang sudah disetujui admin. Mengirim template (embedding), bukan foto.
 class DaftarWajahScreen extends StatefulWidget {
   const DaftarWajahScreen({super.key});
 
@@ -20,7 +22,27 @@ class _DaftarWajahScreenState extends State<DaftarWajahScreen> {
   bool _kamera = false;
   String? _error;
 
+  @override
+  void initState() {
+    super.initState();
+    _segarkan();
+  }
+
+  /// Status foto bisa berubah di luar layar ini (admin baru saja menyetujui).
+  Future<void> _segarkan() async {
+    try {
+      await context.read<Session>().refreshMe();
+    } catch (_) {}
+  }
+
+  Future<void> _bukaProfil() async {
+    await context.push('/guru/profil');
+    if (mounted) await _segarkan();
+  }
+
   Future<void> _simpan(List<String> foto) async {
+    final api = context.read<ApiClient>();
+    final fotoUrl = context.read<Session>().akun['foto_url'] as String?;
     try {
       final svc = FaceService.instance;
       final embeddings = <List<double>>[];
@@ -28,8 +50,9 @@ class _DaftarWajahScreenState extends State<DaftarWajahScreen> {
         embeddings.add(await svc.embeddingDariFoto(p));
       }
       final template = FaceService.rataRata(embeddings);
-      if (!mounted) return;
-      await context.read<ApiClient>().post('/guru/wajah', {'template': template});
+      if (fotoUrl == null) throw ApiException('Foto profil belum disetujui kepala sekolah.');
+      final fotoEmbedding = await svc.embeddingDariFotoProfil(await api.bytes(fotoUrl));
+      await api.post('/guru/wajah', {'template': template, 'foto_embedding': fotoEmbedding});
       if (!mounted) return;
       showMessage(context, 'Wajah berhasil didaftarkan.');
       context.pop(true);
@@ -48,6 +71,21 @@ class _DaftarWajahScreenState extends State<DaftarWajahScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final akun = context.watch<Session>().akun;
+    if (akun['foto_url'] == null) {
+      final menunggu = akun['foto_menunggu'] == true;
+      return AppPage(
+        title: 'Daftarkan Wajah',
+        subtitle: 'Foto profil diperlukan',
+        bottom: PrimaryButton(label: menunggu ? 'Lihat Profil' : 'Unggah Foto Profil', onPressed: _bukaProfil),
+        child: EmptyPanel(
+          icon: menunggu ? Icons.hourglass_top_rounded : Icons.account_circle_outlined,
+          message: menunggu
+              ? 'Foto profil Anda menunggu persetujuan kepala sekolah. Setelah disetujui, wajah bisa didaftarkan.'
+              : 'Wajah dicocokkan dengan foto profil Anda. Unggah foto yang jelas menampilkan wajah, lalu tunggu persetujuan kepala sekolah.',
+        ),
+      );
+    }
     return AppPage(
       title: 'Daftarkan Wajah',
       subtitle: 'Diperlukan sekali sebelum presensi',
@@ -88,7 +126,7 @@ class _DaftarWajahScreenState extends State<DaftarWajahScreen> {
             ]),
           ),
           const SizedBox(height: 10),
-          Text('Foto hanya diproses di HP ini. Yang disimpan di server adalah kode pengenal wajah terenkripsi, bukan foto.', style: AppText.caption),
+          Text('Wajah di kamera dicocokkan dengan foto profil Anda. Foto kamera hanya diproses di HP ini; yang disimpan di server adalah kode pengenal wajah terenkripsi.', style: AppText.caption),
         ],
       ]),
     );

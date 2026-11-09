@@ -319,12 +319,15 @@ class GuruApiTest extends TestCase
 
     public function test_daftar_wajah_sekali_dan_template_terenkripsi(): void
     {
+        $this->guru->update(['foto_profil' => 'foto_guru/a.jpg']);
         $h = $this->tokenGuru();
         $template = array_map(fn ($i) => round(sin($i) / 3, 4), range(1, 192));
+        $foto = $this->wajahDari(0.3);
 
-        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => [1, 2]])->assertJsonValidationErrors('template');
-        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => $template])->assertCreated();
-        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => $template])->assertStatus(409)->assertJsonPath('kode', 'sudah_terdaftar');
+        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => [1, 2], 'foto_embedding' => $foto])->assertJsonValidationErrors('template');
+        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => $template])->assertJsonValidationErrors('foto_embedding');
+        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => $template, 'foto_embedding' => $foto])->assertCreated();
+        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => $template, 'foto_embedding' => $foto])->assertStatus(409)->assertJsonPath('kode', 'sudah_terdaftar');
 
         $this->assertStringNotContainsString((string) $template[0], \DB::table('wajah_guru')->value('template'));
         // Template tidak pernah dikirim balik ke HP.
@@ -332,6 +335,85 @@ class GuruApiTest extends TestCase
         $this->assertArrayNotHasKey('template', $res->json());
         $this->withHeaders($this->tokenGuru($this->guruLain))->getJson('/api/v1/guru/wajah')->assertJsonPath('terdaftar', false);
         $this->assertSame(1, WajahGuru::count());
+    }
+
+    public function test_daftar_wajah_harus_cocok_dengan_foto_profil_yang_disetujui(): void
+    {
+        $h = $this->tokenGuru();
+        $template = $this->wajahDari(0);
+        $body = ['template' => $template, 'foto_embedding' => $this->wajahDari(0.3)];
+
+        // Belum ada foto profil.
+        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', $body)->assertStatus(422)->assertJsonPath('kode', 'foto_belum_disetujui');
+
+        // Foto masih menunggu persetujuan: belum bisa jadi acuan.
+        $this->guru->update(['foto_pengajuan' => 'foto_guru_pengajuan/a.jpg']);
+        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', $body)->assertStatus(422)->assertJsonPath('kode', 'foto_belum_disetujui');
+
+        $this->guru->update(['foto_profil' => 'foto_guru/a.jpg', 'foto_pengajuan' => null]);
+        $h = $this->tokenGuru();
+
+        // Wajah orang lain tidak cocok dengan foto profil.
+        $orangLain = array_map(fn ($i) => cos($i * 3), range(1, 192));
+        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => $orangLain, 'foto_embedding' => $template])
+            ->assertStatus(422)->assertJsonPath('kode', 'wajah_tidak_cocok_foto');
+
+        // Vektor foto hasil salin dari kamera ditolak.
+        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => $template, 'foto_embedding' => $template])
+            ->assertStatus(422)->assertJsonPath('kode', 'wajah_tidak_cocok_foto');
+        $this->assertSame(0, WajahGuru::count());
+
+        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', $body)->assertCreated();
+        $this->assertGreaterThanOrEqual(60, WajahGuru::first()->skor_foto);
+    }
+
+    public function test_wajah_mirip_guru_lain_ditandai_saat_daftar(): void
+    {
+        $this->guru->update(['foto_profil' => 'foto_guru/a.jpg']);
+        $this->daftarkanWajah($this->guruLain);
+
+        $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/wajah', ['template' => $this->wajahDari(0.1), 'foto_embedding' => $this->wajahDari(0.3)])->assertCreated();
+
+        $this->assertSame($this->guruLain->id, WajahGuru::where('guru_id', $this->guru->id)->first()->mirip_guru_id);
+        $this->assertSame($this->guru->id, WajahGuru::where('guru_id', $this->guruLain->id)->first()->mirip_guru_id);
+
+        // Reset data wajah membersihkan tanda pada pasangannya.
+        $this->guru->hapusWajah();
+        $this->assertNull(WajahGuru::where('guru_id', $this->guruLain->id)->first()->mirip_guru_id);
+    }
+
+    public function test_wajah_berbeda_tidak_ditandai_mirip(): void
+    {
+        $this->guru->update(['foto_profil' => 'foto_guru/a.jpg']);
+        WajahGuru::create(['guru_id' => $this->guruLain->id, 'template' => json_encode(array_map(fn ($i) => cos($i * 3), range(1, 192))), 'didaftarkan_pada' => now()]);
+
+        $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/wajah', ['template' => $this->wajahDari(0), 'foto_embedding' => $this->wajahDari(0.3)])->assertCreated();
+
+        $this->assertSame(0, WajahGuru::whereNotNull('mirip_guru_id')->count());
+    }
+
+    public function test_absen_ditolak_bila_wajah_lebih_mirip_guru_lain(): void
+    {
+        // Template sendiri lolos ambang, tetapi wajah di kamera lebih dekat ke guru lain.
+        WajahGuru::create(['guru_id' => $this->guru->id, 'template' => json_encode($this->wajahDari(0.9)), 'didaftarkan_pada' => now()]);
+        $this->daftarkanWajah($this->guruLain);
+
+        $res = $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/absen/masuk', $this->lokasi())->assertStatus(422)->assertJsonPath('kode', 'wajah_mirip_guru_lain');
+
+        // Nama guru lain tidak dibocorkan ke yang mencoba absen.
+        $this->assertStringNotContainsString('Guru Lain', $res->getContent());
+        $this->assertSame(0, PresensiGuru::count());
+        $this->assertSame($this->guruLain->id, WajahGuru::where('guru_id', $this->guru->id)->first()->mirip_guru_id);
+    }
+
+    public function test_absen_tetap_berhasil_bila_wajah_paling_mirip_diri_sendiri_dan_pasangan_ditandai(): void
+    {
+        $this->daftarkanWajah();
+        WajahGuru::create(['guru_id' => $this->guruLain->id, 'template' => json_encode($this->wajahDari(0.9)), 'didaftarkan_pada' => now()]);
+
+        $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/absen/masuk', $this->lokasi())->assertOk();
+
+        $this->assertSame($this->guruLain->id, WajahGuru::where('guru_id', $this->guru->id)->first()->mirip_guru_id);
     }
 
     public function test_ubah_sandi_guru(): void
@@ -342,24 +424,86 @@ class GuruApiTest extends TestCase
         $this->postJson('/api/v1/auth/login', ['peran' => 'guru', 'username' => 'ahmad', 'password' => 'BaruSekali1'])->assertOk();
     }
 
-    public function test_upload_foto_guru(): void
+    public function test_foto_guru_menunggu_persetujuan_admin(): void
     {
         \Illuminate\Support\Facades\Storage::fake('public');
         \Illuminate\Support\Facades\Storage::fake('local');
+        \Illuminate\Support\Facades\Notification::fake();
+        $admin = User::create(['name' => 'kepsek', 'nama_lengkap' => 'Kepala Sekolah', 'username' => 'kepsek', 'email' => 'k@s.id', 'password' => 'Rahasia123', 'status' => 'Aktif']);
+        $this->daftarkanWajah();
         $h = $this->tokenGuru();
-        $file = \Illuminate\Http\UploadedFile::fake()->image('profil.jpg', 200, 200);
 
-        $res = $this->withHeaders($h)->post('/api/v1/guru/profil/foto', ['foto' => $file]);
-        $res->assertOk()->assertJsonStructure(['message', 'foto_url']);
-        $this->assertNotNull($this->guru->fresh()->foto_profil);
-        $path = $this->guru->fresh()->foto_profil;
-        \Illuminate\Support\Facades\Storage::disk('local')->assertExists($path);
-        \Illuminate\Support\Facades\Storage::disk('public')->assertMissing($path);
+        $res = $this->withHeaders($h)->post('/api/v1/guru/profil/foto', ['foto' => \Illuminate\Http\UploadedFile::fake()->image('profil.jpg', 200, 200)]);
+        $res->assertOk()->assertJsonPath('menunggu', true)->assertJsonPath('foto_url', null);
 
-        // Foto hanya bisa dibuka dengan token; tanpa login ditolak.
-        $url = parse_url($res->json('foto_url'), PHP_URL_PATH);
-        $this->withHeaders($this->tokenGuru())->get($url)->assertOk();
+        // Belum aktif: foto profil dan data wajah tidak berubah.
+        $guru = $this->guru->fresh();
+        $this->assertNull($guru->foto_profil);
+        $pengajuan = $guru->foto_pengajuan;
+        \Illuminate\Support\Facades\Storage::disk('local')->assertExists($pengajuan);
+        $this->assertSame(1, WajahGuru::where('guru_id', $guru->id)->count());
+        \Illuminate\Support\Facades\Notification::assertSentTo($admin, \App\Notifications\FotoProfilDiajukan::class);
+        $this->withHeaders($h)->getJson('/api/v1/auth/me')->assertJsonPath('akun.foto_menunggu', true);
+
+        // Foto pengajuan hanya untuk pemilik dan admin.
+        $url = parse_url($guru->fotoPengajuanUrl(), PHP_URL_PATH);
+        $this->withHeaders($h)->get($url)->assertOk();
+        $this->withHeaders($this->tokenGuru($this->guruLain))->get($url)->assertForbidden();
+
+        // Hanya admin yang boleh menyetujui.
+        $this->withHeaders($this->tokenGuru($this->guruLain))->postJson("/api/v1/admin/foto-pengajuan/{$guru->id}/setujui")->assertForbidden();
+
+        $ha = $this->tokenGuru($admin);
+        $this->withHeaders($ha)->get($url)->assertOk();
+        $this->withHeaders($ha)->getJson('/api/v1/admin/foto-pengajuan')->assertOk()
+            ->assertJsonPath('data.0.id', $guru->id)->assertJsonPath('data.0.foto_url', null);
+        $this->withHeaders($ha)->postJson("/api/v1/admin/foto-pengajuan/{$guru->id}/setujui")->assertOk();
+
+        // Foto aktif, acuan berubah sehingga wajah harus didaftarkan ulang.
+        $guru->refresh();
+        $this->assertSame($pengajuan, $guru->foto_profil);
+        $this->assertNull($guru->foto_pengajuan);
+        $this->assertSame(0, WajahGuru::where('guru_id', $guru->id)->count());
+        \Illuminate\Support\Facades\Notification::assertSentTo($guru, \App\Notifications\FotoProfilDitinjau::class, fn ($n) => $n->disetujui);
+        $this->withHeaders($ha)->postJson("/api/v1/admin/foto-pengajuan/{$guru->id}/setujui")->assertStatus(409);
+
+        // Foto aktif bisa dibuka dengan token, tanpa login ditolak.
+        $aktif = parse_url($guru->fotoUrl(), PHP_URL_PATH);
+        $this->withHeaders($this->tokenGuru())->get($aktif)->assertOk();
         $this->app['auth']->forgetGuards();
-        $this->flushHeaders()->get($url, ['Accept' => 'application/json'])->assertUnauthorized();
+        $this->flushHeaders()->get($aktif, ['Accept' => 'application/json'])->assertUnauthorized();
+    }
+
+    public function test_foto_ditolak_admin_dibuang_dan_foto_lama_tetap(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        \Illuminate\Support\Facades\Notification::fake();
+        $admin = User::create(['name' => 'kepsek', 'nama_lengkap' => 'Kepala Sekolah', 'username' => 'kepsek', 'email' => 'k@s.id', 'password' => 'Rahasia123', 'status' => 'Aktif']);
+        $this->guru->update(['foto_profil' => 'foto_guru/lama.jpg']);
+        $this->daftarkanWajah();
+        $this->withHeaders($this->tokenGuru())->post('/api/v1/guru/profil/foto', ['foto' => \Illuminate\Http\UploadedFile::fake()->image('b.jpg', 200, 200)])->assertOk();
+        $pengajuan = $this->guru->fresh()->foto_pengajuan;
+
+        $this->withHeaders($this->tokenGuru($admin))->postJson("/api/v1/admin/foto-pengajuan/{$this->guru->id}/tolak", ['catatan' => 'Bukan foto wajah'])->assertOk();
+
+        $guru = $this->guru->fresh();
+        $this->assertSame('foto_guru/lama.jpg', $guru->foto_profil);
+        $this->assertNull($guru->foto_pengajuan);
+        \Illuminate\Support\Facades\Storage::disk('local')->assertMissing($pengajuan);
+        $this->assertSame(1, WajahGuru::where('guru_id', $guru->id)->count());
+        \Illuminate\Support\Facades\Notification::assertSentTo($guru, \App\Notifications\FotoProfilDitinjau::class, fn ($n) => ! $n->disetujui && $n->catatan === 'Bukan foto wajah');
+    }
+
+    public function test_foto_admin_langsung_aktif_dan_mewajibkan_daftar_wajah_ulang(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        $admin = User::create(['name' => 'kepsek', 'nama_lengkap' => 'Kepala Sekolah', 'username' => 'kepsek', 'email' => 'k@s.id', 'password' => 'Rahasia123', 'status' => 'Aktif']);
+        $this->daftarkanWajah($admin);
+
+        $this->withHeaders($this->tokenGuru($admin))->post('/api/v1/guru/profil/foto', ['foto' => \Illuminate\Http\UploadedFile::fake()->image('k.jpg', 200, 200)])
+            ->assertOk()->assertJsonPath('menunggu', false);
+
+        $this->assertNotNull($admin->fresh()->foto_profil);
+        $this->assertSame(0, WajahGuru::where('guru_id', $admin->id)->count());
     }
 }

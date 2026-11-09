@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 
 class FaceException implements Exception {
@@ -16,7 +17,7 @@ class FaceException implements Exception {
 /// Pengenalan wajah di perangkat (Android & iOS):
 /// - ML Kit: menemukan wajah + mata (untuk liveness kedip).
 /// - MobileFaceNet (TFLite, assets/models/mobilefacenet.tflite): mengubah wajah jadi embedding.
-/// Foto wajah tidak pernah dikirim ke server; yang tersimpan hanya embedding (template).
+/// Foto kamera tidak pernah dikirim ke server; yang tersimpan hanya embedding (template).
 class FaceService {
   FaceService._();
   static final instance = FaceService._();
@@ -70,6 +71,21 @@ class FaceService {
     final output = List.generate(1, (_) => List.filled(outShape.last, 0.0));
     interpreter.run(input.reshape([1, size, size, 3]), output);
     return _normalisasi(output.first);
+  }
+
+  /// Embedding dari foto profil (acuan identitas saat daftar wajah). Pesannya menyebut foto profil,
+  /// bukan kamera, karena yang perlu diperbaiki guru adalah fotonya.
+  Future<List<double>> embeddingDariFotoProfil(List<int> bytes) async {
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/foto_acuan_${DateTime.now().microsecondsSinceEpoch}');
+    try {
+      await file.writeAsBytes(bytes, flush: true);
+      return await embeddingDariFoto(file.path);
+    } on FaceException {
+      throw FaceException('Wajah pada foto profil tidak terbaca. Ajukan foto lain yang jelas, menghadap depan, dan hanya berisi satu wajah.');
+    } finally {
+      if (await file.exists()) await file.delete();
+    }
   }
 
   /// Rata-rata beberapa embedding (saat pendaftaran) agar lebih stabil.

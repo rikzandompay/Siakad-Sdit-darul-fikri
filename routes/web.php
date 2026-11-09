@@ -28,6 +28,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // Foto guru/siswa: hanya untuk akun yang login (sesi web atau token aplikasi MyDarfik).
 Route::middleware(['auth:web,sanctum', 'throttle:240,1'])->group(function () {
     Route::get('/foto/guru/{guru}', [\App\Http\Controllers\FotoController::class, 'guru'])->name('foto.guru');
+    Route::get('/foto/guru/{guru}/pengajuan', [\App\Http\Controllers\FotoController::class, 'guruPengajuan'])->name('foto.guru.pengajuan');
     Route::get('/foto/siswa/{siswa}', [\App\Http\Controllers\FotoController::class, 'siswa'])->name('foto.siswa');
 });
 
@@ -155,6 +156,8 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('is_admin')->group(function () {
         Route::post('/presensi-guru/manual', [RekapPresensiGuruController::class, 'simpanManual'])->middleware('throttle:30,1')->name('presensi-guru.manual');
+        Route::post('/presensi-guru/foto/{guru}/setujui', [RekapPresensiGuruController::class, 'setujuiFoto'])->middleware('throttle:30,1')->name('presensi-guru.foto.setujui');
+        Route::post('/presensi-guru/foto/{guru}/tolak', [RekapPresensiGuruController::class, 'tolakFoto'])->middleware('throttle:30,1')->name('presensi-guru.foto.tolak');
         Route::delete('/presensi-guru/wajah/{guru}', [RekapPresensiGuruController::class, 'resetWajah'])->middleware('throttle:30,1')->name('presensi-guru.wajah.reset');
 
         // Pengaturan sekolah: lokasi, radius, jam masuk, hari libur

@@ -132,6 +132,53 @@
     </div>
 </div>
 
+@if(($fotoPengajuan ?? collect())->isNotEmpty() || ($wajahMirip ?? collect())->isNotEmpty())
+    <div class="bg-white rounded-xl border border-amber-200 shadow-sm p-4 md:p-6 space-y-4">
+        @if($fotoPengajuan->isNotEmpty())
+            <div>
+                <h3 class="font-bold text-gray-900">Pengajuan foto profil</h3>
+                <p class="text-xs text-gray-500 mt-0.5">Foto ini menjadi acuan pendaftaran wajah. Setujui hanya bila benar wajah guru yang bersangkutan. Setelah disetujui, guru harus mendaftarkan wajah lagi.</p>
+            </div>
+            @foreach($fotoPengajuan as $g)
+                <div class="flex flex-wrap items-center gap-4 border-t border-gray-100 pt-3">
+                    <div class="flex items-center gap-2">
+                        @if($g->fotoUrl())
+                            <img src="{{ $g->fotoUrl() }}" alt="Foto lama {{ $g->nama_lengkap }}" class="w-16 h-16 rounded-lg object-cover border border-gray-200">
+                            <span class="material-symbols-outlined text-gray-400">arrow_forward</span>
+                        @endif
+                        <img src="{{ $g->fotoPengajuanUrl() }}" alt="Foto baru {{ $g->nama_lengkap }}" class="w-16 h-16 rounded-lg object-cover border border-amber-300">
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-bold text-gray-900">{{ $g->nama_lengkap ?? $g->name }}</p>
+                        <p class="text-xs text-gray-500">Diajukan {{ $g->foto_pengajuan_pada?->timezone(config('presensi_guru.timezone'))->translatedFormat('d M Y, H:i') }}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <form method="POST" action="{{ route('presensi-guru.foto.setujui', $g) }}">
+                            @csrf
+                            <button type="submit" class="px-4 h-10 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">Setujui</button>
+                        </form>
+                        <form method="POST" action="{{ route('presensi-guru.foto.tolak', $g) }}">
+                            @csrf
+                            <button type="submit" class="px-4 h-10 rounded-lg bg-white border border-red-200 text-red-600 text-sm font-bold hover:bg-red-50">Tolak</button>
+                        </form>
+                    </div>
+                </div>
+            @endforeach
+        @endif
+        @if($wajahMirip->isNotEmpty())
+            <div>
+                <h3 class="font-bold text-gray-900">Wajah sangat mirip</h3>
+                <p class="text-xs text-gray-500 mt-0.5">Sistem tidak bisa membedakan wajah secara pasti untuk pasangan ini (misalnya kembar). Periksa absen mereka secara berkala.</p>
+                <ul class="mt-2 space-y-1">
+                    @foreach($wajahMirip as $w)
+                        <li class="text-sm text-gray-800">{{ $w->guru?->nama_lengkap ?? $w->guru?->name }} dan {{ $w->miripGuru?->nama_lengkap ?? $w->miripGuru?->name }} ({{ round($w->mirip_skor) }}%)</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+    </div>
+@endif
+
 @if($selectedGuru)
     @php $wajah = $selectedGuru->wajah; @endphp
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">

@@ -14,6 +14,10 @@ return [
     // Kecocokan wajah minimal (persen) yang diterima server dari aplikasi.
     'min_skor_wajah' => (float) env('GURU_MIN_SKOR_WAJAH', 85),
 
+    // Kecocokan minimal (persen) wajah di kamera dengan foto profil saat daftar wajah.
+    // Lebih rendah dari absen harian karena foto profil berbeda cahaya, sudut, dan waktu.
+    'min_skor_foto' => (float) env('GURU_MIN_SKOR_FOTO', 60),
+
     // Akurasi GPS terburuk (meter) yang masih diterima saat absen.
     'maks_akurasi_meter' => (int) env('GURU_MAKS_AKURASI_METER', 50),
 

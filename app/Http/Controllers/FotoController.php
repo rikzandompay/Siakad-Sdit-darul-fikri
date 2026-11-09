@@ -20,6 +20,15 @@ class FotoController extends Controller
         return $this->kirim($guru->foto_profil);
     }
 
+    /** Foto yang menunggu persetujuan: hanya admin dan guru pemiliknya. */
+    public function guruPengajuan(Request $request, User $guru)
+    {
+        $akun = $request->user();
+        abort_unless($akun instanceof User && ($akun->isAdmin() || $akun->is($guru)), 403);
+
+        return $this->kirim($guru->foto_pengajuan);
+    }
+
     public function siswa(Request $request, Siswa $siswa)
     {
         $akun = $request->user();

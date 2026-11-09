@@ -111,11 +111,12 @@ class AuthController extends Controller
             'foto' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
-        $user->simpanFoto($request->file('foto'));
+        $aktif = $user->unggahFoto($request->file('foto'));
 
         return response()->json([
-            'message' => 'Foto profil guru berhasil diperbarui.',
+            'message' => $aktif ? 'Foto profil berhasil diperbarui. Daftarkan wajah Anda lagi sebelum absen.' : 'Foto terkirim dan menunggu persetujuan kepala sekolah.',
             'foto_url' => $user->fotoUrl(),
+            'menunggu' => ! $aktif,
         ]);
     }
 
@@ -164,6 +165,7 @@ class AuthController extends Controller
             'no_hp' => $akun->no_hp,
             'jenis_kelamin' => $akun->jenis_kelamin,
             'foto_url' => $akun->fotoUrl(),
+            'foto_menunggu' => (bool) $akun->foto_pengajuan,
             'inisial' => Sekolah::inisial($akun->nama_lengkap ?? $akun->name),
             'jabatan' => $akun->isAdmin() ? 'Kepala Sekolah' : 'Guru',
             'is_admin' => $akun->isAdmin(),

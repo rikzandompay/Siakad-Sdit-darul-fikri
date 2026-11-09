@@ -37,6 +37,8 @@ class AbsenController extends Controller
             'min_skor_wajah' => (float) config('presensi_guru.min_skor_wajah'),
             'lokasi' => ($lok = PengaturanSekolah::lokasi()) ? $lok + ['radius_meter' => PengaturanSekolah::radiusMeter(), 'nama' => Sekolah::NAMA] : null,
             'wajah_terdaftar' => WajahGuru::where('guru_id', $guru->id)->exists(),
+            'foto_acuan' => (bool) $guru->foto_profil,
+            'foto_menunggu' => (bool) $guru->foto_pengajuan,
             'hari_ini' => self::ringkasHariIni($absen),
         ]);
     }
@@ -149,24 +151,54 @@ class AbsenController extends Controller
         ]);
     }
 
+    /**
+     * Pendaftaran wajah: wajah di kamera harus cocok dengan foto profil yang sudah disetujui admin,
+     * supaya seseorang tidak bisa mendaftarkan wajah orang lain di akunnya.
+     */
     public function daftarWajah(Request $request): JsonResponse
     {
+        $guru = $request->user();
         $data = $request->validate([
             'template' => 'required|array|min:64|max:1024',
             'template.*' => 'numeric|between:-100,100',
+            'foto_embedding' => 'required|array|min:64|max:1024',
+            'foto_embedding.*' => 'numeric|between:-100,100',
         ]);
 
-        if (WajahGuru::where('guru_id', $request->user()->id)->exists()) {
+        if (WajahGuru::where('guru_id', $guru->id)->exists()) {
             return $this->gagal('sudah_terdaftar', 'Wajah sudah terdaftar. Minta admin mereset data wajah jika perlu mendaftar ulang.', 409);
+        }
+        if (! $guru->foto_profil) {
+            return $this->gagal('foto_belum_disetujui', $guru->foto_pengajuan
+                ? 'Foto profil Anda masih menunggu persetujuan kepala sekolah.'
+                : 'Unggah foto profil yang jelas menampilkan wajah Anda, lalu tunggu persetujuan kepala sekolah.');
+        }
+
+        $template = array_map('floatval', $data['template']);
+        $fotoEmbedding = array_map('floatval', $data['foto_embedding']);
+        $skorFoto = WajahGuru::skor($template, $fotoEmbedding);
+        $min = (float) config('presensi_guru.min_skor_foto');
+        if (WajahGuru::identik($template, $fotoEmbedding)) {
+            return $this->gagal('wajah_tidak_cocok_foto', 'Data wajah tidak valid. Ulangi dengan kamera.', 422, ['skor_foto' => 0.0, 'min_skor_foto' => $min]);
+        }
+        if ($skorFoto < $min) {
+            return $this->gagal('wajah_tidak_cocok_foto', "Wajah di kamera tidak cocok dengan foto profil ({$skorFoto}%, minimal {$min}%). Pastikan wajah terang dan menghadap kamera.", 422, ['skor_foto' => $skorFoto, 'min_skor_foto' => $min]);
         }
 
         WajahGuru::create([
-            'guru_id' => $request->user()->id,
-            'template' => json_encode(array_map('floatval', $data['template'])),
+            'guru_id' => $guru->id,
+            'template' => json_encode($template),
             'didaftarkan_pada' => now(),
+            'skor_foto' => $skorFoto,
         ]);
 
-        return response()->json(['message' => 'Wajah berhasil didaftarkan.'], 201);
+        // Wajah yang sangat mirip guru lain (mis. kembar) tetap terdaftar, tetapi diketahui admin.
+        $mirip = WajahGuru::palingMirip($template, $guru->id);
+        if ($mirip && $mirip['skor'] >= (float) config('presensi_guru.min_skor_wajah')) {
+            WajahGuru::tandaiMirip($guru->id, $mirip['guru_id'], $mirip['skor']);
+        }
+
+        return response()->json(['message' => 'Wajah berhasil didaftarkan.', 'skor_foto' => $skorFoto], 201);
     }
 
     // ── Bantuan ────────────────────────────────────────────────────
@@ -204,26 +236,6 @@ class AbsenController extends Controller
         ];
     }
 
-    /** Cosine similarity -> persen, kalibrasi sama dengan aplikasi (cos 0.20 = 0%, cos 0.80 = 100%). */
-    public static function skorWajah(array $a, array $b): float
-    {
-        if (count($a) !== count($b)) {
-            return 0.0;
-        }
-        $dot = $na = $nb = 0.0;
-        foreach ($a as $i => $x) {
-            $dot += $x * $b[$i];
-            $na += $x * $x;
-            $nb += $b[$i] * $b[$i];
-        }
-        if ($na == 0.0 || $nb == 0.0) {
-            return 0.0;
-        }
-        $cos = $dot / sqrt($na * $nb);
-
-        return round(max(0.0, min(1.0, ($cos - 0.20) / 0.60)) * 100, 1);
-    }
-
     private function hitungLokasi(array $data): array
     {
         $sekolah = PengaturanSekolah::lokasi();
@@ -256,34 +268,29 @@ class AbsenController extends Controller
             return [$lokasi, null, $this->gagal('wajah_belum_terdaftar', 'Wajah belum terdaftar. Daftarkan wajah terlebih dahulu.')];
         }
 
-        $template = json_decode($wajah->template, true) ?: [];
+        $template = $wajah->vektor();
         $embedding = array_map('floatval', $data['embedding']);
-        $skor = self::skorWajah($embedding, $template);
+        $skor = WajahGuru::skor($embedding, $template);
         $min = (float) config('presensi_guru.min_skor_wajah');
 
         // Embedding identik dengan template = data hasil salin, bukan tangkapan kamera.
-        if ($this->identik($embedding, $template)) {
+        if (WajahGuru::identik($embedding, $template)) {
             return [$lokasi, null, $this->gagal('wajah_tidak_cocok', 'Data wajah tidak valid. Ulangi verifikasi dengan kamera.', 422, ['skor_wajah' => 0.0, 'min_skor_wajah' => $min])];
         }
         if ($skor < $min) {
             return [$lokasi, null, $this->gagal('wajah_tidak_cocok', "Kecocokan wajah {$skor}% (minimal {$min}%).", 422, ['skor_wajah' => $skor, 'min_skor_wajah' => $min])];
         }
 
-        return [$lokasi, $skor, null];
-    }
-
-    private function identik(array $a, array $b): bool
-    {
-        if (count($a) !== count($b)) {
-            return false;
-        }
-        foreach ($a as $i => $x) {
-            if (abs($x - $b[$i]) > 1e-6) {
-                return false;
+        // Bandingkan dengan semua guru: wajah yang lebih mirip guru lain ditolak walau lolos ambang.
+        $mirip = WajahGuru::palingMirip($embedding, $guruId);
+        if ($mirip && $mirip['skor'] >= $min) {
+            WajahGuru::tandaiMirip($guruId, $mirip['guru_id'], $mirip['skor']);
+            if ($mirip['cosinus'] > WajahGuru::cosinus($embedding, $template)) {
+                return [$lokasi, null, $this->gagal('wajah_mirip_guru_lain', 'Wajah ini lebih mirip dengan data guru lain. Absen ditolak; hubungi Tata Usaha untuk absen manual.')];
             }
         }
 
-        return true;
+        return [$lokasi, $skor, null];
     }
 
     private function pastikanHariSekolah(Carbon $now): void

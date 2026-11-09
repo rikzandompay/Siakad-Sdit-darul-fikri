@@ -37,6 +37,10 @@ class ProfilScreen extends StatelessWidget {
           tahunAjaran: akun['tahun_ajaran'],
           footerKanan: 'Kartu Identitas Guru',
         ),
+        if (akun['foto_menunggu'] == true) ...[
+          const SizedBox(height: 8),
+          Text('Foto baru menunggu persetujuan kepala sekolah.', style: AppText.caption.copyWith(color: const Color(0xFF7A5512))),
+        ],
         const SizedBox(height: 16),
         InfoTable([
           ('Semester', Text(akun['tahun_ajaran'] != null ? 'Semester ${akun['tahun_ajaran']}' : '-', style: AppText.label)),
@@ -128,9 +132,9 @@ class ProfilScreen extends StatelessWidget {
       if (file == null) return;
 
       messenger.showSnackBar(const SnackBar(content: Text('Mengunggah foto profil...')));
-      await api.upload('/guru/profil/foto', {}, file: file.path, fileField: 'foto');
+      final res = await api.upload('/guru/profil/foto', {}, file: file.path, fileField: 'foto');
       await session.refreshMe();
-      messenger.showSnackBar(const SnackBar(content: Text('Foto profil berhasil diunggah!')));
+      messenger.showSnackBar(SnackBar(content: Text(res['message'] as String? ?? 'Foto terkirim.')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Gagal mengunggah foto: $e'), backgroundColor: AppColors.alpa));
     }

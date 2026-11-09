@@ -37,8 +37,14 @@
                     <button type="submit" class="px-4 py-2 bg-blue-500 text-gray-900 rounded-lg text-xs font-bold">Unggah Foto</button>
                 </form>
                 @error('foto') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-                <p class="text-xs text-gray-500 mt-1">JPG, PNG, atau WebP, maksimal 5 MB. Foto ini tampil di header, Kartu Guru, dan aplikasi MyDarfik.</p>
-                @if ($user->fotoUrl())
+                <p class="text-xs text-gray-500 mt-1">JPG, PNG, atau WebP, maksimal 5 MB. Foto ini tampil di header, Kartu Guru, dan aplikasi MyDarfik, serta menjadi acuan pendaftaran wajah untuk absen.@unless($user->isAdmin()) Foto baru berlaku setelah disetujui kepala sekolah.@endunless</p>
+                @if ($user->foto_pengajuan)
+                    <p class="text-xs text-amber-700 font-semibold mt-1">Foto baru menunggu persetujuan kepala sekolah.</p>
+                    <form method="POST" action="{{ route('pengaturan.foto.destroy') }}" class="mt-1">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="text-xs text-red-600 font-semibold">Batalkan pengajuan</button>
+                    </form>
+                @elseif ($user->isAdmin() && $user->fotoUrl())
                     <form method="POST" action="{{ route('pengaturan.foto.destroy') }}" class="mt-1">
                         @csrf @method('DELETE')
                         <button type="submit" class="text-xs text-red-600 font-semibold">Hapus foto</button>

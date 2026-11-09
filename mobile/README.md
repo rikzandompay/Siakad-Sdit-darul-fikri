@@ -55,14 +55,19 @@ Tanpa langkah 2–3 aplikasi tetap jalan; notifikasi hanya tampil di riwayat lon
 - `google_mlkit_face_detection`: deteksi wajah dan kedipan (liveness).
 - `tflite_flutter` + `assets/models/mobilefacenet.tflite`: wajah → embedding 192 angka.
   Model dari [FaceRecognitionAuth](https://github.com/MCarlomagno/FaceRecognitionAuth) (lisensi BSD-3-Clause).
-- Foto tidak dikirim ke server. Server menyimpan template (embedding) terenkripsi dan
-  menerima skor + koordinat GPS, lalu memeriksa ulang jarak, skor minimal, jam, dan hari sekolah.
+- Foto kamera tidak dikirim ke server. Server menyimpan template (embedding) terenkripsi, lalu
+  mencocokkannya saat absen dan memeriksa ulang jarak, skor minimal, jam, dan hari sekolah.
+- Foto profil adalah acuan identitas: foto guru berlaku setelah disetujui kepala sekolah, dan saat
+  daftar wajah, wajah di kamera harus cocok dengan foto itu (`GURU_MIN_SKOR_FOTO`, default 60).
+  Foto yang diganti mewajibkan daftar wajah ulang.
+- Saat absen wajah dibandingkan dengan semua guru: ditolak bila lebih mirip guru lain. Pasangan yang
+  sangat mirip (mis. kembar) ditandai untuk admin. Wajah saja tidak bisa membedakan kembar identik.
 - Ambang kecocokan: `GURU_MIN_SKOR_WAJAH` di `.env` server (default 85).
   Konversi skor ada di `lib/features/face/face_service.dart` (`_cosNol`, `_cosPenuh`) —
   **perlu dikalibrasi dengan uji coba di HP guru** sebelum dipakai resmi.
 
-Keterbatasan: karena pencocokan di HP, aplikasi yang dimodifikasi bisa mengirim skor palsu.
-Server tetap memvalidasi lokasi dan menolak GPS palsu yang terdeteksi Android.
+Keterbatasan: wajah dihitung di HP, jadi aplikasi yang dimodifikasi bisa mengirim data wajah atau
+hasil kedip palsu. Server tetap memvalidasi lokasi dan menolak GPS palsu yang terdeteksi Android.
 
 ## Struktur
 

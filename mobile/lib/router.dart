@@ -21,6 +21,7 @@ import 'features/guru/sholat/scan_qr_screen.dart';
 import 'features/guru/sholat/sholat_tersimpan_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'features/admin/admin_data_screens.dart';
+import 'features/admin/foto_pengajuan_screen.dart';
 import 'features/admin/kelola_screens.dart';
 import 'features/admin/rekap_screens.dart';
 import 'features/guru/lainnya/izin_guru_screen.dart';
@@ -97,6 +98,7 @@ GoRouter buildRouter(Session session) {
       GoRoute(path: '/admin/pengaturan-sekolah', builder: (_, _) => const PengaturanSekolahScreen()),
       GoRoute(path: '/admin/pengampu', builder: (_, _) => const PengampuScreen()),
       GoRoute(path: '/admin/wali', builder: (_, _) => const AkunWaliScreen()),
+      GoRoute(path: '/admin/foto-pengajuan', builder: (_, _) => const FotoPengajuanScreen()),
       GoRoute(path: '/admin/guru/:id/absen', builder: (_, s) => KoreksiGuruScreen(guruId: int.parse(s.pathParameters['id']!), nama: s.extra as String?)),
       GoRoute(path: '/guru', builder: (_, _) => const GuruDashboardScreen(), routes: [
         GoRoute(path: 'notifikasi', builder: (_, _) => const NotifikasiScreen()),

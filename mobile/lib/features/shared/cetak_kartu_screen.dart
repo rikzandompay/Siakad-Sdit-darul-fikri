@@ -64,8 +64,10 @@ class _CetakKartuScreenState extends State<CetakKartuScreen> {
 
       setState(() => _uploading = true);
 
+      String pesan = 'Foto profil berhasil diunggah dan terpasang di kartu!';
       if (session.peran == Peran.guru) {
-        await api.upload('/guru/profil/foto', {}, file: file.path, fileField: 'foto');
+        final res = await api.upload('/guru/profil/foto', {}, file: file.path, fileField: 'foto');
+        pesan = res['message'] as String? ?? pesan;
       } else {
         final a = session.anak;
         if (a == null) return;
@@ -75,7 +77,7 @@ class _CetakKartuScreenState extends State<CetakKartuScreen> {
       await session.refreshMe();
       if (mounted) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('Foto profil berhasil diunggah dan terpasang di kartu!')),
+          SnackBar(content: Text(pesan)),
         );
       }
     } catch (e) {

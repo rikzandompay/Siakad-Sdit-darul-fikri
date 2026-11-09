@@ -45,6 +45,7 @@ class AdminController extends Controller
             ],
             'guru' => ['total' => $guru->count(), 'sudah_absen' => $sudahAbsen, 'belum' => max(0, $guru->count() - $sudahAbsen)],
             'izin_menunggu' => PengajuanIzin::where('status', PengajuanIzin::MENUNGGU)->count(),
+            'foto_menunggu' => User::whereNotNull('foto_pengajuan')->count(),
         ]);
     }
 

@@ -101,6 +101,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/presensi-guru/{guru}', [KelolaSekolahController::class, 'riwayatAbsenGuru']);
             Route::post('/presensi-guru/koreksi', [KelolaSekolahController::class, 'koreksiAbsenGuru']);
             Route::delete('/guru/{guru}/wajah', [KelolaSekolahController::class, 'resetWajah']);
+            Route::get('/foto-pengajuan', [KelolaSekolahController::class, 'fotoPengajuan']);
+            Route::post('/foto-pengajuan/{guru}/setujui', [KelolaSekolahController::class, 'setujuiFoto']);
+            Route::post('/foto-pengajuan/{guru}/tolak', [KelolaSekolahController::class, 'tolakFoto']);
             Route::get('/wali', [KelolaSekolahController::class, 'wali']);
             Route::post('/wali/sinkron', [KelolaSekolahController::class, 'sinkronWali']);
             Route::get('/ekspor/{jenis}/{format}', \App\Http\Controllers\Api\V1\Admin\EksporController::class)->middleware('throttle:30,1');

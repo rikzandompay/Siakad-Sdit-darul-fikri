@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PengaturanSekolah;
 use App\Models\PresensiGuru;
 use App\Models\User;
+use App\Models\WajahGuru;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -17,7 +18,11 @@ class RekapPresensiGuruController extends Controller
 {
     public function index(Request $request)
     {
-        return view('rekap-presensi-guru', $this->data($request));
+        return view('rekap-presensi-guru', $this->data($request) + [
+            'fotoPengajuan' => User::whereNotNull('foto_pengajuan')->orderBy('foto_pengajuan_pada')->get(),
+            'wajahMirip' => WajahGuru::with(['guru', 'miripGuru'])->whereNotNull('mirip_guru_id')->get()
+                ->filter(fn (WajahGuru $w) => $w->guru_id < $w->mirip_guru_id),
+        ]);
     }
 
     /**
@@ -54,9 +59,26 @@ class RekapPresensiGuruController extends Controller
     /** Hapus data wajah supaya guru mendaftarkan ulang dari aplikasi. */
     public function resetWajah(Request $request, User $guru)
     {
-        $guru->wajah()->delete();
+        $guru->hapusWajah();
 
         return redirect()->back()->with('success', 'Data wajah '.($guru->nama_lengkap ?? $guru->name).' dihapus. Guru perlu mendaftarkan wajah lagi di aplikasi.');
+    }
+
+    public function setujuiFoto(User $guru)
+    {
+        abort_unless($guru->foto_pengajuan, 409, 'Tidak ada foto yang menunggu persetujuan.');
+        $guru->setujuiFotoPengajuan();
+
+        return redirect()->back()->with('success', 'Foto '.($guru->nama_lengkap ?? $guru->name).' disetujui. Guru perlu mendaftarkan wajah lagi di aplikasi.');
+    }
+
+    public function tolakFoto(Request $request, User $guru)
+    {
+        abort_unless($guru->foto_pengajuan, 409, 'Tidak ada foto yang menunggu persetujuan.');
+        $data = $request->validate(['catatan' => 'nullable|string|max:200']);
+        $guru->tolakFotoPengajuan($data['catatan'] ?? null);
+
+        return redirect()->back()->with('success', 'Foto '.($guru->nama_lengkap ?? $guru->name).' ditolak.');
     }
 
     public function exportCsv(Request $request)

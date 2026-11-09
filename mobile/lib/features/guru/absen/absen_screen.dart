@@ -97,7 +97,9 @@ class _AbsenScreenState extends State<AbsenScreen> {
               icon: Icons.face_retouching_natural,
               langkah: '2 · Wajah',
               teks: 'Cocok dengan wajah terdaftar',
-              chip: d['wajah_terdaftar'] == true ? const StatusChip('Terdaftar', tone: ChipTone.ok) : const StatusChip('Belum daftar', tone: ChipTone.gold),
+              chip: d['wajah_terdaftar'] == true
+                  ? const StatusChip('Terdaftar', tone: ChipTone.ok)
+                  : StatusChip(d['foto_acuan'] == true ? 'Belum daftar' : (d['foto_menunggu'] == true ? 'Foto menunggu' : 'Perlu foto'), tone: ChipTone.gold),
             ),
           ]),
         ),
