@@ -17,7 +17,7 @@
             @foreach(\App\Models\PresensiSholat::JENIS_REKAP as $jenis)
                 @php $arsip = $jenis === \App\Models\PresensiSholat::ASHAR_ARSIP; @endphp
                 <a href="{{ route('presensi-sholat.rekap', array_merge(request()->query(), ['jenis' => $jenis])) }}"
-                   class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == $jenis ? 'bg-blue-500 text-gray-900 shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
+                   class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == $jenis ? 'bg-blue-800 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
                     <span class="material-symbols-outlined text-sm align-middle mr-1">{{ $arsip ? 'inventory_2' : ($jenis == 'Dhuha' ? 'wb_sunny' : 'mosque') }}</span>
                     Sholat {{ $jenis }}{{ $arsip ? ' (arsip)' : '' }}
                 </a>
@@ -61,7 +61,7 @@
                 </div>
                 <div>
                     <button type="submit"
-                        class="w-full bg-blue-500 text-gray-900 rounded-lg px-6 py-2.5 text-sm font-bold shadow-sm hover:bg-blue-500 transition-colors flex items-center justify-center gap-2">
+                        class="w-full bg-blue-800 text-white rounded-lg px-6 py-2.5 text-sm font-bold shadow-sm hover:bg-blue-900 transition-colors flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-sm">search</span>
                         Tampilkan Rekap
                     </button>
@@ -89,7 +89,7 @@
                                 <span class="material-symbols-outlined text-sm">picture_as_pdf</span> PDF
                             </a>
                             <a href="{{ route('presensi-sholat.rekap.export.csv', request()->all()) }}" target="_blank"
-                                class="flex-1 md:flex-none flex items-center justify-center gap-1.5 bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-500 transition-colors border border-blue-200">
+                                class="flex-1 md:flex-none flex items-center justify-center gap-1.5 bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-900 transition-colors border border-blue-200">
                                 <span class="material-symbols-outlined text-sm">csv</span> CSV
                             </a>
                         </div>
@@ -103,7 +103,7 @@
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm whitespace-nowrap">
-                        <thead class="bg-blue-500 text-gray-900">
+                        <thead class="bg-gray-100 text-gray-700">
                             <tr>
                                 <th class="px-6 py-4 font-bold uppercase tracking-wider w-16">No</th>
                                 <th class="px-6 py-4 font-bold uppercase tracking-wider">NIS</th>

@@ -28,7 +28,7 @@
         </a>
         @if($jadwalId)
         <button type="submit" form="form-presensi"
-           class="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-bold hover:bg-amber-600 transition-colors shadow-sm">
+           class="flex items-center gap-2 px-5 py-2.5 bg-blue-800 text-white rounded-lg text-sm font-bold hover:bg-blue-900 transition-colors shadow-sm">
             <span class="material-symbols-outlined text-sm">save</span>
             Simpan Presensi
         </button>
@@ -108,7 +108,7 @@
             <p id="noJadwalMsg" class="text-xs text-amber-600 mt-1 hidden">⚠ Tidak ada jadwal pada hari ini</p>
         </div>
         <div>
-            <button type="submit" class="w-full h-10 bg-blue-500 text-gray-900 font-bold px-6 rounded-lg hover:bg-blue-500 text-sm transition-colors flex items-center justify-center gap-2">
+            <button type="submit" class="w-full h-10 bg-blue-800 text-white font-bold px-6 rounded-lg hover:bg-blue-900 text-sm transition-colors flex items-center justify-center gap-2">
                 <span class="material-symbols-outlined text-sm">filter_list</span>
                 Filter Data
             </button>
@@ -168,8 +168,8 @@
                                                 {{ $currentStatus == $code ? 'checked' : '' }}>
                                             <span class="block px-4 py-2 rounded-lg text-[11px] font-bold transition-all border
                                                 peer-checked:border-transparent peer-checked:text-white peer-checked:shadow-md
-                                                @if($code == 'H') peer-checked:bg-blue-500 border-gray-200 text-gray-500 hover:bg-blue-50
-                                                @elseif($code == 'S') peer-checked:bg-blue-500 border-gray-200 text-gray-500 hover:bg-blue-50
+                                                @if($code == 'H') peer-checked:bg-blue-600 border-gray-200 text-gray-500 hover:bg-blue-50
+                                                @elseif($code == 'S') peer-checked:bg-blue-600 border-gray-200 text-gray-500 hover:bg-blue-50
                                                 @elseif($code == 'I') peer-checked:bg-amber-500 border-gray-200 text-gray-500 hover:bg-amber-50
                                                 @else peer-checked:bg-red-600 border-gray-200 text-gray-500 hover:bg-red-50
                                                 @endif">
@@ -187,7 +187,7 @@
     </div>
 
     <div class="flex justify-end mt-4">
-        <button type="submit" class="px-8 py-3 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/20 flex items-center gap-2">
+        <button type="submit" class="px-8 py-3 bg-blue-800 text-white font-bold rounded-xl hover:bg-blue-900 transition-colors shadow-lg flex items-center gap-2">
             <span class="material-symbols-outlined">save</span>
             Simpan Presensi
         </button>

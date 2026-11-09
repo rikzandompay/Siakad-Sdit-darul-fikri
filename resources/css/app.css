@@ -7,9 +7,50 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    /* Huruf: sama dengan aplikasi MyDarfik supaya web dan aplikasi terasa satu produk. */
+    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-inter: 'Inter', sans-serif;
+    --font-inter: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+    /*
+     * Palet biru sekolah. Seluruh kelas blue-* dan gray-* di semua halaman ikut berubah dari sini.
+     * Biru tegas (600 ke atas) untuk aksi dan teks; abu-abu bernuansa biru dengan kontras teks minimal AA
+     * di atas putih (gray-400 ke atas dipakai untuk teks, jadi tidak dibuat lebih terang).
+     */
+    --color-blue-50: #eff7fd;
+    --color-blue-100: #dceefa;
+    --color-blue-200: #bbddf3;
+    --color-blue-300: #8cc4e8;
+    --color-blue-400: #4f9fd5;
+    --color-blue-500: #2b7fbf;
+    --color-blue-600: #15649c;
+    --color-blue-700: #0f5282;
+    --color-blue-800: #0d3f63;
+    --color-blue-900: #0a2f4a;
+    --color-blue-950: #071f33;
+
+    --color-gray-50: #f5f8fb;
+    --color-gray-100: #eaf0f5;
+    --color-gray-200: #dce5ec;
+    --color-gray-300: #c3d0db;
+    --color-gray-400: #667584;
+    --color-gray-500: #52606d;
+    --color-gray-600: #3f4e5c;
+    --color-gray-700: #2d3b48;
+    --color-gray-800: #1b2733;
+    --color-gray-900: #111c26;
+
+    /* Sudut: kartu dan tabel 10 px, bukan membulat semua. */
+    --radius-xl: 0.625rem;
+    --radius-2xl: 0.75rem;
+    --radius-3xl: 1rem;
+
+    /* Bayangan hanya untuk elemen yang melayang di atas halaman (menu, dialog). Kartu dibatasi garis tipis. */
+    --shadow-sm: 0 0 #0000;
+    --shadow-md: 0 0 #0000;
+    --shadow-lg: 0 16px 40px -12px rgb(13 63 99 / 0.28);
+    --shadow-xl: 0 16px 40px -12px rgb(13 63 99 / 0.28);
+    --shadow-2xl: 0 24px 56px -16px rgb(13 63 99 / 0.34);
 
     /* Material Design 3 Color System */
     --color-primary: #004532;
@@ -97,4 +138,15 @@
 }
 @utility font-inter {
     font-family: var(--font-inter);
+}
+
+/* Fokus keyboard terlihat jelas di semua kontrol. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-blue-600);
+    outline-offset: 2px;
+}
+
+/* Angka sejajar di tabel dan statistik. */
+.tabular {
+    font-variant-numeric: tabular-nums;
 }

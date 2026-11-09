@@ -25,7 +25,7 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             min-height: 100vh;
             background: linear-gradient(to bottom, #ffffff 30%, #aadaf5 100%);
             display: flex;
@@ -225,11 +225,11 @@
     {{-- Load full Tailwind CSS asynchronously (non-render-blocking) --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    {{-- Inter font - preload non-render-blocking --}}
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap"
+    {{-- Huruf Plus Jakarta Sans - preload non-render-blocking --}}
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     </noscript>
 </head>
 

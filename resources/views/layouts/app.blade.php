@@ -20,10 +20,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     {{-- Load fonts non-render-blocking with media="print" trick + onload swap --}}
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
             rel="stylesheet">
     </noscript>
 
@@ -51,7 +51,7 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             min-height: 100vh;
             background: linear-gradient(to bottom, #ffffff 30%, #aadaf5 100%);
             background-attachment: fixed;
@@ -63,9 +63,12 @@
 <body class="text-on-background antialiased font-inter text-base max-md:overflow-x-hidden" x-data="shell">
     @include('partials.analytics-body')
 
-    <!-- SideNavBar -->
+    <a href="#konten"
+        class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-lg focus:bg-blue-800 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Lewati ke konten</a>
+
+    <!-- Sidebar -->
     <aside
-        class="fixed left-0 top-0 h-screen w-64 border-r border-gray-200 shadow-xl flex flex-col py-6 z-50 transition-transform duration-300 ease-in-out max-md:-translate-x-full"
+        class="fixed left-0 top-0 h-screen w-64 border-r border-gray-200 flex flex-col py-6 z-50 transition-transform duration-300 ease-in-out max-md:-translate-x-full"
         style="background: linear-gradient(to bottom, #ffffff 0%, #aadaf5 100%);"
         :class="asideClass">
         <div class="px-6 mb-8 flex items-center gap-3 shrink-0">
@@ -74,169 +77,57 @@
             </div>
             <div>
                 <h1 class="text-gray-900 font-bold text-lg leading-tight">Darul Fikri</h1>
-                <p class="text-gray-500 text-[10px] uppercase tracking-wider font-semibold">SIAKAD System</p>
+                <p class="text-gray-600 text-xs font-medium">Sistem Informasi Akademik</p>
             </div>
         </div>
 
-        <nav class="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-1">
-            <a class="flex items-center gap-3 px-6 py-3 transition-colors duration-200
-                {{ request()->routeIs('dashboard') ? 'bg-white/60 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50' }}"
-                href="{{ route('dashboard') }}">
-                <span class="material-symbols-outlined">dashboard</span>
-                <span class="font-medium text-sm">Dashboard</span>
-            </a>
+        <nav class="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-1" aria-label="Menu utama">
+            <x-nav-item :href="route('dashboard')" icon="dashboard" :active="request()->routeIs('dashboard')">Dashboard</x-nav-item>
             @if (Auth::user()->isAdmin())
-                <a class="flex items-center gap-3 px-6 py-3 transition-colors duration-200
-                {{ request()->routeIs('guru.*') ? 'bg-white/60 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50' }}"
-                    href="{{ route('guru.index') }}">
-                    <span class="material-symbols-outlined">badge</span>
-                    <span class="font-medium text-sm">Data Guru</span>
-                </a>
+                <x-nav-item :href="route('guru.index')" icon="badge" :active="request()->routeIs('guru.*')">Data Guru</x-nav-item>
             @endif
-            <a class="flex items-center gap-3 px-6 py-3 transition-colors duration-200
-                {{ request()->routeIs('siswa.*') ? 'bg-white/60 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50' }}"
-                href="{{ route('siswa.index') }}">
-                <span class="material-symbols-outlined">group</span>
-                <span class="font-medium text-sm">Data Siswa</span>
-            </a>
+            <x-nav-item :href="route('siswa.index')" icon="group" :active="request()->routeIs('siswa.*')">Data Siswa</x-nav-item>
             @if (Auth::user()->isAdmin())
-                <a class="flex items-center gap-3 px-6 py-3 transition-colors duration-200
-                {{ request()->routeIs('wali.*') ? 'bg-white/60 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50' }}"
-                    href="{{ route('wali.index') }}">
-                    <span class="material-symbols-outlined">family_restroom</span>
-                    <span class="font-medium text-sm">Akun Wali</span>
-                </a>
+                <x-nav-item :href="route('wali.index')" icon="family_restroom" :active="request()->routeIs('wali.*')">Akun Wali</x-nav-item>
             @endif
-            <a class="flex items-center gap-3 px-6 py-3 transition-colors duration-200
-                {{ request()->routeIs('kelas.*', 'tugas.*') ? 'bg-white/60 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50' }}"
-                href="{{ route('kelas.index') }}">
-                <span class="material-symbols-outlined">class</span>
-                <span class="font-medium text-sm">Kelas & Mapel</span>
-            </a>
-            <!-- Presensi Dropdown Menu -->
-            <div x-data="menuGroup" data-open="{{ request()->routeIs('presensi.*', 'presensi-sholat.*', 'presensi-guru.*') ? 'true' : 'false' }}">
-                <button type="button" @click="toggle"
-                    class="w-full flex items-center justify-between px-6 py-3 transition-colors duration-200 {{ request()->routeIs('presensi.*', 'presensi-sholat.*', 'presensi-guru.*') ? 'bg-white/60 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50' }}">
-                    <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined">how_to_reg</span>
-                        <span class="font-medium text-sm">Presensi</span>
-                    </div>
-                    <span class="material-symbols-outlined text-sm transition-transform duration-200"
-                        :class="chevronClass">expand_more</span>
-                </button>
+            <x-nav-item :href="route('kelas.index')" icon="class" :active="request()->routeIs('kelas.*', 'tugas.*')">Kelas &amp; Mapel</x-nav-item>
 
-                <div x-show="open" x-cloak class="bg-gray-50 border-y border-gray-100">
-                    <a href="{{ route('presensi.index') }}"
-                        class="flex items-center gap-3 pl-12 pr-6 py-3 transition-colors duration-200 {{ request()->routeIs('presensi.index') || request()->routeIs('presensi.show') ? 'text-blue-700 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100' }}">
-                        <div
-                            class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('presensi.index') || request()->routeIs('presensi.show') ? 'bg-blue-600' : 'bg-gray-300' }}">
-                        </div>
-                        <span class="text-sm">Input Presensi</span>
-                    </a>
-                    <a href="{{ route('presensi.rekap') }}"
-                        class="flex items-center gap-3 pl-12 pr-6 py-3 transition-colors duration-200 {{ request()->routeIs('presensi.rekap') ? 'text-blue-700 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100' }}">
-                        <div
-                            class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('presensi.rekap') ? 'bg-blue-600' : 'bg-gray-300' }}">
-                        </div>
-                        <span class="text-sm">Rekap Absensi Siswa</span>
-                    </a>
-                    @foreach(\App\Models\PresensiSholat::JENIS as $jenisMenu)
-                        @php
-                            $sholatAktif = request()->routeIs('presensi-sholat.index', 'presensi-sholat.show')
-                                && \App\Models\PresensiSholat::normalizeJenis(request()->get('jenis')) === $jenisMenu;
-                        @endphp
-                        <a href="{{ route('presensi-sholat.index', ['jenis' => $jenisMenu]) }}"
-                            class="flex items-center gap-3 pl-12 pr-6 py-3 transition-colors duration-200 {{ $sholatAktif ? 'text-blue-700 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100' }}">
-                            <div class="w-1.5 h-1.5 rounded-full {{ $sholatAktif ? 'bg-blue-600' : 'bg-gray-300' }}"></div>
-                            <span class="text-sm">Sholat {{ $jenisMenu }}</span>
-                        </a>
-                    @endforeach
-                    <a href="{{ route('presensi-sholat.rekap') }}"
-                        class="flex items-center gap-3 pl-12 pr-6 py-3 transition-colors duration-200 {{ request()->routeIs('presensi-sholat.rekap') ? 'text-blue-700 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100' }}">
-                        <div
-                            class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('presensi-sholat.rekap') ? 'bg-blue-600' : 'bg-gray-300' }}">
-                        </div>
-                        <span class="text-sm">Rekap Absensi Sholat</span>
-                    </a>
-                    @if (Auth::user()->isAdmin())
-                        <a href="{{ route('presensi-guru.rekap') }}"
-                            class="flex items-center gap-3 pl-12 pr-6 py-3 transition-colors duration-200 {{ request()->routeIs('presensi-guru.*') ? 'text-blue-700 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100' }}">
-                            <div class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('presensi-guru.*') ? 'bg-blue-600' : 'bg-gray-300' }}"></div>
-                            <span class="text-sm">Rekap Presensi Guru</span>
-                        </a>
-                    @endif
-                </div>
-            </div>
-            <!-- Nilai Dropdown Menu -->
-            <div x-data="menuGroup" data-open="{{ request()->routeIs('nilai.*') ? 'true' : 'false' }}">
-                <button type="button" @click="toggle"
-                    class="w-full flex items-center justify-between px-6 py-3 transition-colors duration-200 {{ request()->routeIs('nilai.*') ? 'bg-white/60 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50' }}">
-                    <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined">description</span>
-                        <span class="font-medium text-sm">Nilai Rapot</span>
-                    </div>
-                    <span class="material-symbols-outlined text-sm transition-transform duration-200"
-                        :class="chevronClass">expand_more</span>
-                </button>
+            <x-nav-group icon="how_to_reg" label="Presensi" :active="request()->routeIs('presensi.*', 'presensi-sholat.*', 'presensi-guru.*')">
+                <x-nav-sub :href="route('presensi.index')" :active="request()->routeIs('presensi.index', 'presensi.show')">Input Presensi</x-nav-sub>
+                <x-nav-sub :href="route('presensi.rekap')" :active="request()->routeIs('presensi.rekap')">Rekap Absensi Siswa</x-nav-sub>
+                @foreach (\App\Models\PresensiSholat::JENIS as $jenisMenu)
+                    @php
+                        $sholatAktif = request()->routeIs('presensi-sholat.index', 'presensi-sholat.show')
+                            && \App\Models\PresensiSholat::normalizeJenis(request()->get('jenis')) === $jenisMenu;
+                    @endphp
+                    <x-nav-sub :href="route('presensi-sholat.index', ['jenis' => $jenisMenu])" :active="$sholatAktif">Sholat {{ $jenisMenu }}</x-nav-sub>
+                @endforeach
+                <x-nav-sub :href="route('presensi-sholat.rekap')" :active="request()->routeIs('presensi-sholat.rekap')">Rekap Absensi Sholat</x-nav-sub>
+                @if (Auth::user()->isAdmin())
+                    <x-nav-sub :href="route('presensi-guru.rekap')" :active="request()->routeIs('presensi-guru.*')">Rekap Presensi Guru</x-nav-sub>
+                @endif
+            </x-nav-group>
 
-                <div x-show="open" x-cloak class="bg-gray-50 border-y border-gray-100">
-                    <a href="{{ route('nilai.index') }}"
-                        class="flex items-center gap-3 pl-12 pr-6 py-3 transition-colors duration-200 {{ request()->routeIs('nilai.index') || request()->routeIs('nilai.show') ? 'text-blue-700 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100' }}">
-                        <div
-                            class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('nilai.index') || request()->routeIs('nilai.show') ? 'bg-blue-600' : 'bg-gray-300' }}">
-                        </div>
-                        <span class="text-sm">Input Nilai</span>
-                    </a>
-                    <a href="{{ route('nilai.rekap') }}"
-                        class="flex items-center gap-3 pl-12 pr-6 py-3 transition-colors duration-200 {{ request()->routeIs('nilai.rekap') ? 'text-blue-700 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100' }}">
-                        <div
-                            class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('nilai.rekap') ? 'bg-blue-600' : 'bg-gray-300' }}">
-                        </div>
-                        <span class="text-sm">Rekap Nilai Siswa</span>
-                    </a>
-                </div>
-            </div>
-            <a class="flex items-center gap-3 px-6 py-3 transition-colors duration-200
-                {{ request()->routeIs('izin.*') ? 'bg-white/60 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50' }}"
-                href="{{ route('izin.index') }}">
-                <span class="material-symbols-outlined">mail</span>
-                <span class="font-medium text-sm">Izin Siswa</span>
-                @if (($izinMenunggu ?? 0) > 0)
-                    <span class="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-red-600 text-white text-[11px] font-bold flex items-center justify-center"
-                        title="{{ $izinMenunggu }} izin menunggu">{{ $izinMenunggu > 99 ? '99+' : $izinMenunggu }}</span>
-                @endif
-            </a>
-            <a class="flex items-center gap-3 px-6 py-3 transition-colors duration-200
-                {{ request()->routeIs('pengumuman.*') ? 'bg-white/60 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50' }}"
-                href="{{ route('pengumuman.index') }}">
-                <span class="material-symbols-outlined">campaign</span>
-                <span class="font-medium text-sm">Pengumuman</span>
-            </a>
-            <a class="flex items-center gap-3 px-6 py-3 transition-colors duration-200
-                {{ request()->routeIs('konseling.*') ? 'bg-white/60 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50' }}"
-                href="{{ route('konseling.index') }}">
-                <span class="material-symbols-outlined">forum</span>
-                <span class="font-medium text-sm">Konseling</span>
-                @if (($konselingBelumDibaca ?? 0) > 0)
-                    <span class="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-red-600 text-white text-[11px] font-bold flex items-center justify-center"
-                        title="{{ $konselingBelumDibaca }} pesan wali belum dibaca">{{ $konselingBelumDibaca > 99 ? '99+' : $konselingBelumDibaca }}</span>
-                @endif
-            </a>
-            <a class="flex items-center gap-3 px-6 py-3 transition-colors duration-200
-                {{ request()->routeIs('pengaturan.*') ? 'bg-white/60 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50' }}"
-                href="{{ route('pengaturan.index') }}">
-                <span class="material-symbols-outlined">settings</span>
-                <span class="font-medium text-sm">Pengaturan</span>
-            </a>
+            <x-nav-group icon="description" label="Nilai Rapot" :active="request()->routeIs('nilai.*')">
+                <x-nav-sub :href="route('nilai.index')" :active="request()->routeIs('nilai.index', 'nilai.show')">Input Nilai</x-nav-sub>
+                <x-nav-sub :href="route('nilai.rekap')" :active="request()->routeIs('nilai.rekap')">Rekap Nilai Siswa</x-nav-sub>
+            </x-nav-group>
+
+            <x-nav-item :href="route('izin.index')" icon="mail" :active="request()->routeIs('izin.*')"
+                :badge="$izinMenunggu ?? 0" :badge-title="($izinMenunggu ?? 0).' izin menunggu'">Izin Siswa</x-nav-item>
+            <x-nav-item :href="route('pengumuman.index')" icon="campaign" :active="request()->routeIs('pengumuman.*')">Pengumuman</x-nav-item>
+            <x-nav-item :href="route('konseling.index')" icon="forum" :active="request()->routeIs('konseling.*')"
+                :badge="$konselingBelumDibaca ?? 0" :badge-title="($konselingBelumDibaca ?? 0).' pesan wali belum dibaca'">Konseling</x-nav-item>
+            <x-nav-item :href="route('pengaturan.index')" icon="settings" :active="request()->routeIs('pengaturan.*')">Pengaturan</x-nav-item>
         </nav>
 
         <div class="px-6 pt-4 shrink-0">
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit"
-                    class="flex items-center justify-center gap-3 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white py-3 rounded-lg transition-colors duration-200 w-full border border-red-100">
-                    <span class="material-symbols-outlined">logout</span>
-                    <span class="font-medium text-sm">Logout</span>
+                    class="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-white/70 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-700 hover:text-white">
+                    <span class="material-symbols-outlined text-[20px]" aria-hidden="true">logout</span>
+                    <span>Keluar</span>
                 </button>
             </form>
         </div>
@@ -244,25 +135,25 @@
 
     <!-- TopNavBar -->
     <header
-        class="fixed top-0 right-0 w-full md:w-[calc(100%-16rem)] h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 flex items-center justify-between px-4 md:px-8 z-40 shadow-sm transition-transform duration-300 ease-in-out"
+        class="fixed top-0 right-0 w-full md:w-[calc(100%-16rem)] h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 z-40 transition-transform duration-300 ease-in-out"
         :class="shiftClass">
         <div class="flex items-center gap-4">
             <!-- Mobile Hamburger Toggle -->
             <button type="button" @click="toggleSidebar"
-                class="md:hidden text-blue-800 p-2 -ml-2 rounded-lg hover:bg-white/60 focus:outline-none flex items-center justify-center">
+                class="md:hidden text-blue-800 p-2 -ml-2 rounded-lg hover:bg-gray-100 flex items-center justify-center" aria-label="Buka menu">
                 <span class="material-symbols-outlined">menu</span>
             </button>
-            <h2 class="text-blue-800 font-bold text-sm truncate">@yield('page-title', 'Dashboard')</h2>
+            <p class="truncate text-sm font-semibold text-gray-900">@yield('page-title', 'Dashboard')</p>
         </div>
         <div class="flex items-center gap-6">
             <div class="flex items-center gap-3 pl-6 border-l border-gray-200">
                 <div class="text-right">
                     <p class="text-sm font-semibold text-gray-900">
                         {{ Auth::user()->nama_lengkap ?? Auth::user()->name }}</p>
-                    <p class="text-xs text-gray-500">{{ Auth::user()->isAdmin() ? 'Kepala Sekolah' : 'Guru' }}</p>
+                    <p class="text-xs text-gray-600">{{ Auth::user()->isAdmin() ? 'Kepala Sekolah' : 'Guru' }}</p>
                 </div>
                 <a href="{{ route('pengaturan.index') }}" title="Profil saya"
-                    class="w-10 h-10 shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 font-bold border-2 border-blue-50 overflow-hidden">
+                    class="w-10 h-10 shrink-0 rounded-full bg-blue-800 flex items-center justify-center text-sm text-white font-bold overflow-hidden">
                     @if (Auth::user()->fotoUrl())
                         <img src="{{ Auth::user()->fotoUrl() }}" alt="Foto {{ Auth::user()->nama_lengkap ?? Auth::user()->name }}" class="w-full h-full object-cover">
                     @else
@@ -274,24 +165,24 @@
     </header>
 
     <!-- Main Content -->
-    <main class="ml-0 md:ml-64 mt-16 p-4 md:p-margin-page min-h-screen transition-transform duration-300 ease-in-out"
+    <main id="konten" tabindex="-1" class="ml-0 md:ml-64 mt-16 p-4 md:p-margin-page min-h-screen transition-transform duration-300 ease-in-out"
         :class="shiftClass">
         <div class="max-w-container-max mx-auto space-y-stack-lg">
             {{-- Flash Messages --}}
             @if (session('success'))
                 <div id="flash-success"
-                    class="bg-white/60 border border-blue-200 text-blue-800 px-6 py-4 rounded-xl flex items-center gap-3 shadow-sm">
-                    <span class="material-symbols-outlined text-blue-600">check_circle</span>
+                    class="bg-green-50 border border-green-200 text-green-900 px-5 py-3.5 rounded-xl flex items-center gap-3" role="status">
+                    <span class="material-symbols-outlined text-green-700" aria-hidden="true">check_circle</span>
                     <span class="font-medium text-sm">{{ session('success') }}</span>
                     <button onclick="document.getElementById('flash-success').remove()"
-                        class="ml-auto text-blue-400 hover:text-blue-600">
+                        class="ml-auto text-green-800 hover:text-green-950" aria-label="Tutup pesan">
                         <span class="material-symbols-outlined text-sm">close</span>
                     </button>
                 </div>
             @endif
 
             @if ($errors->any())
-                <div class="bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-xl shadow-sm">
+                <div class="bg-red-50 border border-red-200 text-red-800 px-5 py-4 rounded-xl" role="alert">
                     <div class="flex items-center gap-3 mb-2">
                         <span class="material-symbols-outlined text-red-600">error</span>
                         <span class="font-medium text-sm">Terdapat kesalahan:</span>

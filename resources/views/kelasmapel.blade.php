@@ -49,9 +49,9 @@
             <p class="font-bold text-gray-900">{{ $kelas->jadwalPelajaran->unique('pelajaran_id')->count() }} Subjek</p>
         </div>
     </div>
-    <div class="bg-blue-500 p-6 rounded-xl shadow-sm space-y-3 relative overflow-hidden">
+    <div class="bg-blue-800 p-6 rounded-xl space-y-3 relative overflow-hidden">
         <div class="relative z-10">
-            <p class="text-xs text-blue-600/70 uppercase font-bold tracking-wider">Total Jadwal</p>
+            <p class="text-xs text-blue-200 font-semibold">Total jadwal</p>
             <p class="font-bold text-white text-xl">{{ $kelas->jadwalPelajaran->count() }} Sesi/Minggu</p>
         </div>
         <span class="material-symbols-outlined absolute -bottom-4 -right-4 text-blue-600 text-8xl opacity-30">calendar_today</span>
@@ -101,7 +101,7 @@
             </a>
             @if(auth()->user()->isAdmin())
             <button onclick="document.getElementById('modal-tambah-jadwal').classList.remove('hidden')"
-                class="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg font-bold text-sm hover:bg-amber-600 transition-colors shadow-sm">
+                class="flex items-center gap-2 px-4 py-2 bg-blue-800 text-white rounded-lg font-bold text-sm hover:bg-blue-900 transition-colors shadow-sm">
                 <span class="material-symbols-outlined text-sm">add</span>
                 Tambah Jadwal
             </button>
@@ -216,7 +216,7 @@
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onclick="document.getElementById('modal-tambah-jadwal').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600">Batal</button>
-                <button type="submit" class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold">Simpan</button>
+                <button type="submit" class="px-6 py-2.5 bg-blue-800 text-white rounded-lg text-sm font-bold">Simpan</button>
             </div>
         </form>
     </div>
@@ -270,7 +270,7 @@
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onclick="document.getElementById('modal-edit-jadwal').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600">Batal</button>
-                <button type="submit" class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold hover:bg-blue-500">Perbarui</button>
+                <button type="submit" class="px-6 py-2.5 bg-blue-800 text-white rounded-lg text-sm font-bold hover:bg-blue-900">Perbarui</button>
             </div>
         </form>
     </div>

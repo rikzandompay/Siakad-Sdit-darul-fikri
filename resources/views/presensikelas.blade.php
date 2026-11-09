@@ -58,7 +58,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         @forelse($kelasList as $kelas)
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                <div class="h-28 bg-blue-500 relative overflow-hidden flex items-end p-6">
+                <div class="h-28 bg-blue-800 relative overflow-hidden flex items-end p-6">
                     <div>
                         <div class="bg-amber-500 text-blue-950 font-bold px-2.5 py-0.5 rounded text-[10px] inline-block mb-2 uppercase tracking-wider">
                             {{ $kelas->siswa_aktif_count > 0 ? 'Aktif' : 'Kosong' }}
@@ -79,7 +79,7 @@
                         </div>
                     </div>
                     <a href="{{ route('presensi.show', $kelas->id) }}"
-                        class="block w-full bg-blue-500 hover:bg-blue-950 text-gray-900 font-bold text-sm py-2.5 rounded-lg transition-colors text-center">
+                        class="block w-full bg-blue-800 hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg transition-colors text-center">
                         <span class="material-symbols-outlined text-sm align-middle mr-1">how_to_reg</span>
                         Mulai Presensi
                     </a>

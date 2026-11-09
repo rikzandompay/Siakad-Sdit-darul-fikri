@@ -26,7 +26,7 @@
             </a>
             @if(auth()->user()->isAdmin())
             <button onclick="document.getElementById('modal-tambah').classList.remove('hidden')"
-                class="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-lg font-bold text-sm hover:bg-amber-600 transition-colors shadow-sm">
+                class="flex items-center gap-2 px-5 py-2.5 bg-blue-800 text-white rounded-lg font-bold text-sm hover:bg-blue-900 transition-colors shadow-sm">
                 <span class="material-symbols-outlined text-sm">person_add</span>
                 Tambah Siswa
             </button>
@@ -75,7 +75,7 @@
             </div>
             <div>
                 <button type="submit"
-                    class="w-full bg-blue-500 text-gray-900 px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-blue-500 transition-colors flex items-center justify-center gap-2">
+                    class="w-full bg-blue-800 text-white px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-blue-900 transition-colors flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-sm">filter_list</span> Filter
                 </button>
             </div>
@@ -302,7 +302,7 @@
                     <button type="button" onclick="document.getElementById('modal-tambah').classList.add('hidden')"
                         class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">Batal</button>
                     <button type="submit"
-                        class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold hover:bg-blue-500">Simpan</button>
+                        class="px-6 py-2.5 bg-blue-800 text-white rounded-lg text-sm font-bold hover:bg-blue-900">Simpan</button>
                 </div>
             </form>
         </div>
@@ -395,7 +395,7 @@
                     <button type="button" onclick="document.getElementById('modal-edit').classList.add('hidden')"
                         class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">Batal</button>
                     <button type="submit"
-                        class="px-6 py-2.5 bg-blue-500 text-gray-900 rounded-lg text-sm font-bold hover:bg-blue-500">Perbarui</button>
+                        class="px-6 py-2.5 bg-blue-800 text-white rounded-lg text-sm font-bold hover:bg-blue-900">Perbarui</button>
                 </div>
             </form>
         </div>

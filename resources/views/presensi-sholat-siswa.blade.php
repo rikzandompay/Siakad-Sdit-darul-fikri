@@ -17,7 +17,7 @@
     <div class="flex items-center gap-2 flex-wrap">
         @if($siswa->count() > 0)
         <button type="submit" form="form-presensi-sholat"
-           class="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-bold hover:bg-amber-600 transition-colors shadow-sm">
+           class="flex items-center gap-2 px-5 py-2.5 bg-blue-800 text-white rounded-lg text-sm font-bold hover:bg-blue-900 transition-colors shadow-sm">
             <span class="material-symbols-outlined text-sm">save</span>
             Simpan Presensi
         </button>
@@ -77,7 +77,7 @@
             <input name="tanggal" type="date" value="{{ $tanggal }}" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-blue-500 focus:border-blue-200" />
         </div>
         <div>
-            <button type="submit" class="w-full h-10 bg-blue-500 text-gray-900 font-bold px-6 rounded-lg hover:bg-blue-500 text-sm transition-colors flex items-center justify-center gap-2">
+            <button type="submit" class="w-full h-10 bg-blue-800 text-white font-bold px-6 rounded-lg hover:bg-blue-900 text-sm transition-colors flex items-center justify-center gap-2">
                 <span class="material-symbols-outlined text-sm">filter_list</span>
                 Filter Data
             </button>
@@ -160,7 +160,7 @@
     </div>
 
     <div class="flex justify-end mt-4">
-        <button type="submit" class="px-8 py-3 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/20 flex items-center gap-2">
+        <button type="submit" class="px-8 py-3 bg-blue-800 text-white font-bold rounded-xl hover:bg-blue-900 transition-colors shadow-lg flex items-center gap-2">
             <span class="material-symbols-outlined">save</span>
             Simpan Presensi Sholat
         </button>

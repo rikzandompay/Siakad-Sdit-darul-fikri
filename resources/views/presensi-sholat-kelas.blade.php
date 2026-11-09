@@ -17,7 +17,7 @@
 <div class="flex items-center gap-3 mb-6">
     @foreach(\App\Models\PresensiSholat::JENIS as $jenis)
         <a href="{{ route('presensi-sholat.index', ['jenis' => $jenis]) }}"
-           class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == $jenis ? 'bg-blue-500 text-gray-900 shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
+           class="px-5 py-2.5 rounded-lg text-sm font-bold transition-colors {{ $jenisSholat == $jenis ? 'bg-blue-800 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
             <span class="material-symbols-outlined text-sm align-middle mr-1">{{ $jenis == 'Dhuha' ? 'wb_sunny' : 'mosque' }}</span>
             Sholat {{ $jenis }}
         </a>
@@ -74,7 +74,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         @forelse($kelasList as $kelas)
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                <div class="h-28 bg-blue-500 relative overflow-hidden flex items-end p-6">
+                <div class="h-28 bg-blue-800 relative overflow-hidden flex items-end p-6">
                     <div>
                         <div class="bg-amber-500 text-blue-950 font-bold px-2.5 py-0.5 rounded text-[10px] inline-block mb-2 uppercase tracking-wider">
                             Setiap Hari · {{ $waktuSholat }}
@@ -95,7 +95,7 @@
                         </div>
                     </div>
                     <a href="{{ route('presensi-sholat.show', ['kelas' => $kelas->id, 'jenis' => $jenisSholat]) }}"
-                        class="block w-full bg-blue-500 hover:bg-blue-950 text-gray-900 font-bold text-sm py-2.5 rounded-lg transition-colors text-center">
+                        class="block w-full bg-blue-800 hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg transition-colors text-center">
                         <span class="material-symbols-outlined text-sm align-middle mr-1">how_to_reg</span>
                         Mulai Presensi
                     </a>
