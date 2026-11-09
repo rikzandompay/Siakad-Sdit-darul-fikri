@@ -23,20 +23,17 @@ class DashboardController extends Controller
         $totalKelas = Cache::remember('total_kelas', 300, fn () => Kelas::count());
         $tahunAktif = Cache::remember('tahun_aktif', 300, fn () => TahunAjaran::getAktif());
 
-        // Stats presensi hari ini
-        $today = Carbon::today()->toDateString();
-        $statsPresensi = Cache::remember("stats_presensi_today_{$today}", 60, function () {
-            $data = Presensi::where('tanggal', Carbon::today())
-                ->selectRaw("
-                    COUNT(*) as total,
-                    SUM(CASE WHEN status_kehadiran = 'H' THEN 1 ELSE 0 END) as hadir,
-                    SUM(CASE WHEN status_kehadiran = 'S' THEN 1 ELSE 0 END) as sakit,
-                    SUM(CASE WHEN status_kehadiran = 'I' THEN 1 ELSE 0 END) as izin,
-                    SUM(CASE WHEN status_kehadiran = 'A' THEN 1 ELSE 0 END) as alpa
-                ")->first();
+        // Stats presensi hari ini (realtime tanpa lag cache)
+        $dataPresensiToday = Presensi::where('tanggal', Carbon::today())
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN status_kehadiran = 'H' THEN 1 ELSE 0 END) as hadir,
+                SUM(CASE WHEN status_kehadiran = 'S' THEN 1 ELSE 0 END) as sakit,
+                SUM(CASE WHEN status_kehadiran = 'I' THEN 1 ELSE 0 END) as izin,
+                SUM(CASE WHEN status_kehadiran = 'A' THEN 1 ELSE 0 END) as alpa
+            ")->first();
 
-            return $data ? $data->toArray() : [];
-        });
+        $statsPresensi = $dataPresensiToday ? $dataPresensiToday->toArray() : [];
 
         $totalPresensi = $statsPresensi['total'] ?? 0;
         $hadirCount = $statsPresensi['hadir'] ?? 0;
@@ -83,41 +80,38 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         $mulai = Sekolah::now()->subDays(29)->toDateString();
-        $kunci = 'kehadiran_kelas_v3_'.$user->id.'_'.Sekolah::now()->toDateString();
 
-        $data = Cache::remember($kunci, 300, function () use ($user, $mulai) {
-            $presensi = (new Presensi)->getTable();
-            $jadwal = (new JadwalPelajaran)->getTable();
-            $kelas = (new Kelas)->getTable();
+        $presensi = (new Presensi)->getTable();
+        $jadwal = (new JadwalPelajaran)->getTable();
+        $kelas = (new Kelas)->getTable();
 
-            $query = Presensi::query()
-                ->join($jadwal, "$presensi.jadwal_id", '=', "$jadwal.id")
-                ->join($kelas, "$jadwal.kelas_id", '=', "$kelas.id")
-                ->where("$presensi.tanggal", '>=', $mulai);
+        $query = Presensi::query()
+            ->join($jadwal, "$presensi.jadwal_id", '=', "$jadwal.id")
+            ->join($kelas, "$jadwal.kelas_id", '=', "$kelas.id")
+            ->where("$presensi.tanggal", '>=', $mulai);
 
-            if (! $user->isAdmin()) {
-                $kelasWali = Kelas::where('wali_kelas_id', $user->id)->pluck('id');
-                $query->where(fn ($q) => $q->where("$jadwal.guru_id", $user->id)->orWhereIn("$jadwal.kelas_id", $kelasWali));
-            }
+        if (! $user->isAdmin()) {
+            $kelasWali = Kelas::where('wali_kelas_id', $user->id)->pluck('id');
+            $query->where(fn ($q) => $q->where("$jadwal.guru_id", $user->id)->orWhereIn("$jadwal.kelas_id", $kelasWali));
+        }
 
-            return $query->selectRaw("$kelas.id as kelas_id, $kelas.nama_kelas, COUNT(*) as total,
-                    SUM(CASE WHEN $presensi.status_kehadiran = 'H' THEN 1 ELSE 0 END) as hadir,
-                    SUM(CASE WHEN $presensi.status_kehadiran = 'S' THEN 1 ELSE 0 END) as sakit,
-                    SUM(CASE WHEN $presensi.status_kehadiran = 'I' THEN 1 ELSE 0 END) as izin,
-                    SUM(CASE WHEN $presensi.status_kehadiran = 'A' THEN 1 ELSE 0 END) as alpa")
-                ->groupBy("$kelas.id", "$kelas.nama_kelas")
-                ->orderBy("$kelas.nama_kelas")
-                ->get()
-                ->map(fn ($r) => [
-                    'kelas_id' => (int) $r->kelas_id,
-                    'nama_kelas' => $r->nama_kelas,
-                    'total' => (int) $r->total,
-                    'hadir' => (int) $r->hadir,
-                    'sakit' => (int) $r->sakit,
-                    'izin' => (int) $r->izin,
-                    'alpa' => (int) $r->alpa,
-                ])->all();
-        });
+        $data = $query->selectRaw("$kelas.id as kelas_id, $kelas.nama_kelas, COUNT(*) as total,
+                SUM(CASE WHEN $presensi.status_kehadiran = 'H' THEN 1 ELSE 0 END) as hadir,
+                SUM(CASE WHEN $presensi.status_kehadiran = 'S' THEN 1 ELSE 0 END) as sakit,
+                SUM(CASE WHEN $presensi.status_kehadiran = 'I' THEN 1 ELSE 0 END) as izin,
+                SUM(CASE WHEN $presensi.status_kehadiran = 'A' THEN 1 ELSE 0 END) as alpa")
+            ->groupBy("$kelas.id", "$kelas.nama_kelas")
+            ->orderBy("$kelas.nama_kelas")
+            ->get()
+            ->map(fn ($r) => [
+                'kelas_id' => (int) $r->kelas_id,
+                'nama_kelas' => $r->nama_kelas,
+                'total' => (int) $r->total,
+                'hadir' => (int) $r->hadir,
+                'sakit' => (int) $r->sakit,
+                'izin' => (int) $r->izin,
+                'alpa' => (int) $r->alpa,
+            ])->all();
 
         return [$data, $user->isAdmin() ? 'seluruh sekolah' : 'kelas Anda'];
     }

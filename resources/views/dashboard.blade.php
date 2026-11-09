@@ -66,23 +66,89 @@
                             @endif
                         </p>
 
-                        <ul class="mt-5 space-y-3" aria-hidden="true">
-                            @foreach ($kelasTren as $k)
-                                <li class="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)_3.25rem] items-center gap-3">
-                                    <span class="truncate text-sm font-semibold text-gray-900">{{ $k['nama_kelas'] }}</span>
-                                    <div class="flex h-5 overflow-hidden rounded-md bg-gray-100">
-                                        @if ($k['total'] > 0)
-                                            @foreach ($komposisi as [$kunci, $label, $warna])
-                                                @if ($k[$kunci] > 0)
-                                                    <span class="{{ $warna }}" style="width: {{ round($k[$kunci] / $k['total'] * 100, 2) }}%"></span>
-                                                @endif
-                                            @endforeach
-                                        @endif
+                        {{-- Grafik Batang Vertikal (Vertical Bar Chart) --}}
+                        <div class="mt-5 rounded-lg border border-gray-200 bg-white p-4 sm:p-5" role="region" aria-label="Grafik persentase kehadiran per kelas">
+                            <h3 class="mb-5 text-center text-sm font-bold text-gray-900">Kehadiran per Kelas (30 Hari Terakhir)</h3>
+                            
+                            {{-- Area Grafik dengan Sumbu Y & Garis Kisi Horizontal --}}
+                            <div class="overflow-x-auto pb-1">
+                                <div class="min-w-[420px] sm:min-w-0">
+                                    <div class="relative flex h-60">
+                                        {{-- Sumbu Y (Skala 0% sampai 100%) --}}
+                                        <div class="flex w-12 shrink-0 flex-col justify-between py-0 pr-2 text-right select-none" aria-hidden="true">
+                                            <span class="tabular text-xs font-medium leading-none text-gray-600">100%</span>
+                                            <span class="tabular text-xs font-medium leading-none text-gray-600">80%</span>
+                                            <span class="tabular text-xs font-medium leading-none text-gray-600">60%</span>
+                                            <span class="tabular text-xs font-medium leading-none text-gray-600">40%</span>
+                                            <span class="tabular text-xs font-medium leading-none text-gray-600">20%</span>
+                                            <span class="tabular text-xs font-medium leading-none text-gray-600">0%</span>
+                                        </div>
+
+                                        {{-- Plot Area dengan Garis Kisi --}}
+                                        <div class="relative h-full flex-1 border-b border-l border-gray-300">
+                                            {{-- Garis Kisi Horizontal --}}
+                                            <div class="pointer-events-none absolute inset-0 flex flex-col justify-between select-none" aria-hidden="true">
+                                                <div class="w-full border-t border-gray-200"></div>
+                                                <div class="w-full border-t border-gray-200"></div>
+                                                <div class="w-full border-t border-gray-200"></div>
+                                                <div class="w-full border-t border-gray-200"></div>
+                                                <div class="w-full border-t border-gray-200"></div>
+                                                <div class="w-full"></div>
+                                            </div>
+
+                                            {{-- Kolom Batang Vertikal --}}
+                                            <div class="relative z-10 flex h-full items-end justify-around gap-2 px-3 sm:px-6">
+                                                @foreach ($kelasTren as $k)
+                                                    <div class="group relative flex h-full flex-1 max-w-[56px] flex-col items-center justify-end">
+                                                        {{-- Tooltip Saat Diarahkan / Difokuskan --}}
+                                                        <div class="pointer-events-none absolute -top-11 z-30 hidden flex-col items-center transition-opacity duration-150 group-hover:flex group-focus-within:flex">
+                                                            <div class="whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1 text-xs font-medium text-white shadow-md tabular">
+                                                                <p class="font-bold">{{ $k['nama_kelas'] }}</p>
+                                                                <p>{{ $k['persen'] }}% ({{ $k['hadir'] }}/{{ $k['total'] }} hadir)</p>
+                                                            </div>
+                                                            <div class="-mt-0.5 h-1.5 w-2 border-t-4 border-r-4 border-l-4 border-transparent border-t-gray-900"></div>
+                                                        </div>
+
+                                                        {{-- Label Persentase di Atas Batang --}}
+                                                        <span class="tabular mb-1 text-[11px] font-bold leading-none text-gray-800 transition-transform group-hover:-translate-y-0.5" aria-hidden="true">
+                                                            {{ $k['persen'] }}%
+                                                        </span>
+
+                                                        {{-- Batang Vertikal --}}
+                                                        <div 
+                                                            tabindex="0"
+                                                            role="graphics-symbol"
+                                                            aria-label="{{ $k['nama_kelas'] }}: {{ $k['persen'] }}% kehadiran ({{ $k['hadir'] }} hadir dari {{ $k['total'] }} total presensi)"
+                                                            class="w-full cursor-pointer rounded-t-xs bg-blue-600 transition-all duration-300 hover:bg-blue-700 focus:bg-blue-700 focus:outline-2 focus:outline-offset-1 focus:outline-blue-600"
+                                                            style="height: {{ max(4, $k['persen']) }}%; min-height: 4px;"
+                                                        ></div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
                                     </div>
-                                    <span class="tabular text-right text-sm font-bold text-gray-900">{{ $k['persen'] }}%</span>
-                                </li>
-                            @endforeach
-                        </ul>
+
+                                    {{-- Sumbu X: Nama Kelas di Bawah Tiap Batang --}}
+                                    <div class="flex pl-12 pt-2">
+                                        <div class="flex flex-1 justify-around gap-2 px-3 sm:px-6" aria-hidden="true">
+                                            @foreach ($kelasTren as $k)
+                                                <div class="flex-1 max-w-[56px] text-center">
+                                                    <span class="block truncate text-xs font-semibold text-gray-700" title="{{ $k['nama_kelas'] }}">
+                                                        {{ $k['nama_kelas'] }}
+                                                    </span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Legenda di Bagian Bawah --}}
+                            <div class="mt-4 flex items-center justify-center gap-2 border-t border-gray-100 pt-3" aria-hidden="true">
+                                <span class="h-3 w-3 rounded-xs bg-blue-600"></span>
+                                <span class="text-xs font-semibold text-gray-700">Persentase Kehadiran Siswa</span>
+                            </div>
+                        </div>
 
                         <dl class="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-gray-100 pt-4" aria-hidden="true">
                             @foreach ($komposisi as [$kunci, $label, $warna])

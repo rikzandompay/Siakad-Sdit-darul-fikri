@@ -95,4 +95,31 @@ class DashboardTrenTest extends TestCase
 
         $this->actingAs($guruC)->get('/dashboard')->assertOk()->assertSee('Belum ada presensi kelas dalam 30 hari terakhir');
     }
+
+    public function test_presensi_baru_langsung_masuk_ke_grafik_tanpa_delay_cache(): void
+    {
+        $guruC = User::create(['name' => 'c', 'nama_lengkap' => 'Guru C', 'username' => 'guru-c', 'email' => 'c@s.id', 'password' => 'Rahasia123', 'status' => 'Aktif']);
+        $mtk = MataPelajaran::where('kode_pelajaran', 'MTK')->first();
+        $kelasC = Kelas::create(['nama_kelas' => 'Kelas 3', 'wali_kelas_id' => $guruC->id]);
+        $jadwalC = JadwalPelajaran::create(['kelas_id' => $kelasC->id, 'pelajaran_id' => $mtk->id, 'guru_id' => $guruC->id, 'hari' => 'Senin', 'jam_mulai' => '07:30', 'jam_selesai' => '09:00']);
+        $siswaC = Siswa::create(['nis' => '103', 'nisn' => '203', 'nama_siswa' => 'Siswa 3', 'tanggal_lahir' => '2018-01-01', 'jenis_kelamin' => 'L', 'kelas_id' => $kelasC->id, 'status' => 'Aktif', 'nama_wali' => 'Wali']);
+
+        // Awalnya dashboard kosong
+        $this->actingAs($guruC)->get('/dashboard')->assertOk()->assertSee('Belum ada presensi kelas dalam 30 hari terakhir');
+
+        // Guru C mengisi presensi via form
+        $this->actingAs($guruC)->post('/presensi', [
+            'jadwal_id' => $jadwalC->id,
+            'tanggal' => '2026-11-09',
+            'presensi' => [
+                ['siswa_id' => $siswaC->id, 'status' => 'H'],
+            ],
+        ])->assertRedirect();
+
+        // Buka dashboard lagi: langsung tampil Kelas 3 100% tanpa lag cache!
+        $res = $this->actingAs($guruC)->get('/dashboard')->assertOk();
+        $res->assertDontSee('Belum ada presensi kelas dalam 30 hari terakhir');
+        $res->assertSee('Kelas 3');
+        $res->assertSee('100%');
+    }
 }
