@@ -28,7 +28,7 @@
         </a>
         @if($jadwalId)
         <button type="submit" form="form-presensi"
-           class="flex items-center gap-2 px-5 py-2.5 bg-blue-800 text-white rounded-lg text-sm font-bold hover:bg-blue-900 transition-colors shadow-sm">
+           class="btn btn-secondary flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold">
             <span class="material-symbols-outlined text-sm">save</span>
             Simpan Presensi
         </button>
@@ -108,7 +108,7 @@
             <p id="noJadwalMsg" class="text-xs text-amber-600 mt-1 hidden">⚠ Tidak ada jadwal pada hari ini</p>
         </div>
         <div>
-            <button type="submit" class="w-full h-10 bg-blue-800 text-white font-bold px-6 rounded-lg hover:bg-blue-900 text-sm transition-colors flex items-center justify-center gap-2">
+            <button type="submit" class="btn btn-secondary w-full h-10 font-bold px-6 rounded-lg text-sm flex items-center justify-center gap-2">
                 <span class="material-symbols-outlined text-sm">filter_list</span>
                 Filter Data
             </button>
@@ -187,7 +187,7 @@
     </div>
 
     <div class="flex justify-end mt-4">
-        <button type="submit" class="px-8 py-3 bg-blue-800 text-white font-bold rounded-xl hover:bg-blue-900 transition-colors shadow-lg flex items-center gap-2">
+        <button type="submit" class="btn btn-primary px-8 py-3 font-bold rounded-xl flex items-center gap-2">
             <span class="material-symbols-outlined">save</span>
             Simpan Presensi
         </button>

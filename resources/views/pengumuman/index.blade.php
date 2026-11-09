@@ -16,7 +16,7 @@
     </div>
     @if($isAdmin)
         <a href="{{ route('pengumuman.create') }}"
-            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
+            class="btn btn-primary inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold">
             <span class="material-symbols-outlined text-sm">add</span>
             Buat Pengumuman
         </a>

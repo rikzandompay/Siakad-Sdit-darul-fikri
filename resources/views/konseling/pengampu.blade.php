@@ -54,7 +54,7 @@
     </div>
     <p class="text-xs text-gray-500">Jika pengampu diganti, percakapan lama kelas itu ikut berpindah ke pengampu baru.</p>
     <div class="flex justify-end">
-        <button type="submit" class="px-6 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 shadow-sm flex items-center gap-2">
+        <button type="submit" class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2">
             <span class="material-symbols-outlined text-sm">save</span> Simpan Pengampu
         </button>
     </div>

@@ -155,11 +155,11 @@
                     <div class="flex items-center gap-2">
                         <form method="POST" action="{{ route('presensi-guru.foto.setujui', $g) }}">
                             @csrf
-                            <button type="submit" class="px-4 h-10 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">Setujui</button>
+                            <button type="submit" class="btn btn-primary px-4 h-10 rounded-lg text-sm font-bold">Setujui</button>
                         </form>
                         <form method="POST" action="{{ route('presensi-guru.foto.tolak', $g) }}">
                             @csrf
-                            <button type="submit" class="px-4 h-10 rounded-lg bg-white border border-red-200 text-red-600 text-sm font-bold hover:bg-red-50">Tolak</button>
+                            <button type="submit" class="btn btn-danger px-4 h-10 rounded-lg text-sm font-bold">Tolak</button>
                         </form>
                     </div>
                 </div>
@@ -214,7 +214,7 @@
                 <label for="m-ket" class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Alasan koreksi</label>
                 <input id="m-ket" name="keterangan" type="text" required maxlength="200" value="{{ old('keterangan') }}" placeholder="Contoh: HP rusak, hadir sesuai buku tamu" class="w-full border border-gray-200 rounded-lg text-sm h-10 px-3">
             </div>
-            <button type="submit" class="h-10 px-5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">Simpan Koreksi</button>
+            <button type="submit" class="btn btn-primary h-10 px-5 rounded-lg text-sm font-bold">Simpan Koreksi</button>
         </form>
 
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 md:p-6">

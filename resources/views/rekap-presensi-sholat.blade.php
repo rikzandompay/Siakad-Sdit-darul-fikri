@@ -61,7 +61,7 @@
                 </div>
                 <div>
                     <button type="submit"
-                        class="w-full bg-blue-800 text-white rounded-lg px-6 py-2.5 text-sm font-bold shadow-sm hover:bg-blue-900 transition-colors flex items-center justify-center gap-2">
+                        class="btn btn-primary w-full rounded-lg px-6 py-2.5 text-sm font-bold flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-sm">search</span>
                         Tampilkan Rekap
                     </button>

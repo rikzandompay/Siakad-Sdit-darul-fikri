@@ -15,7 +15,7 @@
         <h2 class="font-bold text-2xl text-blue-600">Ruang Tugas {{ $mapel->nama_pelajaran }}</h2>
         <p class="text-gray-500 text-sm mt-1">{{ $kelas->nama_kelas }} · {{ $jumlahSiswa }} siswa. Tugas di sini tampil di aplikasi MyDarfik wali murid.</p>
     </div>
-    <a href="{{ route('tugas.create', [$kelas, $mapel]) }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm">
+    <a href="{{ route('tugas.create', [$kelas, $mapel]) }}" class="btn btn-primary inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold">
         <span class="material-symbols-outlined text-sm">add</span> Buat Tugas
     </a>
 </div>

@@ -57,7 +57,7 @@
     </div>
 
     <div class="flex justify-end">
-        <button type="submit" class="px-6 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 shadow-sm">Simpan</button>
+        <button type="submit" class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold">Simpan</button>
     </div>
 </form>
 
@@ -79,7 +79,7 @@
             <label for="keterangan" class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Keterangan</label>
             <input id="keterangan" name="keterangan" type="text" required maxlength="150" placeholder="Libur semester" class="w-full border border-gray-200 rounded-lg text-sm h-10 px-3">
         </div>
-        <button type="submit" class="sm:col-span-6 sm:w-fit h-10 px-5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 flex items-center justify-center gap-2">
+        <button type="submit" class="btn btn-secondary sm:col-span-6 sm:w-fit h-10 px-5 rounded-lg text-sm font-bold flex items-center justify-center gap-2">
             <span class="material-symbols-outlined text-sm">add</span> Tambah hari libur
         </button>
     </form>

@@ -59,7 +59,7 @@
     </div>
     @if($siswaList->isNotEmpty())
         <div class="px-4 md:px-6 py-4 border-t border-gray-100 flex justify-end">
-            <button type="submit" class="px-6 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 shadow-sm flex items-center gap-2"><span class="material-symbols-outlined text-sm">save</span> Simpan Nilai</button>
+            <button type="submit" class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-sm">save</span> Simpan Nilai</button>
         </div>
     @endif
 </form>

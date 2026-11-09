@@ -64,7 +64,7 @@
                                     @csrf @method('PUT')
                                     <label for="isi-{{ $pesan->id }}" class="sr-only">Isi pesan</label>
                                     <textarea id="isi-{{ $pesan->id }}" name="isi" rows="2" maxlength="2000" class="w-full border border-gray-200 rounded-lg text-sm p-2">{{ $pesan->isi }}</textarea>
-                                    <button type="submit" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold">Simpan perubahan</button>
+                                    <button type="submit" class="btn btn-primary px-3 py-1.5 rounded-lg text-xs font-bold">Simpan perubahan</button>
                                 </form>
                                 <form method="POST" action="{{ route('konseling.pesan.destroy', [$percakapan, $pesan]) }}" onsubmit="return confirm('Hapus pesan ini? Wali murid tidak akan melihatnya lagi.')">
                                     @csrf @method('DELETE')
@@ -89,7 +89,7 @@
             <span class="max-w-[8rem] truncate" id="nama-foto">Foto</span>
             <input type="file" name="foto" accept="image/png,image/jpeg,image/webp" class="sr-only" onchange="document.getElementById('nama-foto').textContent = this.files[0] ? this.files[0].name : 'Foto'">
         </label>
-        <button type="submit" class="h-11 px-5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 flex items-center gap-1.5 shadow-sm">
+        <button type="submit" class="btn btn-primary h-11 px-5 rounded-xl text-sm font-bold flex items-center gap-1.5">
             <span class="material-symbols-outlined text-sm">send</span>
             Kirim
         </button>

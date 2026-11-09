@@ -34,7 +34,7 @@
                 <form method="POST" action="{{ route('pengaturan.foto.update') }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">
                     @csrf
                     <input type="file" name="foto" accept="image/png,image/jpeg,image/webp" required class="text-xs text-gray-600 max-w-full">
-                    <button type="submit" class="px-4 py-2 bg-blue-800 text-white rounded-lg text-xs font-bold">Unggah Foto</button>
+                    <button type="submit" class="btn btn-secondary px-4 py-2 rounded-lg text-xs font-bold">Unggah Foto</button>
                 </form>
                 @error('foto') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 <p class="text-xs text-gray-500 mt-1">JPG, PNG, atau WebP, maksimal 5 MB. Foto ini tampil di header, Kartu Guru, dan aplikasi MyDarfik, serta menjadi acuan pendaftaran wajah untuk absen.@unless($user->isAdmin()) Foto baru berlaku setelah disetujui kepala sekolah.@endunless</p>
@@ -73,7 +73,7 @@
                 </div>
             </div>
             <div class="flex justify-end pt-2">
-                <button type="submit" class="px-6 py-2.5 bg-blue-800 text-white rounded-lg text-sm font-bold hover:bg-blue-900">Simpan Profil</button>
+                <button type="submit" class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold">Simpan Profil</button>
             </div>
         </form>
     </div>
@@ -101,7 +101,7 @@
                 <input name="password_confirmation" type="password" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-200" />
             </div>
             <div class="flex justify-end pt-2">
-                <button type="submit" class="px-6 py-2.5 bg-blue-800 text-white rounded-lg text-sm font-bold hover:bg-blue-900">Ganti Password</button>
+                <button type="submit" class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold">Ganti Password</button>
             </div>
         </form>
     </div>
@@ -116,7 +116,7 @@
         </h3>
         @if(auth()->user()->isAdmin())
         <button onclick="document.getElementById('modal-ta').classList.remove('hidden')"
-            class="px-4 py-2 bg-blue-800 text-white rounded-lg text-xs font-bold hover:bg-blue-900">+ Tambah</button>
+            class="btn btn-secondary px-4 py-2 rounded-lg text-xs font-bold">+ Tambah</button>
         @endif
     </div>
     <div class="overflow-x-auto">
@@ -205,7 +205,7 @@
                                         </div>
                                         <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                                             <button type="button" onclick="document.getElementById('modal-ta-edit-{{ $ta->id }}').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600">Batal</button>
-                                            <button type="submit" class="px-6 py-2.5 bg-blue-800 text-white rounded-lg text-sm font-bold">Simpan Perubahan</button>
+                                            <button type="submit" class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold">Simpan Perubahan</button>
                                         </div>
                                     </form>
                                 </div>
@@ -227,7 +227,7 @@
         </h3>
         @if(auth()->user()->isAdmin())
         <button onclick="document.getElementById('modal-mapel').classList.remove('hidden')"
-            class="px-4 py-2 bg-blue-800 text-white rounded-lg text-xs font-bold hover:bg-blue-900">+ Tambah</button>
+            class="btn btn-secondary px-4 py-2 rounded-lg text-xs font-bold">+ Tambah</button>
         @endif
     </div>
     <div class="overflow-x-auto">
@@ -297,7 +297,7 @@
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onclick="document.getElementById('modal-ta').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600">Batal</button>
-                <button type="submit" class="px-6 py-2.5 bg-blue-800 text-white rounded-lg text-sm font-bold">Simpan</button>
+                <button type="submit" class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold">Simpan</button>
             </div>
         </form>
     </div>
@@ -326,7 +326,7 @@
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onclick="document.getElementById('modal-mapel').classList.add('hidden')" class="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600">Batal</button>
-                <button type="submit" class="px-6 py-2.5 bg-blue-800 text-white rounded-lg text-sm font-bold">Simpan</button>
+                <button type="submit" class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold">Simpan</button>
             </div>
         </form>
     </div>

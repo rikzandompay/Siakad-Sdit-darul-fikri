@@ -33,7 +33,7 @@
         </div>
         <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
             <a href="{{ route('tugas.ruang', [$kelas, $mapel]) }}" class="px-5 py-2.5 text-center rounded-lg border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50">Batal</a>
-            <button type="submit" class="px-6 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 shadow-sm">{{ $baru ? 'Bagikan Tugas' : 'Simpan' }}</button>
+            <button type="submit" class="btn btn-primary px-6 py-2.5 rounded-lg text-sm font-bold">{{ $baru ? 'Bagikan Tugas' : 'Simpan' }}</button>
         </div>
     </form>
 @endsection

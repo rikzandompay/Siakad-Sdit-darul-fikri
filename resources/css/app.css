@@ -150,3 +150,25 @@
 .tabular {
     font-variant-numeric: tabular-nums;
 }
+
+/*
+ * Tombol punya tiga peran. Dalam satu bagian layar hanya ada satu tombol utama.
+ *   btn-primary   : aksi utama (Simpan, Tambah, Kirim). Biru tua penuh.
+ *   btn-secondary : aksi pendukung (Filter, Unggah, Tambah di dalam formulir). Garis biru, latar putih.
+ *   btn-danger    : aksi merusak (Tolak, Hapus). Garis merah, latar putih.
+ * Ukuran dan tata letak (w-full, px-*, text-xs) tetap boleh ditimpa lewat kelas utilitas di elemen.
+ */
+@layer components {
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors;
+    }
+    .btn-primary {
+        @apply bg-blue-800 text-white hover:bg-blue-900;
+    }
+    .btn-secondary {
+        @apply border border-blue-800 bg-white text-blue-800 hover:bg-blue-50;
+    }
+    .btn-danger {
+        @apply border border-red-300 bg-white text-red-700 hover:bg-red-50;
+    }
+}
