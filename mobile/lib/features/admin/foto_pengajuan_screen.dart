@@ -64,9 +64,9 @@ class _FotoPengajuanScreenState extends State<FotoPengajuanScreen> {
                     ]),
                     const SizedBox(height: 12),
                     Row(children: [
-                      Expanded(child: SecondaryButton(label: 'Tolak', color: AppColors.alpa, onPressed: () => _tinjau(g, false))),
+                      Expanded(child: AlertButton(label: 'Tolak', icon: Icons.close_rounded, onPressed: () => _tinjau(g, false))),
                       const SizedBox(width: 10),
-                      Expanded(child: PrimaryButton(label: 'Setujui', onPressed: () => _tinjau(g, true))),
+                      Expanded(child: SuccessButton(label: 'Setujui', icon: Icons.check_rounded, onPressed: () => _tinjau(g, true))),
                     ]),
                   ]),
                 ),

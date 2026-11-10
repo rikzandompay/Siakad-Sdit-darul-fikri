@@ -74,9 +74,9 @@ class _AbsenScreenState extends State<AbsenScreen> {
       title: 'Presensi Guru',
       subtitle: Fmt.tanggalPanjang(Fmt.parse(d['tanggal'])),
       bottom: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        PrimaryButton(label: sudahMasuk ? 'Sudah Absen Masuk' : 'Absen Masuk', onPressed: kendala == null && !sudahMasuk ? () => _mulai('masuk') : null),
+        SuccessButton(icon: Icons.login_rounded, label: sudahMasuk ? 'Sudah Absen Masuk' : 'Absen Masuk', onPressed: kendala == null && !sudahMasuk ? () => _mulai('masuk') : null),
         const SizedBox(height: 10),
-        SecondaryButton(label: sudahPulang ? 'Sudah Absen Pulang' : 'Absen Pulang', onPressed: kendala == null && sudahMasuk && !sudahPulang ? () => _mulai('pulang') : null),
+        WarningButton(icon: Icons.logout_rounded, label: sudahPulang ? 'Sudah Absen Pulang' : 'Absen Pulang', onPressed: kendala == null && sudahMasuk && !sudahPulang ? () => _mulai('pulang') : null),
       ]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         AppCard(

@@ -89,13 +89,13 @@ class _PresensiKelasScreenState extends State<PresensiKelasScreen> {
     return AppPage(
       title: 'Presensi ${j['kelas']}',
       subtitle: '${j['mata_pelajaran']} · ${Fmt.tanggalPanjang(Fmt.parse(d['tanggal']))}',
-      bottom: PrimaryButton(label: 'Simpan Presensi ($ringkas)', loading: _saving, onPressed: siswa.isEmpty ? null : _simpan),
+      bottom: SuccessButton(label: 'Simpan Presensi ($ringkas)', icon: Icons.check_circle_outline, loading: _saving, onPressed: siswa.isEmpty ? null : _simpan),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
           Expanded(child: Text('${siswa.length} siswa', style: AppText.heading)),
           SizedBox(
-            width: 140,
-            child: SecondaryButton(label: 'Semua Hadir', onPressed: () => setState(() => _status.updateAll((_, _) => 'H'))),
+            width: 144,
+            child: SecondaryButton(label: 'Semua Hadir', icon: Icons.done_all, color: AppColors.ok700, onPressed: () => setState(() => _status.updateAll((_, _) => 'H'))),
           ),
         ]),
         const SizedBox(height: 10),

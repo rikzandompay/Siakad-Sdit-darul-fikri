@@ -10,9 +10,9 @@ import '../../widgets/pilihan.dart';
 
 /// Tombol ekspor: berkas diambil dari server dan langsung disimpan ke folder Download.
 Widget tombolEkspor(BuildContext context, String jenis, Map<String, Object?> q) => Row(children: [
-      Expanded(child: SecondaryButton(label: 'Unduh CSV', onPressed: () => unduhLaporan(context, jenis: jenis, format: 'csv', query: q))),
+      Expanded(child: SecondaryButton(label: 'Unduh CSV', icon: Icons.table_chart_outlined, color: AppColors.ok700, onPressed: () => unduhLaporan(context, jenis: jenis, format: 'csv', query: q))),
       const SizedBox(width: 10),
-      Expanded(child: PrimaryButton(label: 'Unduh PDF', onPressed: () => unduhLaporan(context, jenis: jenis, format: 'pdf', query: q))),
+      Expanded(child: AlertButton(label: 'Unduh PDF', icon: Icons.picture_as_pdf_outlined, onPressed: () => unduhLaporan(context, jenis: jenis, format: 'pdf', query: q))),
     ]);
 
 /// Pemuat pilihan filter (kelas, mapel, tahun ajaran) sekali untuk layar rekap.

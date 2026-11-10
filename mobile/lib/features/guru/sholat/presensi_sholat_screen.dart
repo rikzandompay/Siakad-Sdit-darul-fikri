@@ -96,9 +96,9 @@ class _PresensiSholatScreenState extends State<PresensiSholatScreen> {
     return AppPage(
       title: 'Presensi Ibadah Sholat',
       subtitle: '${d['kelas']['nama']} · Sholat ${widget.jenis}',
-      bottom: PrimaryButton(label: _ubah.isEmpty ? 'Selesai' : 'Simpan Presensi Sholat', loading: _saving, onPressed: _ubah.isEmpty ? () => context.pop() : _simpan),
+      bottom: SuccessButton(label: _ubah.isEmpty ? 'Selesai' : 'Simpan Presensi Sholat', icon: Icons.check_circle_outline, loading: _saving, onPressed: _ubah.isEmpty ? () => context.pop() : _simpan),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        SecondaryButton(label: 'Scan QR Siswa', onPressed: _scan),
+        SecondaryButton(label: 'Scan QR Siswa', icon: Icons.qr_code_scanner_rounded, onPressed: _scan),
         const SizedBox(height: 12),
         SholatProgressCard(tempat: d['tempat'], waktu: d['waktu'], hadir: hadir, total: total),
         const SizedBox(height: 12),

@@ -26,9 +26,9 @@ class HasilAbsenScreen extends StatelessWidget {
     final telat = aksi == 'Masuk' && h['terlambat'] == true;
     return AppPage(
       bottom: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        PrimaryButton(label: 'Kembali ke Beranda', onPressed: () => context.go('/guru')),
+        PrimaryButton(label: 'Kembali ke Beranda', icon: Icons.home_rounded, onPressed: () => context.go('/guru')),
         const SizedBox(height: 10),
-        SecondaryButton(label: 'Lihat Riwayat Presensi', onPressed: () => context.pushReplacement('/guru/absen/rekap')),
+        SecondaryButton(label: 'Lihat Riwayat Presensi', icon: Icons.history_rounded, onPressed: () => context.pushReplacement('/guru/absen/rekap')),
       ]),
       child: Column(children: [
         ResultHero(icon: Icons.check_rounded, title: 'Presensi $aksi Berhasil', subtitle: '${Fmt.tanggalPanjang(DateTime.now())} · $jam'),
@@ -50,9 +50,9 @@ class HasilAbsenScreen extends StatelessWidget {
       title: 'Presensi Gagal',
       subtitle: 'Wajah tidak cocok',
       bottom: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        if (!habis) PrimaryButton(label: 'Coba Lagi', onPressed: () => context.pushReplacement('/guru/absen/wajah', extra: hasil['args'])),
+        if (!habis) WarningButton(label: 'Coba Lagi', icon: Icons.refresh_rounded, onPressed: () => context.pushReplacement('/guru/absen/wajah', extra: hasil['args'])),
         if (!habis) const SizedBox(height: 10),
-        SecondaryButton(label: 'Kembali', onPressed: () => context.pop()),
+        SecondaryButton(label: 'Kembali', color: AppColors.inkMuted, onPressed: () => context.pop()),
       ]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const ResultHero(icon: Icons.face_retouching_off, title: '', success: false),
@@ -83,7 +83,7 @@ class HasilAbsenScreen extends StatelessWidget {
     return AppPage(
       title: 'Presensi Gagal',
       subtitle: judul,
-      bottom: SecondaryButton(label: 'Kembali', onPressed: () => context.pop()),
+      bottom: SecondaryButton(label: 'Kembali', color: AppColors.inkMuted, onPressed: () => context.pop()),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         ResultHero(icon: jenis == 'di_luar_area' ? Icons.location_off_outlined : Icons.error_outline, title: '', success: false),
         Text(hasil['pesan'] ?? 'Terjadi kesalahan.', style: AppText.body, textAlign: TextAlign.center),

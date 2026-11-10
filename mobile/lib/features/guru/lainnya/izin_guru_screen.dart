@@ -126,9 +126,9 @@ class _IzinGuruScreenState extends State<IzinGuruScreen> {
                         if (i['status'] == 'Menunggu') ...[
                           const SizedBox(height: 12),
                           Row(children: [
-                            Expanded(child: PrimaryButton(label: 'Setujui (Otomatis Isi ${i['jenis']})', onPressed: () => _setujui(i))),
+                            Expanded(child: SuccessButton(label: 'Setujui (Otomatis Isi ${i['jenis']})', icon: Icons.check_circle_outline, onPressed: () => _setujui(i))),
                             const SizedBox(width: 8),
-                            SizedBox(width: 84, child: SecondaryButton(label: 'Tolak', color: AppColors.alpa, onPressed: () => _tolak(i))),
+                            SizedBox(width: 90, child: AlertButton(label: 'Tolak', icon: Icons.cancel_outlined, onPressed: () => _tolak(i))),
                           ]),
                         ] else if (i['catatan_peninjau'] != null) ...[
                           const SizedBox(height: 8),

@@ -46,9 +46,9 @@ class ProfilWaliScreen extends StatelessWidget {
         const SizedBox(height: 10),
         SecondaryButton(label: 'Ubah Data', onPressed: () => context.push('/wali/profil/ubah')),
         const SizedBox(height: 10),
-        SecondaryButton(
+        AlertButton(
           label: 'Keluar',
-          color: AppColors.alpa,
+          icon: Icons.logout_rounded,
           onPressed: () async {
             final ok = await showDialog<bool>(
               context: context,

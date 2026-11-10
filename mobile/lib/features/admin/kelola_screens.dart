@@ -124,7 +124,7 @@ class _FormPengumumanState extends State<_FormPengumuman> {
           SwitchListTile(value: _penting, onChanged: (v) => setState(() => _penting = v), contentPadding: EdgeInsets.zero, title: const Text('Tandai penting'), subtitle: const Text('Tampil paling atas')),
           if (_error != null) Text(_error!, style: AppText.bodySmall.copyWith(color: AppColors.alpa)),
           const SizedBox(height: 8),
-          PrimaryButton(label: widget.p == null ? 'Terbitkan' : 'Simpan', loading: _simpan, onPressed: _kirim),
+          SuccessButton(label: widget.p == null ? 'Terbitkan' : 'Simpan', icon: Icons.send_rounded, loading: _simpan, onPressed: _kirim),
         ]),
       ),
     );

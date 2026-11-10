@@ -1,12 +1,44 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mydarfik/core/format.dart';
 import 'package:mydarfik/features/face/face_capture.dart';
 import 'package:mydarfik/features/face/face_service.dart';
+import 'package:mydarfik/widgets/common.dart';
 
 void main() {
   test('format jarak', () {
     expect(Fmt.jarak(42), '42 m');
     expect(Fmt.jarak(1200), '1,2 km');
+  });
+
+  testWidgets('Ragam tombol design system (Success, Warning, Alert, Tertiary)', (tester) async {
+    bool ditekan = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              PrimaryButton(label: 'Primary', onPressed: () {}),
+              SecondaryButton(label: 'Secondary', onPressed: () {}),
+              TertiaryButton(label: 'Tertiary', onPressed: () {}),
+              SuccessButton(label: 'Setujui', onPressed: () => ditekan = true),
+              WarningButton(label: 'Peringatan', onPressed: () {}),
+              AlertButton(label: 'Tolak', onPressed: () {}),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Primary'), findsOneWidget);
+    expect(find.text('Secondary'), findsOneWidget);
+    expect(find.text('Tertiary'), findsOneWidget);
+    expect(find.text('Setujui'), findsOneWidget);
+    expect(find.text('Peringatan'), findsOneWidget);
+    expect(find.text('Tolak'), findsOneWidget);
+
+    await tester.tap(find.text('Setujui'));
+    expect(ditekan, true);
   });
 
   test('LokasiStatus properti sukses dan gagal', () {

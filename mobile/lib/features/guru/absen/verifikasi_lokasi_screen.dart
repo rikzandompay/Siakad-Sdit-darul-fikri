@@ -71,8 +71,9 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen> {
     return AppPage(
       title: 'Verifikasi Lokasi',
       subtitle: 'Langkah 1 dari 2',
-      bottom: PrimaryButton(
+      bottom: SuccessButton(
         label: 'Lanjut Verifikasi Wajah',
+        icon: Icons.arrow_forward_rounded,
         onPressed: didalam
             ? () => context.pushReplacement('/guru/absen/wajah', extra: {
                   'aksi': widget.aksi,
@@ -131,10 +132,11 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen> {
       title: 'Presensi Gagal',
       subtitle: 'Lokasi tidak sesuai',
       bottom: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        PrimaryButton(label: 'Cek Lokasi Lagi', onPressed: _cek),
+        WarningButton(label: 'Cek Lokasi Lagi', icon: Icons.refresh_rounded, onPressed: _cek),
         const SizedBox(height: 10),
         SecondaryButton(
           label: 'Lanjut Verifikasi Wajah',
+          color: AppColors.inkMuted,
           onPressed: () => context.pushReplacement('/guru/absen/wajah', extra: {
             'aksi': widget.aksi,
             'latitude': _posisi?.latitude ?? 0,
@@ -148,8 +150,8 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen> {
             'lokasi_pesan': 'Lokasi tidak sesuai (Di luar jangkauan)',
           }),
         ),
-        const SizedBox(height: 10),
-        TextButton(onPressed: () => context.pop(), child: const Text('Kembali')),
+        const SizedBox(height: 8),
+        TertiaryButton(label: 'Kembali', color: AppColors.inkMuted, onPressed: () => context.pop()),
       ]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const ResultHero(icon: Icons.location_on_outlined, title: '', success: false),

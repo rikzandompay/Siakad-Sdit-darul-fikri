@@ -65,9 +65,9 @@ class ProfilScreen extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 16),
-        SecondaryButton(
+        AlertButton(
           label: 'Keluar',
-          color: AppColors.alpa,
+          icon: Icons.logout_rounded,
           onPressed: () async {
             final ok = await showDialog<bool>(
               context: context,

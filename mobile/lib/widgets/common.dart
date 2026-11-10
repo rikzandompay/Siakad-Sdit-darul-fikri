@@ -120,55 +120,286 @@ class AppCard extends StatelessWidget {
   }
 }
 
-class PrimaryButton extends StatelessWidget {
-  const PrimaryButton({super.key, required this.label, this.onPressed, this.loading = false, this.color});
+class _BaseButton extends StatelessWidget {
+  const _BaseButton({
+    required this.label,
+    required this.onPressed,
+    required this.bgColor,
+    required this.fgColor,
+    this.borderColor,
+    this.shadowColor,
+    this.icon,
+    this.loading = false,
+  });
 
   final String label;
   final VoidCallback? onPressed;
+  final Color bgColor;
+  final Color fgColor;
+  final Color? borderColor;
+  final Color? shadowColor;
+  final IconData? icon;
   final bool loading;
-  final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final disabled = onPressed == null || loading;
+    final effectiveBg = disabled ? bgColor.withValues(alpha: 0.35) : bgColor;
+    final effectiveFg = disabled ? fgColor.withValues(alpha: 0.45) : fgColor;
+    final effectiveBorder = borderColor != null
+        ? (disabled ? borderColor!.withValues(alpha: 0.35) : borderColor!)
+        : null;
+
+    final hasShadow = shadowColor != null && !disabled;
+
+    return Container(
       height: 48,
-      child: FilledButton(
-        onPressed: loading ? null : onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: color ?? AppColors.brand700,
-          disabledBackgroundColor: (color ?? AppColors.brand700).withValues(alpha: 0.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: AppText.label,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: hasShadow
+            ? [
+                BoxShadow(
+                  color: shadowColor!.withValues(alpha: 0.22),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: Material(
+        color: effectiveBg,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: disabled ? null : onPressed,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: effectiveBorder != null
+                  ? Border.all(color: effectiveBorder, width: 1.2)
+                  : null,
+            ),
+            alignment: Alignment.center,
+            child: loading
+                ? SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: effectiveFg,
+                    ),
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (icon != null) ...[
+                        Icon(icon, size: 18, color: effectiveFg),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(
+                        label,
+                        style: AppText.label.copyWith(
+                          color: effectiveFg,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+          ),
         ),
-        child: loading
-            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-            : Text(label, style: AppText.label.copyWith(color: Colors.white)),
       ),
     );
   }
 }
 
+/// Tombol Primary (Brand Blue) — untuk aksi utama pada halaman.
+class PrimaryButton extends StatelessWidget {
+  const PrimaryButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.loading = false,
+    this.color,
+    this.icon,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final bool loading;
+  final Color? color;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? AppColors.brand700;
+    return _BaseButton(
+      label: label,
+      onPressed: onPressed,
+      bgColor: c,
+      fgColor: Colors.white,
+      shadowColor: c,
+      icon: icon,
+      loading: loading,
+    );
+  }
+}
+
+/// Tombol Secondary (Outlined) — untuk aksi sekunder atau alternatif.
 class SecondaryButton extends StatelessWidget {
-  const SecondaryButton({super.key, required this.label, this.onPressed, this.color = AppColors.brand700});
+  const SecondaryButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.color = AppColors.brand700,
+    this.icon,
+    this.loading = false,
+  });
 
   final String label;
   final VoidCallback? onPressed;
   final Color color;
+  final IconData? icon;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
-    final c = onPressed == null ? color.withValues(alpha: 0.4) : color;
-    return SizedBox(
-      height: 48,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: c, width: 1.2),
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        child: Text(label, style: AppText.label.copyWith(color: c)),
-      ),
+    return _BaseButton(
+      label: label,
+      onPressed: onPressed,
+      bgColor: AppColors.surface,
+      fgColor: color,
+      borderColor: color,
+      icon: icon,
+      loading: loading,
+    );
+  }
+}
+
+/// Tombol Tertiary (Ghost / Text) — tanpa border dan background, untuk navigasi halus atau batal.
+class TertiaryButton extends StatelessWidget {
+  const TertiaryButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.color = AppColors.brand700,
+    this.icon,
+    this.loading = false,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final Color color;
+  final IconData? icon;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return _BaseButton(
+      label: label,
+      onPressed: onPressed,
+      bgColor: Colors.transparent,
+      fgColor: color,
+      icon: icon,
+      loading: loading,
+    );
+  }
+}
+
+/// Tombol Success (Hijau) — untuk aksi sukses, konfirmasi positif, atau absen masuk.
+class SuccessButton extends StatelessWidget {
+  const SuccessButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.loading = false,
+    this.icon,
+    this.color,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final bool loading;
+  final IconData? icon;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? AppColors.ok600;
+    return _BaseButton(
+      label: label,
+      onPressed: onPressed,
+      bgColor: c,
+      fgColor: Colors.white,
+      shadowColor: c,
+      icon: icon,
+      loading: loading,
+    );
+  }
+}
+
+/// Tombol Warning (Amber / Kuning-Oranye) — untuk aksi peringatan, tinjauan, atau aksi kedua.
+class WarningButton extends StatelessWidget {
+  const WarningButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.loading = false,
+    this.icon,
+    this.color,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final bool loading;
+  final IconData? icon;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? const Color(0xFFD97706);
+    return _BaseButton(
+      label: label,
+      onPressed: onPressed,
+      bgColor: c,
+      fgColor: Colors.white,
+      shadowColor: c,
+      icon: icon,
+      loading: loading,
+    );
+  }
+}
+
+/// Tombol Alert (Merah / Bahaya) — untuk aksi penolakan, pembatalan darurat, hapus, atau absen pulang.
+class AlertButton extends StatelessWidget {
+  const AlertButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.loading = false,
+    this.icon,
+    this.color,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final bool loading;
+  final IconData? icon;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? AppColors.alpa;
+    return _BaseButton(
+      label: label,
+      onPressed: onPressed,
+      bgColor: c,
+      fgColor: Colors.white,
+      shadowColor: c,
+      icon: icon,
+      loading: loading,
     );
   }
 }

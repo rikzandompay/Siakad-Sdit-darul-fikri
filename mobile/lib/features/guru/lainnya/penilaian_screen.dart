@@ -97,7 +97,7 @@ class _PenilaianScreenState extends State<PenilaianScreen> {
     return AppPage(
       title: 'Penilaian Tugas',
       subtitle: 'Input nilai PR / tugas siswa',
-      bottom: PrimaryButton(label: 'Simpan Nilai', loading: _simpan, onPressed: _simpanNilai),
+      bottom: SuccessButton(label: 'Simpan Nilai', icon: Icons.save_rounded, loading: _simpan, onPressed: _simpanNilai),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const SectionLabel('Tugas yang dinilai'),
         AppCard(

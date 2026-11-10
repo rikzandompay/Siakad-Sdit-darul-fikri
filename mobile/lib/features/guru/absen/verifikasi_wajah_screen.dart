@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/theme.dart';
 import '../../../widgets/common.dart';
 import '../../face/face_capture.dart';
 import '../../face/face_service.dart';
@@ -75,7 +76,7 @@ class _VerifikasiWajahScreenState extends State<VerifikasiWajahScreen> {
     return AppPage(
       title: 'Verifikasi Wajah',
       subtitle: 'Langkah 2 dari 2',
-      bottom: SecondaryButton(label: 'Batalkan', onPressed: () => context.pop()),
+      bottom: SecondaryButton(label: 'Batalkan', color: AppColors.inkMuted, onPressed: () => context.pop()),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (_error != null)
           Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(_error!, textAlign: TextAlign.center)),

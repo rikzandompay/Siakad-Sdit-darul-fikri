@@ -481,7 +481,7 @@ class _KoreksiGuruScreenState extends State<KoreksiGuruScreen> {
       subtitle: '30 hari terakhir',
       scroll: false,
       padding: EdgeInsets.zero,
-      bottom: PrimaryButton(label: 'Koreksi Absen', onPressed: _koreksi),
+      bottom: WarningButton(label: 'Koreksi Absen', icon: Icons.edit_note_rounded, onPressed: _koreksi),
       child: AsyncBody<Map<String, dynamic>>(
         key: _key,
         load: () => api.get('/admin/presensi-guru/${widget.guruId}'),
@@ -597,7 +597,7 @@ class _FormKoreksiState extends State<_FormKoreksi> {
             TextField(controller: _ket, maxLength: 200, decoration: const InputDecoration(labelText: 'Alasan koreksi', hintText: 'Wajib diisi, tercatat di rekap')),
             if (_error != null) Text(_error!, style: AppText.bodySmall.copyWith(color: AppColors.alpa)),
             const SizedBox(height: 8),
-            PrimaryButton(label: 'Simpan Koreksi', loading: _simpan, onPressed: _simpan ? null : _kirim),
+            SuccessButton(label: 'Simpan Koreksi', icon: Icons.save_rounded, loading: _simpan, onPressed: _simpan ? null : _kirim),
           ]),
         ),
       );

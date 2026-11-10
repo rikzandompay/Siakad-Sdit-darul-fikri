@@ -122,7 +122,7 @@ class _TugasScreenState extends State<TugasScreen> {
                       style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48), alignment: Alignment.centerLeft),
                     ),
                     const SizedBox(height: 14),
-                    PrimaryButton(label: 'Kirim Tugas ke Orang Tua', loading: _kirim, onPressed: _buat),
+                    PrimaryButton(label: 'Kirim Tugas ke Orang Tua', icon: Icons.send_rounded, loading: _kirim, onPressed: _buat),
                   ],
                 ]),
               ),
@@ -164,7 +164,7 @@ class _TugasCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text('${t['dinilai']}/${t['jumlah_siswa']} siswa dinilai', style: AppText.caption),
           const SizedBox(height: 12),
-          SecondaryButton(label: 'Beri Nilai', onPressed: () async {
+          WarningButton(label: 'Beri Nilai', icon: Icons.rate_review_outlined, onPressed: () async {
             await context.push('/guru/tugas/${t['id']}');
             onReturn();
           }),
