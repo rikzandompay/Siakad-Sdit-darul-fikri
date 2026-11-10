@@ -420,6 +420,43 @@ class GuruApiTest extends TestCase
         $this->assertSame($this->guruLain->id, WajahGuru::where('guru_id', $this->guru->id)->first()->mirip_guru_id);
     }
 
+    public function test_absen_otomatis_mendaftar_dari_foto_profil(): void
+    {
+        $this->guru->update(['foto_profil' => 'foto_guru/profil_saya.jpg']);
+        $this->assertNull(WajahGuru::where('guru_id', $this->guru->id)->first());
+
+        $payload = $this->lokasi() + ['foto_embedding' => $this->wajahDari(0)];
+        $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/absen/masuk', $payload)->assertOk();
+
+        $this->assertNotNull(WajahGuru::where('guru_id', $this->guru->id)->first());
+    }
+
+    public function test_absen_ditolak_bila_wajah_kembar_selisih_terlalu_tipis(): void
+    {
+        WajahGuru::create(['guru_id' => $this->guru->id, 'template' => json_encode($this->wajahDari(0)), 'didaftarkan_pada' => now(), 'mirip_guru_id' => $this->guruLain->id]);
+        WajahGuru::create(['guru_id' => $this->guruLain->id, 'template' => json_encode($this->wajahDari(0.04)), 'didaftarkan_pada' => now(), 'mirip_guru_id' => $this->guru->id]);
+
+        $kameraKembar = $this->wajahDari(0.01);
+        $payload = ['latitude' => self::LAT + 0.00038, 'longitude' => self::LNG, 'akurasi' => 8, 'mock' => false, 'embedding' => $kameraKembar, 'liveness' => true];
+
+        $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/absen/masuk', $payload)
+            ->assertStatus(422)
+            ->assertJsonPath('kode', 'wajah_kembar_terdeteksi');
+    }
+
+    public function test_absen_ditolak_bila_skor_tidak_mencapai_ambang_kembar(): void
+    {
+        WajahGuru::create(['guru_id' => $this->guru->id, 'template' => json_encode($this->wajahDari(0)), 'didaftarkan_pada' => now(), 'mirip_guru_id' => $this->guruLain->id]);
+        WajahGuru::create(['guru_id' => $this->guruLain->id, 'template' => json_encode(array_map(fn ($i) => cos($i * 3), range(1, 192))), 'didaftarkan_pada' => now(), 'mirip_guru_id' => $this->guru->id]);
+
+        $derau = $this->wajahDari(0.95);
+        $payload = ['latitude' => self::LAT + 0.00038, 'longitude' => self::LNG, 'akurasi' => 8, 'mock' => false, 'embedding' => $derau, 'liveness' => true];
+
+        $res = $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/absen/masuk', $payload);
+        $res->assertStatus(422)->assertJsonPath('kode', 'wajah_tidak_cocok');
+        $this->assertStringContainsString('kembar', $res->json('message'));
+    }
+
     public function test_ubah_sandi_guru(): void
     {
         $h = $this->tokenGuru();

@@ -29,82 +29,77 @@
 
 <!-- Summary Cards (matching screenshot) -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-    <div class="p-5 rounded-xl border border-blue-200/80 shadow-sm hover:shadow-md transition-all duration-200"
-        style="background: linear-gradient(180deg, #ffffff 0%, #aadaf5 100%);">
+    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-green-100/80 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
                 <span class="material-symbols-outlined text-green-700" style="font-variation-settings: 'FILL' 1;">check_circle</span>
             </div>
-            <span class="text-sm font-bold text-green-800">Hadir</span>
+            <span class="text-sm font-bold text-green-700">Hadir</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $hadirCount }}</p>
-        <p class="text-xs text-gray-700 mt-1 font-medium">Siswa telah terdata hadir</p>
+        <p class="text-xs text-gray-600 mt-1">Siswa telah terdata hadir</p>
     </div>
-    <div class="p-5 rounded-xl border border-blue-200/80 shadow-sm hover:shadow-md transition-all duration-200"
-        style="background: linear-gradient(180deg, #ffffff 0%, #aadaf5 100%);">
+    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-purple-100/80 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
                 <span class="material-symbols-outlined text-purple-700" style="font-variation-settings: 'FILL' 1;">medical_services</span>
             </div>
-            <span class="text-sm font-bold text-purple-800">Sakit</span>
+            <span class="text-sm font-bold text-purple-700">Sakit</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $sakitCount }}</p>
-        <p class="text-xs text-gray-700 mt-1 font-medium">Dalam pantauan kesehatan</p>
+        <p class="text-xs text-gray-600 mt-1">Dalam pantauan kesehatan</p>
     </div>
-    <div class="p-5 rounded-xl border border-blue-200/80 shadow-sm hover:shadow-md transition-all duration-200"
-        style="background: linear-gradient(180deg, #ffffff 0%, #aadaf5 100%);">
+    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-amber-100/80 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
                 <span class="material-symbols-outlined text-amber-700" style="font-variation-settings: 'FILL' 1;">mail</span>
             </div>
-            <span class="text-sm font-bold text-amber-800">Izin</span>
+            <span class="text-sm font-bold text-amber-700">Izin</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $izinCount }}</p>
-        <p class="text-xs text-gray-700 mt-1 font-medium">Disetujui pihak sekolah</p>
+        <p class="text-xs text-gray-600 mt-1">Disetujui pihak sekolah</p>
     </div>
-    <div class="p-5 rounded-xl border border-blue-200/80 shadow-sm hover:shadow-md transition-all duration-200"
-        style="background: linear-gradient(180deg, #ffffff 0%, #aadaf5 100%);">
+    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-red-100/80 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
                 <span class="material-symbols-outlined text-red-700" style="font-variation-settings: 'FILL' 1;">cancel</span>
             </div>
-            <span class="text-sm font-bold text-red-800">Alpa</span>
+            <span class="text-sm font-bold text-red-700">Alpa</span>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ $alpaCount }}</p>
-        <p class="text-xs text-gray-700 mt-1 font-medium">Tanpa keterangan valid</p>
+        <p class="text-xs text-gray-600 mt-1">Tanpa keterangan valid</p>
     </div>
 </div>
 
 <!-- Filter Bar: Pilih Kelas, Tanggal, Mata Pelajaran (auto-filter by day) -->
-<div class="p-4 rounded-xl border border-blue-200/80 shadow-sm"
-    style="background: linear-gradient(180deg, #ffffff 0%, #aadaf5 100%);">
+<div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
     <form method="GET" action="{{ route('presensi.show', $kelas->id) }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end" id="filterForm">
         <div>
-            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1.5">Pilih Kelas</label>
-            <select onchange="window.location.href='/presensi/'+this.value+'?tanggal={{ $tanggal }}'" class="w-full bg-white/90 border border-blue-200 rounded-lg text-sm h-10 px-3 focus:ring-blue-500 focus:border-blue-400">
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Pilih Kelas</label>
+            <select onchange="window.location.href='/presensi/'+this.value+'?tanggal={{ $tanggal }}'" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-blue-500 focus:border-blue-200">
                 @foreach($kelasList as $k)
                     <option value="{{ $k->id }}" {{ $kelas->id == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
                 @endforeach
             </select>
         </div>
         <div>
-            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1.5">Tanggal</label>
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Tanggal</label>
             <input name="tanggal" id="inputTanggal" type="date" value="{{ $tanggal }}" onchange="filterJadwalByDay(this.value)"
-                class="w-full bg-white/90 border border-blue-200 rounded-lg text-sm h-10 px-3 focus:ring-blue-500 focus:border-blue-400" />
+                class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-blue-500 focus:border-blue-200" />
         </div>
         <div>
-            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1.5">Mata Pelajaran</label>
-            <select name="jadwal_id" id="selectJadwal" class="w-full bg-white/90 border border-blue-200 rounded-lg text-sm h-10 px-3 focus:ring-blue-500 focus:border-blue-400">
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Mata Pelajaran</label>
+            <select name="jadwal_id" id="selectJadwal" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-blue-500 focus:border-blue-200">
                 @foreach($jadwalList as $j)
                     <option value="{{ $j->id }}" data-hari="{{ $j->hari }}" {{ $jadwalId == $j->id ? 'selected' : '' }}>
                         {{ $j->mataPelajaran->nama_pelajaran }} ({{ $j->hari }})
                     </option>
                 @endforeach
             </select>
-            <p id="noJadwalMsg" class="text-xs text-amber-700 mt-1 hidden font-semibold">⚠ Tidak ada jadwal pada hari ini</p>
+            <p id="noJadwalMsg" class="text-xs text-amber-600 mt-1 hidden">⚠ Tidak ada jadwal pada hari ini</p>
         </div>
         <div>
-            <button type="submit" class="btn btn-secondary w-full h-10 font-bold px-6 rounded-lg text-sm flex items-center justify-center gap-2 shadow-xs">
+            <button type="submit" class="btn btn-secondary w-full h-10 font-bold px-6 rounded-lg text-sm flex items-center justify-center gap-2">
                 <span class="material-symbols-outlined text-sm">filter_list</span>
                 Filter Data
             </button>
@@ -119,16 +114,15 @@
     <input type="hidden" name="jadwal_id" value="{{ $jadwalId }}">
     <input type="hidden" name="tanggal" value="{{ $tanggal }}">
 
-    <div class="rounded-xl border border-blue-200/80 shadow-sm overflow-hidden"
-        style="background: linear-gradient(180deg, #ffffff 0%, #aadaf5 100%);">
-        <div class="px-6 py-4 border-b border-blue-100/80 flex justify-between items-center bg-white/70">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
             <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-blue-700">list_alt</span>
+                <span class="material-symbols-outlined text-blue-600">list_alt</span>
                 <h3 class="font-bold text-gray-900">Daftar Kehadiran Siswa</h3>
             </div>
-            <span class="text-sm text-gray-700 font-medium">{{ $siswa->count() }} Siswa</span>
+            <span class="text-sm text-gray-500">{{ $siswa->count() }} Siswa</span>
         </div>
-        <div class="overflow-x-auto bg-white/90">
+        <div class="overflow-x-auto">
             <table class="w-full text-left">
                 <thead class="bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wider font-bold">
                     <tr>
@@ -191,17 +185,15 @@
     </div>
 </form>
 @elseif($siswa->count() == 0)
-<div class="rounded-xl border border-blue-200/80 shadow-sm p-12 text-center text-gray-500"
-    style="background: linear-gradient(180deg, #ffffff 0%, #aadaf5 100%);">
-    <span class="material-symbols-outlined text-5xl mb-3 text-blue-300">person_off</span>
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center text-gray-400">
+    <span class="material-symbols-outlined text-5xl mb-3">person_off</span>
     <p class="font-medium">Tidak ada siswa aktif di kelas ini</p>
 </div>
 @else
-<div class="rounded-xl border border-blue-200/80 shadow-sm p-12 text-center text-gray-500"
-    style="background: linear-gradient(180deg, #ffffff 0%, #aadaf5 100%);">
-    <span class="material-symbols-outlined text-5xl mb-3 text-blue-300">calendar_today</span>
-    <p class="font-medium text-gray-800">Silakan pilih mata pelajaran terlebih dahulu</p>
-    <p class="text-sm mt-1 text-gray-600">Pilih jadwal pelajaran di filter di atas</p>
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center text-gray-400">
+    <span class="material-symbols-outlined text-5xl mb-3">calendar_today</span>
+    <p class="font-medium">Silakan pilih mata pelajaran terlebih dahulu</p>
+    <p class="text-sm mt-1">Pilih jadwal pelajaran di filter di atas</p>
 </div>
 @endif
 @endsection

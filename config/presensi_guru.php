@@ -14,6 +14,15 @@ return [
     // Kecocokan wajah minimal (persen) yang diterima server dari aplikasi.
     'min_skor_wajah' => (float) env('GURU_MIN_SKOR_WAJAH', 85),
 
+    // Kecocokan minimal khusus untuk guru yang memiliki profil kembar atau serupa (persen).
+    'min_skor_kembar' => (float) env('GURU_MIN_SKOR_KEMBAR', 90),
+
+    // Selisih minimal skor cosine antara diri sendiri dan guru lain yang mirip (pencegahan joki kembar).
+    'min_selisih_kembar' => (float) env('GURU_MIN_SELISIH_KEMBAR', 0.03),
+
+    // Ambang batas persentase kemiripan untuk mendeteksi profil kembar/serupa di sistem.
+    'ambang_kembar_deteksi' => (float) env('GURU_AMBANG_KEMBAR_DETEKSI', 75),
+
     // Kecocokan minimal (persen) wajah di kamera dengan foto profil saat daftar wajah.
     // Lebih rendah dari absen harian karena foto profil berbeda cahaya, sudut, dan waktu.
     'min_skor_foto' => (float) env('GURU_MIN_SKOR_FOTO', 60),

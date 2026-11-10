@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/session.dart';
 import '../../../core/theme.dart';
 import '../../../widgets/common.dart';
 import '../../face/face_capture.dart';
@@ -29,15 +30,25 @@ class _VerifikasiWajahScreenState extends State<VerifikasiWajahScreen> {
 
   Future<void> _selesai(List<String> foto) async {
     final api = context.read<ApiClient>();
+    final fotoUrl = context.read<Session>().akun['foto_url'] as String?;
     try {
       final emb = await FaceService.instance.embeddingDariFoto(foto.first);
       _percobaan++;
+
+      List<double>? fotoEmb;
+      if (fotoUrl != null) {
+        try {
+          fotoEmb = await FaceService.instance.embeddingDariFotoProfil(await api.bytes(fotoUrl));
+        } catch (_) {}
+      }
+
       final res = await api.post('/guru/absen/${widget.args['aksi']}', {
         'latitude': widget.args['latitude'],
         'longitude': widget.args['longitude'],
         'akurasi': widget.args['akurasi'],
         'mock': widget.args['mock'] ?? false,
         'embedding': emb,
+        'foto_embedding': ?fotoEmb,
         'liveness': true,
       });
       _keHasil({'jenis': 'berhasil', 'hari_ini': res['hari_ini'], 'skor_wajah': res['skor_wajah'], 'jarak_meter': widget.args['jarak_meter']});

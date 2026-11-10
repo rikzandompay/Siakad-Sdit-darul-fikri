@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Guru;
 use App\Http\Controllers\Controller;
 use App\Models\PengaturanSekolah;
 use App\Models\PresensiGuru;
+use App\Models\User;
 use App\Models\WajahGuru;
 use App\Support\Sekolah;
 use Carbon\Carbon;
@@ -159,10 +160,11 @@ class AbsenController extends Controller
     {
         $guru = $request->user();
         $data = $request->validate([
-            'template' => 'required|array|min:64|max:1024',
+            'template' => 'nullable|array|min:64|max:1024',
             'template.*' => 'numeric|between:-100,100',
             'foto_embedding' => 'required|array|min:64|max:1024',
             'foto_embedding.*' => 'numeric|between:-100,100',
+            'dari_foto_profil' => 'nullable|boolean',
         ]);
 
         if (WajahGuru::where('guru_id', $guru->id)->exists()) {
@@ -174,31 +176,38 @@ class AbsenController extends Controller
                 : 'Unggah foto profil yang jelas menampilkan wajah Anda, lalu tunggu persetujuan kepala sekolah.');
         }
 
-        $template = array_map('floatval', $data['template']);
         $fotoEmbedding = array_map('floatval', $data['foto_embedding']);
-        $skorFoto = WajahGuru::skor($template, $fotoEmbedding);
+        $template = isset($data['template']) ? array_map('floatval', $data['template']) : $fotoEmbedding;
+
         $min = (float) config('presensi_guru.min_skor_foto');
-        if (WajahGuru::identik($template, $fotoEmbedding)) {
-            return $this->gagal('wajah_tidak_cocok_foto', 'Data wajah tidak valid. Ulangi dengan kamera.', 422, ['skor_foto' => 0.0, 'min_skor_foto' => $min]);
-        }
-        if ($skorFoto < $min) {
-            return $this->gagal('wajah_tidak_cocok_foto', "Wajah di kamera tidak cocok dengan foto profil ({$skorFoto}%, minimal {$min}%). Pastikan wajah terang dan menghadap kamera.", 422, ['skor_foto' => $skorFoto, 'min_skor_foto' => $min]);
+        if (! $request->boolean('dari_foto_profil') && isset($data['template'])) {
+            if (WajahGuru::identik($template, $fotoEmbedding)) {
+                return $this->gagal('wajah_tidak_cocok_foto', 'Data wajah tidak valid. Ulangi dengan kamera.', 422, ['skor_foto' => 0.0, 'min_skor_foto' => $min]);
+            }
+            $skorFoto = WajahGuru::skor($template, $fotoEmbedding);
+            if ($skorFoto < $min) {
+                return $this->gagal('wajah_tidak_cocok_foto', "Wajah di kamera tidak cocok dengan foto profil ({$skorFoto}%, minimal {$min}%). Pastikan wajah terang dan menghadap kamera.", 422, ['skor_foto' => $skorFoto, 'min_skor_foto' => $min]);
+            }
+        } else {
+            $skorFoto = 100.0;
         }
 
+        // Acuan presensi wajah memakai embedding dari gambar profil akun
         WajahGuru::create([
             'guru_id' => $guru->id,
-            'template' => json_encode($template),
+            'template' => json_encode($fotoEmbedding),
             'didaftarkan_pada' => now(),
             'skor_foto' => $skorFoto,
         ]);
 
-        // Wajah yang sangat mirip guru lain (mis. kembar) tetap terdaftar, tetapi diketahui admin.
-        $mirip = WajahGuru::palingMirip($template, $guru->id);
-        if ($mirip && $mirip['skor'] >= (float) config('presensi_guru.min_skor_wajah')) {
+        // Wajah yang sangat mirip guru lain (mis. kembar) ditandai agar diketahui admin
+        $ambangDeteksi = (float) config('presensi_guru.ambang_kembar_deteksi', 75);
+        $mirip = WajahGuru::palingMirip($fotoEmbedding, $guru->id);
+        if ($mirip && $mirip['skor'] >= $ambangDeteksi) {
             WajahGuru::tandaiMirip($guru->id, $mirip['guru_id'], $mirip['skor']);
         }
 
-        return response()->json(['message' => 'Wajah berhasil didaftarkan.', 'skor_foto' => $skorFoto], 201);
+        return response()->json(['message' => 'Wajah dari gambar profil akun berhasil didaftarkan.', 'skor_foto' => $skorFoto], 201);
     }
 
     // ── Bantuan ────────────────────────────────────────────────────
@@ -232,6 +241,8 @@ class AbsenController extends Controller
             'mock' => 'required|declined',
             'embedding' => 'required|array|min:64|max:1024',
             'embedding.*' => 'numeric|between:-100,100',
+            'foto_embedding' => 'nullable|array|min:64|max:1024',
+            'foto_embedding.*' => 'numeric|between:-100,100',
             'liveness' => 'required|accepted',
         ];
     }
@@ -264,12 +275,30 @@ class AbsenController extends Controller
         }
 
         $wajah = WajahGuru::where('guru_id', $guruId)->first();
+        if (! $wajah && ! empty($data['foto_embedding'])) {
+            $guru = User::find($guruId);
+            if ($guru?->foto_profil) {
+                $fotoEmb = array_map('floatval', $data['foto_embedding']);
+                $wajah = WajahGuru::create([
+                    'guru_id' => $guruId,
+                    'template' => json_encode($fotoEmb),
+                    'didaftarkan_pada' => now(),
+                    'skor_foto' => 100.0,
+                ]);
+                $ambangDeteksi = (float) config('presensi_guru.ambang_kembar_deteksi', 75);
+                $m = WajahGuru::palingMirip($fotoEmb, $guruId);
+                if ($m && $m['skor'] >= $ambangDeteksi) {
+                    WajahGuru::tandaiMirip($guruId, $m['guru_id'], $m['skor']);
+                }
+            }
+        }
         if (! $wajah) {
-            return [$lokasi, null, $this->gagal('wajah_belum_terdaftar', 'Wajah belum terdaftar. Daftarkan wajah terlebih dahulu.')];
+            return [$lokasi, null, $this->gagal('wajah_belum_terdaftar', 'Wajah belum terdaftar. Daftarkan wajah atau foto profil terlebih dahulu.')];
         }
 
         $template = $wajah->vektor();
         $embedding = array_map('floatval', $data['embedding']);
+        $cosSelf = WajahGuru::cosinus($embedding, $template);
         $skor = WajahGuru::skor($embedding, $template);
         $min = (float) config('presensi_guru.min_skor_wajah');
 
@@ -277,17 +306,45 @@ class AbsenController extends Controller
         if (WajahGuru::identik($embedding, $template)) {
             return [$lokasi, null, $this->gagal('wajah_tidak_cocok', 'Data wajah tidak valid. Ulangi verifikasi dengan kamera.', 422, ['skor_wajah' => 0.0, 'min_skor_wajah' => $min])];
         }
-        if ($skor < $min) {
-            return [$lokasi, null, $this->gagal('wajah_tidak_cocok', "Kecocokan wajah {$skor}% (minimal {$min}%).", 422, ['skor_wajah' => $skor, 'min_skor_wajah' => $min])];
+
+        // Perketat deteksi dan verifikasi jika ada orang kembar / profil serupa
+        $ambangDeteksi = (float) config('presensi_guru.ambang_kembar_deteksi', 75);
+        $minSelisihKembar = (float) config('presensi_guru.min_selisih_kembar', 0.03);
+        $minSkorKembar = (float) config('presensi_guru.min_skor_kembar', 90);
+
+        $mirip = WajahGuru::palingMirip($embedding, $guruId);
+        $adaKembaran = $wajah->mirip_guru_id !== null || ($mirip && $mirip['skor'] >= $ambangDeteksi);
+
+        if ($mirip && $mirip['skor'] >= $ambangDeteksi) {
+            WajahGuru::tandaiMirip($guruId, $mirip['guru_id'], $mirip['skor']);
         }
 
-        // Bandingkan dengan semua guru: wajah yang lebih mirip guru lain ditolak walau lolos ambang.
-        $mirip = WajahGuru::palingMirip($embedding, $guruId);
-        if ($mirip && $mirip['skor'] >= $min) {
-            WajahGuru::tandaiMirip($guruId, $mirip['guru_id'], $mirip['skor']);
-            if ($mirip['cosinus'] > WajahGuru::cosinus($embedding, $template)) {
-                return [$lokasi, null, $this->gagal('wajah_mirip_guru_lain', 'Wajah ini lebih mirip dengan data guru lain. Absen ditolak; hubungi Tata Usaha untuk absen manual.')];
+        // 1. Wajah di kamera lebih mirip dengan guru lain
+        if ($mirip && $mirip['cosinus'] >= $cosSelf) {
+            return [$lokasi, null, $this->gagal('wajah_mirip_guru_lain', 'Wajah ini lebih mirip dengan data guru lain (indikasi orang kembar/serupa). Absen ditolak; hubungi Tata Usaha untuk verifikasi manual.', 422, [
+                'skor_wajah' => $skor,
+                'min_skor_wajah' => $min,
+            ])];
+        }
+
+        // 2. Jika akun terindikasi kembar, selisih kemiripan harus jelas (tidak boleh ambigu)
+        if ($adaKembaran && $mirip) {
+            $selisih = $cosSelf - $mirip['cosinus'];
+            if ($selisih < $minSelisihKembar) {
+                return [$lokasi, null, $this->gagal('wajah_kembar_terdeteksi', 'Terdeteksi kemiripan sangat tinggi dengan profil guru kembar/serupa. Perbedaan kemiripan wajah terlalu tipis untuk memastikan identitas. Pastikan wajah tegak lurus, lepas kacamata/masker, dan pencahayaan terang.', 422, [
+                    'skor_wajah' => $skor,
+                    'selisih' => round($selisih * 100, 1),
+                ])];
             }
+        }
+
+        // 3. Ambang batas kecocokan: lebih ketat untuk akun yang terindikasi kembar
+        $minDiperlukan = $adaKembaran ? max($min, $minSkorKembar) : $min;
+        if ($skor < $minDiperlukan) {
+            $pesan = $adaKembaran
+                ? "Akun Anda memiliki profil guru kembar/serupa di sistem. Diperlukan kecocokan minimal {$minDiperlukan}% (hasil verifikasi: {$skor}%). Pastikan pencahayaan cukup dan wajah menghadap kamera."
+                : "Kecocokan wajah {$skor}% (minimal {$minDiperlukan}%).";
+            return [$lokasi, null, $this->gagal('wajah_tidak_cocok', $pesan, 422, ['skor_wajah' => $skor, 'min_skor_wajah' => $minDiperlukan])];
         }
 
         return [$lokasi, $skor, null];

@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
 import '../../../core/format.dart';
+import '../../../core/session.dart';
 import '../../../core/theme.dart';
 import '../../../widgets/common.dart';
+import '../../face/face_service.dart';
 
 /// "Presensi Guru": status masuk/pulang hari ini dan syarat absen.
 class AbsenScreen extends StatefulWidget {
@@ -38,12 +40,34 @@ class _AbsenScreenState extends State<AbsenScreen> {
   Future<void> _mulai(String aksi) async {
     final d = _d!;
     if (d['wajah_terdaftar'] != true) {
-      final ok = await context.push<bool>('/guru/absen/daftar-wajah');
-      await _load();
-      if (ok != true || !mounted) return;
+      final akun = context.read<Session>().akun;
+      final fotoUrl = akun['foto_url'] as String?;
+      var terdaftarOtomatis = false;
+      if (fotoUrl != null) {
+        try {
+          final api = context.read<ApiClient>();
+          final svc = FaceService.instance;
+          final fotoBytes = await api.bytes(fotoUrl);
+          final fotoEmbedding = await svc.embeddingDariFotoProfil(fotoBytes);
+          await api.post('/guru/wajah', {
+            'foto_embedding': fotoEmbedding,
+            'dari_foto_profil': true,
+          });
+          terdaftarOtomatis = true;
+          await _load();
+        } catch (_) {}
+      }
+
+      if (!terdaftarOtomatis) {
+        if (!mounted) return;
+        final ok = await context.push<bool>('/guru/absen/daftar-wajah');
+        await _load();
+        if (ok != true || !mounted) return;
+      }
     }
+    if (!mounted) return;
     await context.push('/guru/absen/lokasi', extra: aksi);
-    _load();
+    if (mounted) _load();
   }
 
   @override

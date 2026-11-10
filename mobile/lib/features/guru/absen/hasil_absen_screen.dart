@@ -78,14 +78,21 @@ class HasilAbsenScreen extends StatelessWidget {
       'di_luar_area' => 'Lokasi tidak sesuai',
       'sudah_absen' => 'Sudah absen',
       'lewat_batas' => 'Absen masuk ditutup',
+      'wajah_mirip_guru_lain' => 'Wajah mirip guru lain',
+      'wajah_kembar_terdeteksi' => 'Indikasi wajah kembar',
       _ => 'Presensi belum tercatat',
+    };
+    final icon = switch (jenis) {
+      'di_luar_area' => Icons.location_off_outlined,
+      'wajah_mirip_guru_lain' || 'wajah_kembar_terdeteksi' => Icons.people_outline,
+      _ => Icons.error_outline,
     };
     return AppPage(
       title: 'Presensi Gagal',
       subtitle: judul,
       bottom: SecondaryButton(label: 'Kembali', color: AppColors.inkMuted, onPressed: () => context.pop()),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        ResultHero(icon: jenis == 'di_luar_area' ? Icons.location_off_outlined : Icons.error_outline, title: '', success: false),
+        ResultHero(icon: icon, title: '', success: false),
         Text(hasil['pesan'] ?? 'Terjadi kesalahan.', style: AppText.body, textAlign: TextAlign.center),
       ]),
     );
