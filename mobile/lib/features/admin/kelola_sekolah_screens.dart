@@ -108,6 +108,8 @@ class _FormLokasiState extends State<_FormLokasi> {
   late final _lng = TextEditingController(text: widget.awal['longitude']?.toString() ?? '');
   late double _radius = ((widget.awal['radius_meter'] as num?) ?? 100).toDouble().clamp(20, 500);
   late String _jam = widget.awal['jam_masuk'] ?? '07:00';
+  late String _jamPulang = widget.awal['jam_pulang'] ?? '16:00';
+  late String? _batasMasuk = widget.awal['batas_masuk'] as String?;
   bool _cari = false;
   bool _simpan = false;
   String? _error;
@@ -152,6 +154,8 @@ class _FormLokasiState extends State<_FormLokasi> {
         'longitude': _lng.text.trim().isEmpty ? null : double.tryParse(_lng.text.trim().replaceAll(',', '.')),
         'radius_meter': _radius.round(),
         'jam_masuk': _jam,
+        'batas_masuk': _batasMasuk,
+        'jam_pulang': _jamPulang,
       });
       if (!mounted) return;
       showMessage(context, 'Pengaturan disimpan.');
@@ -184,7 +188,7 @@ class _FormLokasiState extends State<_FormLokasi> {
         Slider(value: _radius, min: 20, max: 500, divisions: 48, label: '${_radius.round()} m', onChanged: (v) => setState(() => _radius = v)),
         const SizedBox(height: 4),
         Row(children: [
-          Expanded(child: Text('Batas jam masuk guru', style: AppText.label)),
+          Expanded(child: Text('Jam masuk guru', style: AppText.label)),
           OutlinedButton(
             onPressed: () async {
               final p = _jam.split(':');
@@ -193,6 +197,37 @@ class _FormLokasiState extends State<_FormLokasi> {
             },
             style: OutlinedButton.styleFrom(minimumSize: const Size(88, 48)),
             child: Text(_jam),
+          ),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(child: Text('Jam pulang guru', style: AppText.label)),
+          OutlinedButton(
+            onPressed: () async {
+              final p = _jamPulang.split(':');
+              final t = await showTimePicker(context: context, initialTime: TimeOfDay(hour: int.tryParse(p[0]) ?? 16, minute: int.tryParse(p[1]) ?? 0), builder: (c, w) => MediaQuery(data: MediaQuery.of(c).copyWith(alwaysUse24HourFormat: true), child: w!));
+              if (t != null) setState(() => _jamPulang = _jam2(t));
+            },
+            style: OutlinedButton.styleFrom(minimumSize: const Size(88, 48)),
+            child: Text(_jamPulang),
+          ),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Batas akhir absen masuk', style: AppText.label),
+              Text('Absen masuk ditutup setelah jam ini (opsional)', style: AppText.caption.copyWith(color: AppColors.inkMuted, fontSize: 11)),
+            ]),
+          ),
+          OutlinedButton(
+            onPressed: () async {
+              final p = (_batasMasuk ?? '18:00').split(':');
+              final t = await showTimePicker(context: context, initialTime: TimeOfDay(hour: int.tryParse(p[0]) ?? 18, minute: int.tryParse(p[1]) ?? 0), builder: (c, w) => MediaQuery(data: MediaQuery.of(c).copyWith(alwaysUse24HourFormat: true), child: w!));
+              if (t != null) setState(() => _batasMasuk = _jam2(t));
+            },
+            style: OutlinedButton.styleFrom(minimumSize: const Size(88, 48)),
+            child: Text(_batasMasuk ?? 'Pilih jam'),
           ),
         ]),
         if (_error != null) ...[const SizedBox(height: 8), Text(_error!, style: AppText.bodySmall.copyWith(color: AppColors.alpa))],
