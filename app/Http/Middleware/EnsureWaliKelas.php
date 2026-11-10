@@ -20,7 +20,8 @@ class EnsureWaliKelas
         $user = $request->user();
         $kelasId = $this->kelasId($request);
 
-        $boleh = $user && ($user->isAdmin() || ($kelasId && Kelas::whereKey($kelasId)->where('wali_kelas_id', $user->id)->exists()));
+        // Hanya wali kelas dari kelas tersebut (admin dan guru pengajar mapel tidak ikut mengisi).
+        $boleh = $user && $kelasId && Kelas::whereKey($kelasId)->where('wali_kelas_id', $user->id)->exists();
 
         if (! $boleh) {
             $pesan = 'Presensi kelas hanya dapat diisi oleh wali kelas.';

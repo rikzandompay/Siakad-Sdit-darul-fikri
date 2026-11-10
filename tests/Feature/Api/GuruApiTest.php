@@ -13,8 +13,13 @@ use App\Models\PresensiSholat;
 use App\Models\Siswa;
 use App\Models\User;
 use App\Models\WajahGuru;
+use App\Notifications\FotoProfilDiajukan;
+use App\Notifications\FotoProfilDitinjau;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class GuruApiTest extends TestCase
@@ -180,18 +185,17 @@ class GuruApiTest extends TestCase
             ->assertStatus(403);
     }
 
-    public function test_admin_kepala_sekolah_punya_akses_penuh_ke_semua_kelas_dan_jadwal(): void
+    public function test_admin_kepala_sekolah_tidak_ikut_mengisi_presensi_kelas_dan_sholat(): void
     {
         $sinta = User::create(['name' => 'kepsek', 'nama_lengkap' => 'Dewi Kepala Sekolah', 'username' => 'kepsek', 'email' => 'k@s.id', 'password' => 'Rahasia123', 'status' => 'Aktif', 'jenis_kelamin' => 'P']);
         $h = $this->tokenGuru($sinta);
 
-        // Sinta tidak mengajar apa pun, tetapi admin melihat semua kelas.
-        $this->withHeaders($h)->getJson('/api/v1/guru/presensi/kelas')->assertOk()->assertJsonCount(2, 'data');
-        $this->withHeaders($h)->getJson('/api/v1/guru/presensi/kelas/'.$this->kelas->id.'/jadwal')->assertOk()
-            ->assertJsonPath('semua_guru', true)->assertJsonPath('data.0.guru', 'Ust. Ahmad Fauzi, S.Pd.');
-        $this->withHeaders($h)->postJson('/api/v1/guru/presensi/jadwal/'.$this->jadwal->id, ['tanggal' => '2026-11-09', 'presensi' => [['siswa_id' => $this->aisyah->id, 'status' => 'H']]])->assertOk();
-        $this->withHeaders($h)->getJson('/api/v1/guru/sholat/kelas')->assertOk()->assertJsonCount(2, 'data');
-        $this->withHeaders($h)->postJson('/api/v1/guru/sholat/kelas/'.$this->kelas->id.'/scan', ['jenis' => 'Dzuhur', 'qr' => $this->aisyah->qr_payload])->assertOk();
+        // Presensi hanya untuk wali kelas: admin yang bukan wali tidak melihat kelas input dan tidak bisa mengisi.
+        $this->withHeaders($h)->getJson('/api/v1/guru/presensi/kelas')->assertOk()->assertJsonCount(0, 'data');
+        $this->withHeaders($h)->getJson('/api/v1/guru/presensi/kelas/'.$this->kelas->id.'/jadwal')->assertStatus(403);
+        $this->withHeaders($h)->postJson('/api/v1/guru/presensi/jadwal/'.$this->jadwal->id, ['tanggal' => '2026-11-09', 'presensi' => [['siswa_id' => $this->aisyah->id, 'status' => 'H']]])->assertStatus(403);
+        $this->withHeaders($h)->getJson('/api/v1/guru/sholat/kelas')->assertOk()->assertJsonCount(0, 'data');
+        $this->withHeaders($h)->postJson('/api/v1/guru/sholat/kelas/'.$this->kelas->id.'/scan', ['jenis' => 'Dzuhur', 'qr' => $this->aisyah->qr_payload])->assertStatus(403);
 
         // Guru biasa tetap terbatas.
         // Guru biasa hanya melihat kelas yang dia walikan (Kelas 4B), bukan kelas 5A.
@@ -426,23 +430,23 @@ class GuruApiTest extends TestCase
 
     public function test_foto_guru_menunggu_persetujuan_admin(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('public');
-        \Illuminate\Support\Facades\Storage::fake('local');
-        \Illuminate\Support\Facades\Notification::fake();
+        Storage::fake('public');
+        Storage::fake('local');
+        Notification::fake();
         $admin = User::create(['name' => 'kepsek', 'nama_lengkap' => 'Kepala Sekolah', 'username' => 'kepsek', 'email' => 'k@s.id', 'password' => 'Rahasia123', 'status' => 'Aktif']);
         $this->daftarkanWajah();
         $h = $this->tokenGuru();
 
-        $res = $this->withHeaders($h)->post('/api/v1/guru/profil/foto', ['foto' => \Illuminate\Http\UploadedFile::fake()->image('profil.jpg', 200, 200)]);
+        $res = $this->withHeaders($h)->post('/api/v1/guru/profil/foto', ['foto' => UploadedFile::fake()->image('profil.jpg', 200, 200)]);
         $res->assertOk()->assertJsonPath('menunggu', true)->assertJsonPath('foto_url', null);
 
         // Belum aktif: foto profil dan data wajah tidak berubah.
         $guru = $this->guru->fresh();
         $this->assertNull($guru->foto_profil);
         $pengajuan = $guru->foto_pengajuan;
-        \Illuminate\Support\Facades\Storage::disk('local')->assertExists($pengajuan);
+        Storage::disk('local')->assertExists($pengajuan);
         $this->assertSame(1, WajahGuru::where('guru_id', $guru->id)->count());
-        \Illuminate\Support\Facades\Notification::assertSentTo($admin, \App\Notifications\FotoProfilDiajukan::class);
+        Notification::assertSentTo($admin, FotoProfilDiajukan::class);
         $this->withHeaders($h)->getJson('/api/v1/auth/me')->assertJsonPath('akun.foto_menunggu', true);
 
         // Foto pengajuan hanya untuk pemilik dan admin.
@@ -464,7 +468,7 @@ class GuruApiTest extends TestCase
         $this->assertSame($pengajuan, $guru->foto_profil);
         $this->assertNull($guru->foto_pengajuan);
         $this->assertSame(0, WajahGuru::where('guru_id', $guru->id)->count());
-        \Illuminate\Support\Facades\Notification::assertSentTo($guru, \App\Notifications\FotoProfilDitinjau::class, fn ($n) => $n->disetujui);
+        Notification::assertSentTo($guru, FotoProfilDitinjau::class, fn ($n) => $n->disetujui);
         $this->withHeaders($ha)->postJson("/api/v1/admin/foto-pengajuan/{$guru->id}/setujui")->assertStatus(409);
 
         // Foto aktif bisa dibuka dengan token, tanpa login ditolak.
@@ -476,12 +480,12 @@ class GuruApiTest extends TestCase
 
     public function test_foto_ditolak_admin_dibuang_dan_foto_lama_tetap(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('local');
-        \Illuminate\Support\Facades\Notification::fake();
+        Storage::fake('local');
+        Notification::fake();
         $admin = User::create(['name' => 'kepsek', 'nama_lengkap' => 'Kepala Sekolah', 'username' => 'kepsek', 'email' => 'k@s.id', 'password' => 'Rahasia123', 'status' => 'Aktif']);
         $this->guru->update(['foto_profil' => 'foto_guru/lama.jpg']);
         $this->daftarkanWajah();
-        $this->withHeaders($this->tokenGuru())->post('/api/v1/guru/profil/foto', ['foto' => \Illuminate\Http\UploadedFile::fake()->image('b.jpg', 200, 200)])->assertOk();
+        $this->withHeaders($this->tokenGuru())->post('/api/v1/guru/profil/foto', ['foto' => UploadedFile::fake()->image('b.jpg', 200, 200)])->assertOk();
         $pengajuan = $this->guru->fresh()->foto_pengajuan;
 
         $this->withHeaders($this->tokenGuru($admin))->postJson("/api/v1/admin/foto-pengajuan/{$this->guru->id}/tolak", ['catatan' => 'Bukan foto wajah'])->assertOk();
@@ -489,18 +493,18 @@ class GuruApiTest extends TestCase
         $guru = $this->guru->fresh();
         $this->assertSame('foto_guru/lama.jpg', $guru->foto_profil);
         $this->assertNull($guru->foto_pengajuan);
-        \Illuminate\Support\Facades\Storage::disk('local')->assertMissing($pengajuan);
+        Storage::disk('local')->assertMissing($pengajuan);
         $this->assertSame(1, WajahGuru::where('guru_id', $guru->id)->count());
-        \Illuminate\Support\Facades\Notification::assertSentTo($guru, \App\Notifications\FotoProfilDitinjau::class, fn ($n) => ! $n->disetujui && $n->catatan === 'Bukan foto wajah');
+        Notification::assertSentTo($guru, FotoProfilDitinjau::class, fn ($n) => ! $n->disetujui && $n->catatan === 'Bukan foto wajah');
     }
 
     public function test_foto_admin_langsung_aktif_dan_mewajibkan_daftar_wajah_ulang(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('local');
+        Storage::fake('local');
         $admin = User::create(['name' => 'kepsek', 'nama_lengkap' => 'Kepala Sekolah', 'username' => 'kepsek', 'email' => 'k@s.id', 'password' => 'Rahasia123', 'status' => 'Aktif']);
         $this->daftarkanWajah($admin);
 
-        $this->withHeaders($this->tokenGuru($admin))->post('/api/v1/guru/profil/foto', ['foto' => \Illuminate\Http\UploadedFile::fake()->image('k.jpg', 200, 200)])
+        $this->withHeaders($this->tokenGuru($admin))->post('/api/v1/guru/profil/foto', ['foto' => UploadedFile::fake()->image('k.jpg', 200, 200)])
             ->assertOk()->assertJsonPath('menunggu', false);
 
         $this->assertNotNull($admin->fresh()->foto_profil);

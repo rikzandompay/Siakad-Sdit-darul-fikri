@@ -24,7 +24,7 @@ class SholatController extends Controller
     {
         $guru = $request->user();
         $kelas = Kelas::withCount('siswaAktif')
-            ->when(! $guru->isAdmin(), fn ($q) => $q->where('wali_kelas_id', $guru->id))
+            ->where('wali_kelas_id', $guru->id)
             ->orderBy('nama_kelas')->get()
             ->map(fn ($k) => [
                 'id' => $k->id, 'nama' => $k->nama_kelas, 'singkatan' => PresensiKelasController::singkatan($k->nama_kelas),
@@ -156,7 +156,7 @@ class SholatController extends Controller
     private function pastikanWali(Kelas $kelas): void
     {
         $guru = Auth::user();
-        abort_unless($guru->isAdmin() || $kelas->wali_kelas_id === $guru->id, 403, 'Presensi sholat hanya untuk wali kelas ini.');
+        abort_unless($kelas->wali_kelas_id === $guru->id, 403, 'Presensi sholat hanya untuk wali kelas ini.');
     }
 
     private function jenisValid(?string $jenis): string

@@ -65,7 +65,7 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
                 else ...[
                   _KehadiranCard(data: Map<String, dynamic>.from(d['kehadiran_siswa'])),
                   const SizedBox(height: 16),
-                  _MenuGrid(izinMenunggu: d['izin_menunggu'] as int? ?? 0, bisaPresensi: d['bisa_isi_presensi'] == true || admin, onReturn: reload),
+                  _MenuGrid(izinMenunggu: d['izin_menunggu'] as int? ?? 0, bisaPresensi: d['bisa_isi_presensi'] == true, onReturn: reload),
                   const SizedBox(height: 16),
                   _PresensiSayaCard(data: Map<String, dynamic>.from(d['presensi_saya']), onTap: () async {
                     await context.push('/guru/absen');

@@ -118,7 +118,9 @@ class PresensiSholatTest extends TestCase
         ])->assertStatus(403);
 
         $this->actingAs($this->guruLain)->get('/presensi-sholat/'.$this->kelas->id)->assertStatus(403);
-        $this->actingAs($this->admin)->get('/presensi-sholat/'.$this->kelas->id.'?jenis=Ashar')->assertOk();
+        // Admin tidak mengisi presensi sholat, tetapi boleh melihat rekapnya.
+        $this->actingAs($this->admin)->get('/presensi-sholat/'.$this->kelas->id.'?jenis=Ashar')->assertStatus(403);
+        $this->actingAs($this->admin)->get('/presensi-sholat/rekap?jenis=Dzuhur&kelas_id='.$this->kelas->id)->assertOk();
     }
 
     public function test_halaman_kelas_menerima_jenis_lama_zuhur(): void

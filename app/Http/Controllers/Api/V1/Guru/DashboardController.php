@@ -25,7 +25,7 @@ class DashboardController extends Controller
 
         // Presensi kelas hanya diisi wali kelas: ringkasan mengikuti kelas yang diwalikan
         // (admin/kepala sekolah melihat seluruh sekolah).
-        $kelasWali = Kelas::when(! $guru->isAdmin(), fn ($q) => $q->where('wali_kelas_id', $guru->id))->pluck('id');
+        $kelasWali = Kelas::where('wali_kelas_id', $guru->id)->pluck('id');
         $jadwalIds = JadwalPelajaran::whereIn('kelas_id', $kelasWali)->pluck('id');
         $rekap = Presensi::whereIn('jadwal_id', $jadwalIds)->where('tanggal', $tanggal)
             ->selectRaw('status_kehadiran, COUNT(*) as jumlah')->groupBy('status_kehadiran')

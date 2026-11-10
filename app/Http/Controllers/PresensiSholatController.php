@@ -19,6 +19,12 @@ use Illuminate\Validation\Rule;
  */
 class PresensiSholatController extends Controller
 {
+    /** Mengisi presensi sholat hanya wali kelas dari kelas tersebut. Admin tidak ikut mengisi. */
+    protected function ensureWaliKelasSaja(int $kelasId): void
+    {
+        abort_unless(Kelas::where('id', $kelasId)->where('wali_kelas_id', Auth::id())->exists(), 403, 'Presensi sholat hanya dapat diisi oleh wali kelas.');
+    }
+
     protected function ensureTeacherIsWaliKelas(int $kelasId): void
     {
         if (auth()->user()->isAdmin()) {
@@ -60,7 +66,8 @@ class PresensiSholatController extends Controller
     {
         $jenisSholat = PresensiSholat::normalizeJenis($request->get('jenis'));
         $today = $this->todaySekolah();
-        $kelasList = $this->kelasSholat();
+        // Halaman input hanya menampilkan kelas yang diwalikan; admin tidak punya kelas input.
+        $kelasList = $this->kelasSholat()->where('wali_kelas_id', Auth::id())->values();
         $kelasIds = $kelasList->pluck('id');
         $totalSiswa = (int) $kelasList->sum('siswa_aktif_count');
 
@@ -97,7 +104,7 @@ class PresensiSholatController extends Controller
 
     public function show(Kelas $kelas, Request $request)
     {
-        $this->ensureTeacherIsWaliKelas($kelas->id);
+        $this->ensureWaliKelasSaja($kelas->id);
         $request->validate(['tanggal' => 'nullable|date']);
 
         $jenisSholat = PresensiSholat::normalizeJenis($request->get('jenis'));
@@ -137,7 +144,7 @@ class PresensiSholatController extends Controller
             'presensi.*.keterangan' => 'nullable|string|max:255',
         ]);
 
-        $this->ensureTeacherIsWaliKelas($validated['kelas_id']);
+        $this->ensureWaliKelasSaja($validated['kelas_id']);
 
         $now = now();
         $tanggal = Carbon::parse($validated['tanggal'])->toDateString();

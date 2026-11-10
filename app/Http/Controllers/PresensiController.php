@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
+use App\Models\MataPelajaran;
 use App\Models\Presensi;
 use App\Models\Siswa;
-use App\Models\MataPelajaran;
-use App\Models\JadwalPelajaran;
-use App\Models\TahunAjaran;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Carbon\Carbon;
+use Illuminate\Validation\Rule;
 
 class PresensiController extends Controller
 {
@@ -27,23 +27,29 @@ class PresensiController extends Controller
             ->where('kelas_id', $kelasId)
             ->exists();
 
-        if (!$isWaliKelas && !$isGuruPengajar) {
+        if (! $isWaliKelas && ! $isGuruPengajar) {
             abort(403, 'Anda tidak memiliki akses ke kelas ini.');
         }
+    }
+
+    /** Mengisi presensi hanya boleh dilakukan wali kelas dari kelas tersebut (bukan admin, bukan guru pengajar mapel). */
+    protected function ensureWaliKelas(int $kelasId): void
+    {
+        abort_unless(Kelas::where('id', $kelasId)->where('wali_kelas_id', Auth::id())->exists(), 403, 'Presensi hanya dapat diisi oleh wali kelas.');
     }
 
     protected function ensureJadwalOwnership(int $jadwalId): void
     {
         $guruId = Auth::id();
         $jadwal = JadwalPelajaran::find($jadwalId);
-        if (!$jadwal) {
+        if (! $jadwal) {
             abort(404, 'Jadwal tidak ditemukan.');
         }
 
         $isWaliKelas = Kelas::where('id', $jadwal->kelas_id)->where('wali_kelas_id', $guruId)->exists();
         $isGuruPengajar = $jadwal->guru_id === $guruId;
 
-        if (!$isWaliKelas && !$isGuruPengajar) {
+        if (! $isWaliKelas && ! $isGuruPengajar) {
             abort(403, 'Anda tidak memiliki akses ke jadwal ini.');
         }
     }
@@ -55,11 +61,8 @@ class PresensiController extends Controller
     {
         $guruId = Auth::id();
 
-        // Presensi kelas hanya untuk kelas yang diampu (wali kelas atau guru pengajar), termasuk bagi kepala sekolah.
-        $kelasIdsGuru = Kelas::where('wali_kelas_id', $guruId)
-            ->orWhereHas('jadwalPelajaran', fn ($q) => $q->where('guru_id', $guruId))
-            ->pluck('id')
-            ->toArray();
+        // Presensi kelas hanya untuk kelas yang diwalikan.
+        $kelasIdsGuru = Kelas::where('wali_kelas_id', $guruId)->pluck('id')->toArray();
 
         $kelasList = Kelas::withCount('siswaAktif')
             ->with('waliKelas')
@@ -69,22 +72,22 @@ class PresensiController extends Controller
 
         $today = Carbon::today();
         $todayStr = $today->toDateString();
-        
+
         // Hanya hitung presensi dari jadwal guru ini
         $guruJadwalIds = JadwalPelajaran::whereIn('kelas_id', $kelasIdsGuru)->pluck('id')->toArray();
 
-        $totalSiswaAktif = Cache::remember("total_siswa_aktif_guru_{$guruId}", 300, function() use ($kelasIdsGuru) {
+        $totalSiswaAktif = Cache::remember("total_siswa_aktif_guru_{$guruId}", 300, function () use ($kelasIdsGuru) {
             return Siswa::where('status', 'Aktif')->whereIn('kelas_id', $kelasIdsGuru)->count();
         });
 
-        $presensiStats = Cache::remember("presensi_stats_guru_{$guruId}_{$todayStr}", 60, function() use ($today, $guruJadwalIds) {
+        $presensiStats = Cache::remember("presensi_stats_guru_{$guruId}_{$todayStr}", 60, function () use ($today, $guruJadwalIds) {
             $presensiToday = Presensi::where('tanggal', $today)->whereIn('jadwal_id', $guruJadwalIds)->get();
             $hadirCount = $presensiToday->where('status_kehadiran', 'H')->count();
             $sakitCount = $presensiToday->where('status_kehadiran', 'S')->count();
             $izinCount = $presensiToday->where('status_kehadiran', 'I')->count();
             $alpaCount = $presensiToday->where('status_kehadiran', 'A')->count();
             $totalPresensi = $presensiToday->count();
-            
+
             return compact('hadirCount', 'sakitCount', 'izinCount', 'alpaCount', 'totalPresensi');
         });
 
@@ -106,19 +109,19 @@ class PresensiController extends Controller
      */
     public function show(Kelas $kelas, Request $request)
     {
-        $this->ensureTeacherCanAccessKelas($kelas->id);
+        $this->ensureWaliKelas($kelas->id);
 
         $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
         $jadwalId = $request->get('jadwal_id');
         $guruId = Auth::id();
 
         // Cache daftar siswa aktif kelas ini
-        $siswa = Cache::remember("siswa_aktif_kelas_{$kelas->id}", 300, function() use ($kelas) {
+        $siswa = Cache::remember("siswa_aktif_kelas_{$kelas->id}", 300, function () use ($kelas) {
             return $kelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
         });
 
         // Cache jadwal kelas ini - wali kelas mengisi semua jadwal kelasnya (5 menit)
-        $jadwalList = Cache::remember("jadwal_list_wali_kelas_{$kelas->id}", 300, function() use ($kelas) {
+        $jadwalList = Cache::remember("jadwal_list_wali_kelas_{$kelas->id}", 300, function () use ($kelas) {
             return $kelas->jadwalPelajaran()
                 ->with('mataPelajaran', 'guru')
                 ->orderByRaw("
@@ -138,10 +141,10 @@ class PresensiController extends Controller
         ];
         $hariTanggalEn = Carbon::parse($tanggal)->format('l'); // English day name
         $hariIndonesia = ['Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu',
-                          'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'];
+            'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'];
         $hariNow = $hariIndonesia[$hariTanggalEn] ?? null;
 
-        if (!$jadwalId && $jadwalList->count() > 0) {
+        if (! $jadwalId && $jadwalList->count() > 0) {
             // Coba auto-select jadwal yang sesuai hari tanggal
             $jadwalHariIni = $jadwalList->firstWhere('hari', $hariNow);
             $jadwalId = $jadwalHariIni ? $jadwalHariIni->id : $jadwalList->first()->id;
@@ -157,20 +160,20 @@ class PresensiController extends Controller
         }
 
         // Summary counts
-        $hadirCount = collect($existingPresensi)->filter(fn($v) => $v === 'H')->count();
-        $sakitCount = collect($existingPresensi)->filter(fn($v) => $v === 'S')->count();
-        $izinCount = collect($existingPresensi)->filter(fn($v) => $v === 'I')->count();
-        $alpaCount = collect($existingPresensi)->filter(fn($v) => $v === 'A')->count();
+        $hadirCount = collect($existingPresensi)->filter(fn ($v) => $v === 'H')->count();
+        $sakitCount = collect($existingPresensi)->filter(fn ($v) => $v === 'S')->count();
+        $izinCount = collect($existingPresensi)->filter(fn ($v) => $v === 'I')->count();
+        $alpaCount = collect($existingPresensi)->filter(fn ($v) => $v === 'A')->count();
 
         // Mapel list for filter - derived from $jadwalList to save query
         $mapelList = $jadwalList->pluck('mataPelajaran')->unique('id')->values();
 
         // Kelas list for dropdown - hanya kelas yang diampu guru login (di-cache)
-        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 300, function() use ($guruId) {
+        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 300, function () use ($guruId) {
             return JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique()->toArray();
         });
-        
-        $kelasList = Cache::remember("kelas_list_guru_{$guruId}", 300, function() use ($kelasIdsGuru) {
+
+        $kelasList = Cache::remember("kelas_list_guru_{$guruId}", 300, function () use ($kelasIdsGuru) {
             return Kelas::whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
         });
 
@@ -186,8 +189,7 @@ class PresensiController extends Controller
     public function store(Request $request)
     {
         $jadwal = JadwalPelajaran::findOrFail($request->input('jadwal_id'));
-        $this->ensureTeacherCanAccessKelas($jadwal->kelas_id);
-        $this->ensureJadwalOwnership($jadwal->id);
+        $this->ensureWaliKelas($jadwal->kelas_id);
 
         $jadwalKelasId = $jadwal->kelas_id;
 
@@ -195,12 +197,12 @@ class PresensiController extends Controller
             'jadwal_id' => 'required|exists:jadwal_pelajaran,id',
             'tanggal' => 'required|date',
             'presensi' => 'required|array',
-            'presensi.*.siswa_id' => ['required', \Illuminate\Validation\Rule::exists('siswa', 'id')->where('kelas_id', $jadwalKelasId)],
+            'presensi.*.siswa_id' => ['required', Rule::exists('siswa', 'id')->where('kelas_id', $jadwalKelasId)],
             'presensi.*.status' => 'required|in:H,I,S,A',
             'presensi.*.keterangan' => 'nullable|string|max:255',
         ]);
 
-        $tanggalObj = \Carbon\Carbon::parse($validated['tanggal']);
+        $tanggalObj = Carbon::parse($validated['tanggal']);
 
         foreach ($validated['presensi'] as $data) {
             Presensi::updateOrCreate(
@@ -217,7 +219,7 @@ class PresensiController extends Controller
         }
 
         $jadwal = JadwalPelajaran::find($validated['jadwal_id']);
-        
+
         // Invalidate cache
         $guruId = Auth::id();
         $todayStr = $tanggalObj->toDateString();
@@ -241,7 +243,7 @@ class PresensiController extends Controller
         $dateRange = $this->getDateRange($request->get('rentang', 'hari_ini'), $request->get('tanggal'));
         $jadwalId = $request->get('jadwal_id');
 
-        $query = Presensi::whereHas('jadwal', fn($q) => $q->where('kelas_id', $kelas->id))
+        $query = Presensi::whereHas('jadwal', fn ($q) => $q->where('kelas_id', $kelas->id))
             ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
             ->with(['siswa', 'jadwal.mataPelajaran']);
 
@@ -251,7 +253,7 @@ class PresensiController extends Controller
 
         $data = $query->orderBy('tanggal')->get();
 
-        $filename = 'presensi_' . str_replace(' ', '_', $kelas->nama_kelas) . '_' . now()->format('Ymd') . '.csv';
+        $filename = 'presensi_'.str_replace(' ', '_', $kelas->nama_kelas).'_'.now()->format('Ymd').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -262,15 +264,15 @@ class PresensiController extends Controller
 
         $callback = function () use ($data, $kelas, $dateRange, $rentangLabel) {
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM for UTF-8
-            
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM for UTF-8
+
             // Header Section
             fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
             fputcsv($file, ['SD IT DARUL FIKRI']);
             fputcsv($file, ['LAPORAN KEHADIRAN SISWA']);
             fputcsv($file, []);
             fputcsv($file, ['Kelas', ':', $kelas->nama_kelas]);
-            fputcsv($file, ['Periode', ':', $rentangLabel . ' (' . \Carbon\Carbon::parse($dateRange['start'])->format('d/m/Y') . ' - ' . \Carbon\Carbon::parse($dateRange['end'])->format('d/m/Y') . ')']);
+            fputcsv($file, ['Periode', ':', $rentangLabel.' ('.Carbon::parse($dateRange['start'])->format('d/m/Y').' - '.Carbon::parse($dateRange['end'])->format('d/m/Y').')']);
             fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
             fputcsv($file, []);
 
@@ -304,7 +306,7 @@ class PresensiController extends Controller
         $dateRange = $this->getDateRange($request->get('rentang', 'hari_ini'), $request->get('tanggal'));
         $jadwalId = $request->get('jadwal_id');
 
-        $query = Presensi::whereHas('jadwal', fn($q) => $q->where('kelas_id', $kelas->id))
+        $query = Presensi::whereHas('jadwal', fn ($q) => $q->where('kelas_id', $kelas->id))
             ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
             ->with(['siswa', 'jadwal.mataPelajaran']);
 
@@ -342,21 +344,21 @@ class PresensiController extends Controller
         $rentang = $request->get('rentang', 'bulan_ini');
 
         // Hanya kelas dimana guru ini punya jadwal (di-cache)
-        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 300, function() use ($guruId) {
+        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 300, function () use ($guruId) {
             return JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique();
         });
-        $kelasList = Cache::remember("rekap_kelas_list_guru_{$guruId}", 300, function() use ($kelasIdsGuru) {
+        $kelasList = Cache::remember("rekap_kelas_list_guru_{$guruId}", 300, function () use ($kelasIdsGuru) {
             return Kelas::with('waliKelas')->whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
         });
 
         // Hanya mapel yang diajarkan oleh guru ini
         $jadwalQuery = JadwalPelajaran::where('guru_id', $guruId);
-        
+
         // Jika ada kelas yang dipilih, filter mapel hanya untuk kelas tersebut
         if ($selectedKelasId) {
             $jadwalQuery->where('kelas_id', $selectedKelasId);
         }
-        
+
         $mapelIdsGuru = $jadwalQuery->pluck('pelajaran_id')->unique();
         $mapelList = MataPelajaran::whereIn('id', $mapelIdsGuru)->orderBy('nama_pelajaran')->get();
 
@@ -374,15 +376,15 @@ class PresensiController extends Controller
 
             $isAdmin = auth()->user()->isAdmin();
             // Get all presensi for this date range and class filtering by logged-in teacher (or all for admin)
-            $presensiQuery = Presensi::whereHas('jadwal', function($q) use ($selectedKelasId, $selectedPelajaranId, $guruId, $isAdmin) {
-                    $q->where('kelas_id', $selectedKelasId);
-                    if (!$isAdmin) {
-                        $q->where('guru_id', $guruId);
-                    }
-                    if ($selectedPelajaranId) {
-                        $q->where('pelajaran_id', $selectedPelajaranId);
-                    }
-                })
+            $presensiQuery = Presensi::whereHas('jadwal', function ($q) use ($selectedKelasId, $selectedPelajaranId, $guruId, $isAdmin) {
+                $q->where('kelas_id', $selectedKelasId);
+                if (! $isAdmin) {
+                    $q->where('guru_id', $guruId);
+                }
+                if ($selectedPelajaranId) {
+                    $q->where('pelajaran_id', $selectedPelajaranId);
+                }
+            })
                 ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
                 ->get();
 
@@ -412,7 +414,7 @@ class PresensiController extends Controller
         $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
         $rentang = $request->get('rentang', 'bulan_ini');
 
-        if (!$selectedKelasId) {
+        if (! $selectedKelasId) {
             return ['selectedKelas' => null, 'rekapData' => [], 'periodeLabel' => '', 'selectedPelajaran' => null];
         }
 
@@ -425,15 +427,15 @@ class PresensiController extends Controller
         $periodeLabel = $this->getPeriodeLabelWithDate($rentang, $tanggal);
 
         $isAdmin = auth()->user()->isAdmin();
-        $presensiQuery = Presensi::whereHas('jadwal', function($q) use ($selectedKelasId, $selectedPelajaranId, $guruId, $isAdmin) {
-                $q->where('kelas_id', $selectedKelasId);
-                if (!$isAdmin) {
-                    $q->where('guru_id', $guruId);
-                }
-                if ($selectedPelajaranId) {
-                    $q->where('pelajaran_id', $selectedPelajaranId);
-                }
-            })
+        $presensiQuery = Presensi::whereHas('jadwal', function ($q) use ($selectedKelasId, $selectedPelajaranId, $guruId, $isAdmin) {
+            $q->where('kelas_id', $selectedKelasId);
+            if (! $isAdmin) {
+                $q->where('guru_id', $guruId);
+            }
+            if ($selectedPelajaranId) {
+                $q->where('pelajaran_id', $selectedPelajaranId);
+            }
+        })
             ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
             ->get();
 
@@ -458,7 +460,7 @@ class PresensiController extends Controller
     {
         $data = $this->getRekapDataForExport($request);
 
-        if (!$data['selectedKelas']) {
+        if (! $data['selectedKelas']) {
             return redirect()->back()->with('error', 'Pilih kelas terlebih dahulu.');
         }
 
@@ -467,8 +469,8 @@ class PresensiController extends Controller
         $periodeLabel = $data['periodeLabel'];
         $selectedPelajaran = $data['selectedPelajaran'];
 
-        $namaPelajaran = $selectedPelajaran ? '_' . str_replace(' ', '_', $selectedPelajaran->nama_pelajaran) : '';
-        $filename = 'rekap_presensi_' . str_replace(' ', '_', $kelas->nama_kelas) . $namaPelajaran . '_' . now()->format('Ymd') . '.csv';
+        $namaPelajaran = $selectedPelajaran ? '_'.str_replace(' ', '_', $selectedPelajaran->nama_pelajaran) : '';
+        $filename = 'rekap_presensi_'.str_replace(' ', '_', $kelas->nama_kelas).$namaPelajaran.'_'.now()->format('Ymd').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -477,7 +479,7 @@ class PresensiController extends Controller
 
         $callback = function () use ($rekapData, $kelas, $periodeLabel, $selectedPelajaran) {
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
 
             // Header Section
             fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
@@ -503,7 +505,7 @@ class PresensiController extends Controller
                     $row['summary']['S'],
                     $row['summary']['I'],
                     $row['summary']['A'],
-                    $total
+                    $total,
                 ]);
             }
             fclose($file);
@@ -516,7 +518,7 @@ class PresensiController extends Controller
     {
         $data = $this->getRekapDataForExport($request);
 
-        if (!$data['selectedKelas']) {
+        if (! $data['selectedKelas']) {
             return redirect()->back()->with('error', 'Pilih kelas terlebih dahulu.');
         }
 
@@ -531,6 +533,7 @@ class PresensiController extends Controller
     private function getDateRange($rentang, $tanggal = null)
     {
         $now = $tanggal ? Carbon::parse($tanggal) : Carbon::today();
+
         return match ($rentang) {
             'minggu_ini' => ['start' => $now->copy()->startOfWeek(), 'end' => $now->copy()->endOfWeek()],
             'bulan_ini' => ['start' => $now->copy()->startOfMonth(), 'end' => $now->copy()->endOfMonth()],
@@ -555,10 +558,11 @@ class PresensiController extends Controller
     private function getPeriodeLabelWithDate($rentang, $tanggal = null)
     {
         $now = $tanggal ? Carbon::parse($tanggal) : Carbon::today();
+
         return match ($rentang) {
-            'minggu_ini' => 'Minggu ' . $now->copy()->startOfWeek()->translatedFormat('d M') . ' - ' . $now->copy()->endOfWeek()->translatedFormat('d M Y'),
+            'minggu_ini' => 'Minggu '.$now->copy()->startOfWeek()->translatedFormat('d M').' - '.$now->copy()->endOfWeek()->translatedFormat('d M Y'),
             'bulan_ini' => $now->translatedFormat('F Y'),
-            'semester_ini' => ($now->month >= 7 ? 'Semester Ganjil ' : 'Semester Genap ') . $now->year,
+            'semester_ini' => ($now->month >= 7 ? 'Semester Ganjil ' : 'Semester Genap ').$now->year,
             default => $now->translatedFormat('d F Y'),
         };
     }

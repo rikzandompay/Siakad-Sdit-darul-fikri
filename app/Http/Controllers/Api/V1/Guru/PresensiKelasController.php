@@ -22,9 +22,9 @@ class PresensiKelasController extends Controller
     public function kelas(Request $request): JsonResponse
     {
         $guru = $request->user();
-        // Admin/kepala sekolah punya akses penuh ke semua kelas; guru hanya kelas yang diajar.
+        // Hanya kelas yang diwalikan; admin dan guru pengajar mapel tidak mengisi presensi.
         $kelas = Kelas::withCount('siswaAktif')
-            ->when(! $guru->isAdmin(), fn ($q) => $q->where('wali_kelas_id', $guru->id))
+            ->where('wali_kelas_id', $guru->id)
             ->orderBy('nama_kelas')->get()
             ->map(fn ($k) => [
                 'id' => $k->id,
@@ -119,7 +119,6 @@ class PresensiKelasController extends Controller
             'rekap' => ['hadir' => (int) ($rekap['H'] ?? 0), 'sakit' => (int) ($rekap['S'] ?? 0), 'izin' => (int) ($rekap['I'] ?? 0), 'alpa' => (int) ($rekap['A'] ?? 0)],
         ]);
     }
-
 
     /** "Kelas 5A" => "5A" */
     public static function singkatan(string $namaKelas): string
