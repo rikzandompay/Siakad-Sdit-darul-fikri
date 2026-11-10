@@ -62,6 +62,16 @@ class _VerifikasiWajahScreenState extends State<VerifikasiWajahScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final didalam = widget.args['di_dalam_area'] != false;
+    final namaSekolah = widget.args['lokasi_nama'] as String? ?? 'SDIT Darul Fikri, Sidoarjo';
+    final pesanLokasi = widget.args['lokasi_pesan'] as String? ?? (didalam ? null : 'Lokasi tidak sesuai (Di luar jangkauan)');
+    final lokasi = LokasiStatus(
+      sukses: didalam,
+      nama: namaSekolah,
+      pesan: pesanLokasi,
+      persen: 100,
+    );
+
     return AppPage(
       title: 'Verifikasi Wajah',
       subtitle: 'Langkah 2 dari 2',
@@ -69,7 +79,7 @@ class _VerifikasiWajahScreenState extends State<VerifikasiWajahScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (_error != null)
           Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(_error!, textAlign: TextAlign.center)),
-        FaceCapture(key: _captureKey, onSelesai: _selesai, onGagal: _ulang),
+        FaceCapture(key: _captureKey, onSelesai: _selesai, onGagal: _ulang, lokasi: lokasi),
       ]),
     );
   }

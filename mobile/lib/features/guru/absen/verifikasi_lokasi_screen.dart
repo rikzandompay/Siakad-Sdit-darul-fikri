@@ -81,6 +81,9 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen> {
                   'akurasi': _posisi!.accuracy,
                   'mock': _posisi!.isMocked,
                   'jarak_meter': h!['jarak_meter'],
+                  'radius_meter': h['radius_meter'],
+                  'di_dalam_area': true,
+                  'lokasi_nama': '${h['sekolah']?['nama'] ?? 'SDIT Darul Fikri'}, Sidoarjo',
                 })
             : null,
       ),
@@ -130,7 +133,23 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen> {
       bottom: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         PrimaryButton(label: 'Cek Lokasi Lagi', onPressed: _cek),
         const SizedBox(height: 10),
-        SecondaryButton(label: 'Kembali', onPressed: () => context.pop()),
+        SecondaryButton(
+          label: 'Lanjut Verifikasi Wajah',
+          onPressed: () => context.pushReplacement('/guru/absen/wajah', extra: {
+            'aksi': widget.aksi,
+            'latitude': _posisi?.latitude ?? 0,
+            'longitude': _posisi?.longitude ?? 0,
+            'akurasi': _posisi?.accuracy,
+            'mock': _posisi?.isMocked ?? false,
+            'jarak_meter': h['jarak_meter'],
+            'radius_meter': h['radius_meter'],
+            'di_dalam_area': false,
+            'lokasi_nama': '${h['sekolah']?['nama'] ?? 'SDIT Darul Fikri'}, Sidoarjo',
+            'lokasi_pesan': 'Lokasi tidak sesuai (Di luar jangkauan)',
+          }),
+        ),
+        const SizedBox(height: 10),
+        TextButton(onPressed: () => context.pop(), child: const Text('Kembali')),
       ]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const ResultHero(icon: Icons.location_on_outlined, title: '', success: false),

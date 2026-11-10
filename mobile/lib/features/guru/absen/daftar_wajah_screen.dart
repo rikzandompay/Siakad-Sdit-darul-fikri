@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -21,11 +22,42 @@ class DaftarWajahScreen extends StatefulWidget {
 class _DaftarWajahScreenState extends State<DaftarWajahScreen> {
   bool _kamera = false;
   String? _error;
+  LokasiStatus _lokasiStatus = const LokasiStatus(
+    sukses: true,
+    nama: 'SDIT Darul Fikri, Sidoarjo',
+  );
 
   @override
   void initState() {
     super.initState();
     _segarkan();
+    _cekLokasi();
+  }
+
+  Future<void> _cekLokasi() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) return;
+      var izin = await Geolocator.checkPermission();
+      if (izin == LocationPermission.denied) izin = await Geolocator.requestPermission();
+      if (izin == LocationPermission.denied || izin == LocationPermission.deniedForever) return;
+      final pos = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.best, timeLimit: Duration(seconds: 10)));
+      if (!mounted) return;
+      final res = await context.read<ApiClient>().post('/guru/absen/cek-lokasi', {
+        'latitude': pos.latitude,
+        'longitude': pos.longitude,
+        'akurasi': pos.accuracy,
+      });
+      if (!mounted) return;
+      final didalam = res['di_dalam_area'] == true;
+      final nama = '${res['sekolah']?['nama'] ?? 'SDIT Darul Fikri'}, Sidoarjo';
+      setState(() {
+        _lokasiStatus = LokasiStatus(
+          sukses: didalam,
+          nama: nama,
+          pesan: didalam ? null : 'Lokasi tidak sesuai (Di luar jangkauan)',
+        );
+      });
+    } catch (_) {}
   }
 
   /// Status foto bisa berubah di luar layar ini (admin baru saja menyetujui).
@@ -95,10 +127,15 @@ class _DaftarWajahScreenState extends State<DaftarWajahScreen> {
           })),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (_kamera)
-          FaceCapture(jumlahFoto: 3, onSelesai: _simpan, onGagal: (p) => setState(() {
-                _kamera = false;
-                _error = p;
-              }))
+          FaceCapture(
+            jumlahFoto: 3,
+            lokasi: _lokasiStatus,
+            onSelesai: _simpan,
+            onGagal: (p) => setState(() {
+              _kamera = false;
+              _error = p;
+            }),
+          )
         else ...[
           Container(
             height: 300,

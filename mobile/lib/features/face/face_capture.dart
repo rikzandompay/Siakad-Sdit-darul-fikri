@@ -8,14 +8,36 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 import '../../core/theme.dart';
 
+/// Data status verifikasi lokasi yang ditampilkan di bawah liveness.
+class LokasiStatus {
+  const LokasiStatus({
+    required this.sukses,
+    required this.nama,
+    this.pesan,
+    this.persen = 100,
+  });
+
+  final bool sukses;
+  final String nama;
+  final String? pesan;
+  final int persen;
+}
+
 /// Kamera depan + cek kehidupan (kedip mata) lalu mengambil foto.
 /// Setelah lolos liveness, [jumlahFoto] foto diambil dan dikembalikan lewat [onSelesai].
 class FaceCapture extends StatefulWidget {
-  const FaceCapture({super.key, required this.onSelesai, required this.onGagal, this.jumlahFoto = 1});
+  const FaceCapture({
+    super.key,
+    required this.onSelesai,
+    required this.onGagal,
+    this.jumlahFoto = 1,
+    this.lokasi,
+  });
 
   final Future<void> Function(List<String> fotoPaths) onSelesai;
   final void Function(String pesan) onGagal;
   final int jumlahFoto;
+  final LokasiStatus? lokasi;
 
   @override
   State<FaceCapture> createState() => _FaceCaptureState();
@@ -197,7 +219,106 @@ class _FaceCaptureState extends State<FaceCapture> {
           ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: _progress, minHeight: 6, color: AppColors.brand700, backgroundColor: AppColors.line)),
         ]),
       ),
+      if (widget.lokasi != null) ...[
+        const SizedBox(height: 12),
+        _KartuLokasi(lokasi: widget.lokasi!),
+      ],
     ]);
+  }
+}
+
+class _KartuLokasi extends StatelessWidget {
+  const _KartuLokasi({required this.lokasi});
+  final LokasiStatus lokasi;
+
+  @override
+  Widget build(BuildContext context) {
+    final warna = lokasi.sukses ? AppColors.ok600 : AppColors.alpa;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Verifikasi Lokasi',
+                  style: AppText.captionBold.copyWith(fontSize: 14, color: AppColors.ink),
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.location_on,
+                    size: 16,
+                    color: warna,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    lokasi.sukses ? '✓ Berhasil' : '✕ Gagal',
+                    style: AppText.captionBold.copyWith(
+                      fontSize: 13,
+                      color: warna,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      lokasi.nama,
+                      style: AppText.bodySmall.copyWith(color: AppColors.inkMuted, fontSize: 12),
+                    ),
+                    if (!lokasi.sukses) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        lokasi.pesan ?? 'Lokasi tidak sesuai (Di luar jangkauan)',
+                        style: AppText.caption.copyWith(color: AppColors.alpa, fontSize: 12),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${lokasi.persen}%',
+                style: AppText.captionBold.copyWith(
+                  color: warna,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: (lokasi.persen / 100.0).clamp(0.0, 1.0),
+              minHeight: 6,
+              color: warna,
+              backgroundColor: AppColors.line,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
