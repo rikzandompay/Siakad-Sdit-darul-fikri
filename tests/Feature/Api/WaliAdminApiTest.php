@@ -297,9 +297,11 @@ class WaliAdminApiTest extends TestCase
     {
         $a = $this->as($this->sinta, 'guru');
 
-        $this->req($a)->putJson('/api/v1/admin/pengaturan-sekolah', ['latitude' => -0.0263, 'longitude' => 109.3425, 'radius_meter' => 150, 'jam_masuk' => '07:15'])->assertOk();
-        $this->req($a)->getJson('/api/v1/admin/pengaturan-sekolah')->assertOk()->assertJsonPath('radius_meter', 150)->assertJsonPath('jam_masuk', '07:15');
-        $this->req($a)->putJson('/api/v1/admin/pengaturan-sekolah', ['radius_meter' => 5, 'jam_masuk' => '07:15'])->assertStatus(422);
+        $this->req($a)->putJson('/api/v1/admin/pengaturan-sekolah', ['latitude' => -0.0263, 'longitude' => 109.3425, 'radius_meter' => 150, 'jam_masuk' => '07:15', 'jam_pulang' => '14:00'])->assertOk();
+        $this->req($a)->getJson('/api/v1/admin/pengaturan-sekolah')->assertOk()->assertJsonPath('radius_meter', 150)->assertJsonPath('jam_masuk', '07:15')->assertJsonPath('jam_pulang', '14:00');
+        $this->req($a)->putJson('/api/v1/admin/pengaturan-sekolah', ['radius_meter' => 5, 'jam_masuk' => '07:15', 'jam_pulang' => '14:00'])->assertStatus(422);
+        // Jam pulang harus setelah jam masuk.
+        $this->req($a)->putJson('/api/v1/admin/pengaturan-sekolah', ['radius_meter' => 150, 'jam_masuk' => '07:15', 'jam_pulang' => '07:00'])->assertJsonValidationErrors('jam_pulang');
 
         $this->req($a)->postJson('/api/v1/admin/pengaturan-sekolah/libur', ['tanggal' => '2026-12-24', 'tanggal_akhir' => '2026-12-26', 'keterangan' => 'Libur semester'])->assertCreated();
         $libur = $this->req($a)->getJson('/api/v1/admin/pengaturan-sekolah')->assertJsonCount(3, 'libur')->json('libur.0.id');
@@ -318,7 +320,7 @@ class WaliAdminApiTest extends TestCase
         $this->req($a)->postJson('/api/v1/admin/wali/sinkron')->assertOk();
 
         $this->req($this->as($this->guru, 'guru'))->getJson('/api/v1/admin/wali')->assertStatus(403);
-        $this->req($this->as($this->guru, 'guru'))->putJson('/api/v1/admin/pengaturan-sekolah', ['radius_meter' => 100, 'jam_masuk' => '07:00'])->assertStatus(403);
+        $this->req($this->as($this->guru, 'guru'))->putJson('/api/v1/admin/pengaturan-sekolah', ['radius_meter' => 100, 'jam_masuk' => '07:00', 'jam_pulang' => '14:00'])->assertStatus(403);
     }
 
     public function test_upload_foto_siswa(): void

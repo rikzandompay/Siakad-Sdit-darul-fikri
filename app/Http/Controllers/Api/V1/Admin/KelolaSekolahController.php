@@ -34,6 +34,7 @@ class KelolaSekolahController extends Controller
             'longitude' => $lokasi['longitude'] ?? null,
             'radius_meter' => PengaturanSekolah::radiusMeter(),
             'jam_masuk' => PengaturanSekolah::jamMasuk(),
+            'jam_pulang' => PengaturanSekolah::jamPulang(),
             'libur' => HariLibur::orderByDesc('tanggal')->limit(60)->get()->map(fn ($l) => [
                 'id' => $l->id, 'tanggal' => Carbon::parse($l->tanggal)->toDateString(), 'keterangan' => $l->keterangan,
             ]),
@@ -47,6 +48,7 @@ class KelolaSekolahController extends Controller
             'longitude' => 'nullable|required_with:latitude|numeric|between:-180,180',
             'radius_meter' => 'required|integer|between:20,2000',
             'jam_masuk' => ['required', 'date_format:H:i'],
+            'jam_pulang' => ['required', 'date_format:H:i', 'after:jam_masuk'],
         ]);
 
         PengaturanSekolah::simpan([
@@ -54,6 +56,7 @@ class KelolaSekolahController extends Controller
             PengaturanSekolah::LONGITUDE => $data['longitude'] ?? null,
             PengaturanSekolah::RADIUS => $data['radius_meter'],
             PengaturanSekolah::JAM_MASUK => $data['jam_masuk'],
+            PengaturanSekolah::JAM_PULANG => $data['jam_pulang'],
         ]);
 
         return response()->json(['message' => 'Pengaturan sekolah disimpan.']);

@@ -23,6 +23,7 @@ class PengaturanSekolahController extends Controller
             'longitude' => $lokasi['longitude'] ?? null,
             'radius' => PengaturanSekolah::radiusMeter(),
             'jamMasuk' => PengaturanSekolah::jamMasuk(),
+            'jamPulang' => PengaturanSekolah::jamPulang(),
             'libur' => $libur,
         ]);
     }
@@ -34,6 +35,7 @@ class PengaturanSekolahController extends Controller
             'longitude' => 'nullable|required_with:latitude|numeric|between:-180,180',
             'radius_meter' => 'required|integer|between:20,2000',
             'jam_masuk' => ['required', 'date_format:H:i'],
+            'jam_pulang' => ['required', 'date_format:H:i', 'after:jam_masuk'],
         ]);
 
         PengaturanSekolah::simpan([
@@ -41,6 +43,7 @@ class PengaturanSekolahController extends Controller
             PengaturanSekolah::LONGITUDE => $data['longitude'] ?? null,
             PengaturanSekolah::RADIUS => $data['radius_meter'],
             PengaturanSekolah::JAM_MASUK => $data['jam_masuk'],
+            PengaturanSekolah::JAM_PULANG => $data['jam_pulang'],
         ]);
 
         return redirect()->route('pengaturan-sekolah.index')->with('success', 'Pengaturan sekolah disimpan.');

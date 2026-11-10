@@ -32,7 +32,7 @@ class AbsenController extends Controller
             'jam_sekarang' => $now->format('H:i'),
             'hari_sekolah' => Sekolah::hariSekolah($now),
             'jam_masuk' => PengaturanSekolah::jamMasuk(),
-            'jam_pulang' => config('presensi_guru.jam_pulang'),
+            'jam_pulang' => PengaturanSekolah::jamPulang(),
             'batas_masuk' => config('presensi_guru.batas_tidak_hadir'),
             'min_skor_wajah' => (float) config('presensi_guru.min_skor_wajah'),
             'lokasi' => ($lok = PengaturanSekolah::lokasi()) ? $lok + ['radius_meter' => PengaturanSekolah::radiusMeter(), 'nama' => Sekolah::NAMA] : null,

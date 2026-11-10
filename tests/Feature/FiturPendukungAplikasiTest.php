@@ -90,8 +90,13 @@ class FiturPendukungAplikasiTest extends TestCase
         $this->actingAs($this->sinta)->put('/pengaturan-sekolah', ['latitude' => '-0.0263', 'radius_meter' => 100, 'jam_masuk' => '07:00'])
             ->assertSessionHasErrors('longitude');
 
-        $this->actingAs($this->sinta)->put('/pengaturan-sekolah', ['latitude' => '-0.0263', 'longitude' => '109.3425', 'radius_meter' => 150, 'jam_masuk' => '07:30'])
+        $this->actingAs($this->sinta)->put('/pengaturan-sekolah', ['latitude' => '-0.0263', 'longitude' => '109.3425', 'radius_meter' => 150, 'jam_masuk' => '07:30', 'jam_pulang' => '14:30'])
             ->assertRedirect('/pengaturan-sekolah');
+        $this->assertSame('14:30', PengaturanSekolah::jamPulang());
+
+        // Jam pulang sebelum jam masuk ditolak.
+        $this->actingAs($this->sinta)->put('/pengaturan-sekolah', ['latitude' => '-0.0263', 'longitude' => '109.3425', 'radius_meter' => 150, 'jam_masuk' => '07:30', 'jam_pulang' => '07:00'])
+            ->assertSessionHasErrors('jam_pulang');
 
         $this->assertSame(['latitude' => -0.0263, 'longitude' => 109.3425], PengaturanSekolah::lokasi());
         $this->assertSame(150, PengaturanSekolah::radiusMeter());

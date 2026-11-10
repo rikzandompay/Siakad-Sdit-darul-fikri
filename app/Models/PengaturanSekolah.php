@@ -18,6 +18,8 @@ class PengaturanSekolah extends Model
 
     public const JAM_MASUK = 'jam_masuk_guru';
 
+    public const JAM_PULANG = 'jam_pulang_guru';
+
     protected $table = 'pengaturan_sekolah';
 
     protected $primaryKey = 'kunci';
@@ -51,6 +53,11 @@ class PengaturanSekolah extends Model
     public static function jamMasuk(): string
     {
         return (string) static::ambil(self::JAM_MASUK, config('presensi_guru.jam_masuk'));
+    }
+
+    public static function jamPulang(): string
+    {
+        return (string) static::ambil(self::JAM_PULANG, config('presensi_guru.jam_pulang'));
     }
 
     public static function radiusMeter(): int
