@@ -449,7 +449,7 @@ class GuruApiTest extends TestCase
         WajahGuru::create(['guru_id' => $this->guru->id, 'template' => json_encode($this->wajahDari(0)), 'didaftarkan_pada' => now(), 'mirip_guru_id' => $this->guruLain->id]);
         WajahGuru::create(['guru_id' => $this->guruLain->id, 'template' => json_encode(array_map(fn ($i) => cos($i * 3), range(1, 192))), 'didaftarkan_pada' => now(), 'mirip_guru_id' => $this->guru->id]);
 
-        $derau = $this->wajahDari(0.95);
+        $derau = $this->wajahDari(1.5);
         $payload = ['latitude' => self::LAT + 0.00038, 'longitude' => self::LNG, 'akurasi' => 8, 'mock' => false, 'embedding' => $derau, 'liveness' => true];
 
         $res = $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/absen/masuk', $payload);

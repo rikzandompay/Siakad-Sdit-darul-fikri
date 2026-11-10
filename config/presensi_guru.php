@@ -12,7 +12,7 @@ return [
     'jam_pulang' => env('GURU_JAM_PULANG', '14:00'),
 
     // Kecocokan wajah minimal (persen) yang diterima server dari aplikasi.
-    'min_skor_wajah' => (float) env('GURU_MIN_SKOR_WAJAH', 85),
+    'min_skor_wajah' => (float) env('GURU_MIN_SKOR_WAJAH', 70),
 
     // Kecocokan minimal khusus untuk guru yang memiliki profil kembar atau serupa (persen).
     'min_skor_kembar' => (float) env('GURU_MIN_SKOR_KEMBAR', 90),

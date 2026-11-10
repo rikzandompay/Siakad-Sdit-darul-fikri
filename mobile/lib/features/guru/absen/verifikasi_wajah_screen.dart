@@ -32,7 +32,16 @@ class _VerifikasiWajahScreenState extends State<VerifikasiWajahScreen> {
     final api = context.read<ApiClient>();
     final fotoUrl = context.read<Session>().akun['foto_url'] as String?;
     try {
-      final emb = await FaceService.instance.embeddingDariFoto(foto.first);
+      // Ambil embedding dari beberapa tangkapan, kirim yang terbaik ke server.
+      final embeddings = <List<double>>[];
+      for (final path in foto) {
+        try {
+          embeddings.add(await FaceService.instance.embeddingDariFoto(path));
+        } catch (_) {}
+      }
+      if (embeddings.isEmpty) {
+        throw FaceException('Wajah tidak terdeteksi di tangkapan kamera. Coba lagi.');
+      }
       _percobaan++;
 
       List<double>? fotoEmb;
@@ -40,6 +49,15 @@ class _VerifikasiWajahScreenState extends State<VerifikasiWajahScreen> {
         try {
           fotoEmb = await FaceService.instance.embeddingDariFotoProfil(await api.bytes(fotoUrl));
         } catch (_) {}
+      }
+
+      // Jika ada foto profil embedding, pilih embedding kamera dengan skor tertinggi.
+      List<double> emb;
+      if (fotoEmb != null && embeddings.length > 1) {
+        final ref = fotoEmb;
+        emb = embeddings.reduce((a, b) => FaceService.skor(a, ref) >= FaceService.skor(b, ref) ? a : b);
+      } else {
+        emb = embeddings.first;
       }
 
       final res = await api.post('/guru/absen/${widget.args['aksi']}', {
@@ -91,7 +109,7 @@ class _VerifikasiWajahScreenState extends State<VerifikasiWajahScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (_error != null)
           Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(_error!, textAlign: TextAlign.center)),
-        FaceCapture(key: _captureKey, onSelesai: _selesai, onGagal: _ulang, lokasi: lokasi),
+        FaceCapture(key: _captureKey, jumlahFoto: 3, onSelesai: _selesai, onGagal: _ulang, lokasi: lokasi),
       ]),
     );
   }

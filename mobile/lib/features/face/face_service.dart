@@ -24,20 +24,26 @@ class FaceService {
 
   Interpreter? _interpreter;
   final FaceDetector _detector = FaceDetector(
-    options: FaceDetectorOptions(performanceMode: FaceDetectorMode.accurate, minFaceSize: 0.2),
+    options: FaceDetectorOptions(
+      performanceMode: FaceDetectorMode.accurate,
+      enableLandmarks: true,
+      minFaceSize: 0.2,
+    ),
   );
 
   /// Kalibrasi skor: cosine similarity MobileFaceNet -> persen.
-  /// cos 0.20 → 0%, cos 0.71 → 85% (ambang server default), cos ≥ 0.80 → 100%.
-  /// Sesuaikan setelah uji coba di HP sekolah bila terlalu ketat/longgar.
-  static const _cosNol = 0.20;
-  static const _cosPenuh = 0.80;
+  /// cos 0.15 = 0%, cos 0.75 = 100%. Lebih lebar dari sebelumnya agar skor
+  /// tidak terlalu "ketat" saat kondisi foto profil vs kamera berbeda jauh.
+  static const _cosNol = 0.15;
+  static const _cosPenuh = 0.75;
 
   Future<Interpreter> _model() async {
     return _interpreter ??= await Interpreter.fromAsset('assets/models/mobilefacenet.tflite', options: InterpreterOptions()..threads = 2);
   }
 
   /// Embedding (sudah dinormalisasi L2) dari satu foto berisi tepat satu wajah.
+  /// Wajah otomatis di-align (rotasi supaya kedua mata sejajar horizontal)
+  /// sebelum di-crop dan diumpankan ke MobileFaceNet.
   Future<List<double>> embeddingDariFoto(String path) async {
     final faces = await _detector.processImage(InputImage.fromFilePath(path));
     if (faces.isEmpty) throw FaceException('Wajah tidak terlihat. Pastikan wajah berada di dalam bingkai dan cukup terang.');
@@ -45,10 +51,24 @@ class FaceService {
 
     final decoded = img.decodeImage(await File(path).readAsBytes());
     if (decoded == null) throw FaceException('Foto tidak dapat dibaca. Coba lagi.');
-    final foto = img.bakeOrientation(decoded);
+    var foto = img.bakeOrientation(decoded);
 
-    final box = faces.first.boundingBox;
-    final margin = box.width * 0.1;
+    final face = faces.first;
+
+    // Align: rotasi gambar agar garis antara kedua mata sejajar horizontal.
+    final mataKiri = face.landmarks[FaceLandmarkType.leftEye]?.position;
+    final mataKanan = face.landmarks[FaceLandmarkType.rightEye]?.position;
+    if (mataKiri != null && mataKanan != null) {
+      final dx = mataKanan.x - mataKiri.x;
+      final dy = mataKanan.y - mataKiri.y;
+      final sudut = math.atan2(dy, dx);
+      if (sudut.abs() > 0.02) {
+        foto = img.copyRotate(foto, angle: -sudut * 180 / math.pi);
+      }
+    }
+
+    final box = face.boundingBox;
+    final margin = box.width * 0.2;
     final x = math.max(0, (box.left - margin).round());
     final y = math.max(0, (box.top - margin).round());
     final w = math.min(foto.width - x, (box.width + margin * 2).round());

@@ -50,10 +50,10 @@ class WajahGuru extends Model
         return $na == 0.0 || $nb == 0.0 ? 0.0 : $dot / sqrt($na * $nb);
     }
 
-    /** Cosine similarity -> persen, kalibrasi sama dengan aplikasi (cos 0.20 = 0%, cos 0.80 = 100%). */
+    /** Cosine similarity -> persen, kalibrasi sama dengan aplikasi (cos 0.15 = 0%, cos 0.75 = 100%). */
     public static function skor(array $a, array $b): float
     {
-        return round(max(0.0, min(1.0, (static::cosinus($a, $b) - 0.20) / 0.60)) * 100, 1);
+        return round(max(0.0, min(1.0, (static::cosinus($a, $b) - 0.15) / 0.60)) * 100, 1);
     }
 
     /** Dua vektor sama persis berarti data hasil salin, bukan tangkapan kamera. */
