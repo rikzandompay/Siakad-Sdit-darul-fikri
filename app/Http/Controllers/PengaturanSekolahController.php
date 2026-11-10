@@ -23,6 +23,7 @@ class PengaturanSekolahController extends Controller
             'longitude' => $lokasi['longitude'] ?? null,
             'radius' => PengaturanSekolah::radiusMeter(),
             'jamMasuk' => PengaturanSekolah::jamMasuk(),
+            'batasMasuk' => PengaturanSekolah::batasMasuk(),
             'jamPulang' => PengaturanSekolah::jamPulang(),
             'libur' => $libur,
         ]);
@@ -35,6 +36,7 @@ class PengaturanSekolahController extends Controller
             'longitude' => 'nullable|required_with:latitude|numeric|between:-180,180',
             'radius_meter' => 'required|integer|between:20,2000',
             'jam_masuk' => ['required', 'date_format:H:i'],
+            'batas_masuk' => ['nullable', 'date_format:H:i', 'after:jam_masuk'],
             'jam_pulang' => ['required', 'date_format:H:i', 'after:jam_masuk'],
         ]);
 
@@ -43,6 +45,7 @@ class PengaturanSekolahController extends Controller
             PengaturanSekolah::LONGITUDE => $data['longitude'] ?? null,
             PengaturanSekolah::RADIUS => $data['radius_meter'],
             PengaturanSekolah::JAM_MASUK => $data['jam_masuk'],
+            PengaturanSekolah::BATAS_MASUK => $data['batas_masuk'] ?? null,
             PengaturanSekolah::JAM_PULANG => $data['jam_pulang'],
         ]);
 

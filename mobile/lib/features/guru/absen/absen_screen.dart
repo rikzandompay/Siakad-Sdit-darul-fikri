@@ -32,6 +32,29 @@ class _AbsenScreenState extends State<AbsenScreen> {
     try {
       final d = await context.read<ApiClient>().get('/guru/absen');
       if (mounted) setState(() => _d = d);
+
+      if (d['wajah_terdaftar'] != true) {
+        if (!mounted) return;
+        final akun = context.read<Session>().akun;
+        final fotoUrl = akun['foto_url'] as String?;
+        if (fotoUrl != null) {
+          try {
+            final api = context.read<ApiClient>();
+            final svc = FaceService.instance;
+            final fotoBytes = await api.bytes(fotoUrl);
+            final fotoEmbedding = await svc.embeddingDariFotoProfil(fotoBytes);
+            await api.post('/guru/wajah', {
+              'foto_embedding': fotoEmbedding,
+              'dari_foto_profil': true,
+            });
+            if (mounted) {
+              setState(() {
+                _d?['wajah_terdaftar'] = true;
+              });
+            }
+          } catch (_) {}
+        }
+      }
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     }
@@ -84,11 +107,12 @@ class _AbsenScreenState extends State<AbsenScreen> {
     final lewatBatas = d['batas_masuk'] != null && (d['jam_sekarang'] as String).compareTo(d['batas_masuk']) >= 0;
 
     String? kendala;
+    final adalahOtomatis = h['keterangan'] != null && h['keterangan'].toString().startsWith('Otomatis:');
     if (d['hari_sekolah'] != true) {
       kendala = 'Hari ini bukan hari sekolah.';
     } else if (lokasi == null) {
       kendala = 'Lokasi sekolah belum diatur admin. Hubungi Tata Usaha.';
-    } else if (tidakHadir) {
+    } else if (tidakHadir && (lewatBatas || !adalahOtomatis)) {
       kendala = h['keterangan'] ?? 'Anda tercatat Tidak Hadir hari ini. Hubungi Tata Usaha untuk koreksi.';
     } else if (!sudahMasuk && lewatBatas) {
       kendala = 'Absen masuk ditutup pukul ${d['batas_masuk']}. Hubungi Tata Usaha untuk koreksi.';
@@ -125,6 +149,17 @@ class _AbsenScreenState extends State<AbsenScreen> {
                   ? const StatusChip('Terdaftar', tone: ChipTone.ok)
                   : StatusChip(d['foto_acuan'] == true ? 'Belum daftar' : (d['foto_menunggu'] == true ? 'Foto menunggu' : 'Perlu foto'), tone: ChipTone.gold),
             ),
+            if (d['wajah_terdaftar'] != true) ...[
+              const SizedBox(height: 12),
+              SecondaryButton(
+                icon: Icons.camera_front_rounded,
+                label: 'Daftarkan Wajah Sekarang',
+                onPressed: () async {
+                  final ok = await context.push<bool>('/guru/absen/daftar-wajah');
+                  if (ok == true && mounted) _load();
+                },
+              ),
+            ],
           ]),
         ),
         const SizedBox(height: 12),

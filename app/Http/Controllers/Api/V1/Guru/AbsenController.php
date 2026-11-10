@@ -34,7 +34,7 @@ class AbsenController extends Controller
             'hari_sekolah' => Sekolah::hariSekolah($now),
             'jam_masuk' => PengaturanSekolah::jamMasuk(),
             'jam_pulang' => PengaturanSekolah::jamPulang(),
-            'batas_masuk' => config('presensi_guru.batas_tidak_hadir'),
+            'batas_masuk' => PengaturanSekolah::batasMasuk(),
             'min_skor_wajah' => (float) config('presensi_guru.min_skor_wajah'),
             'lokasi' => ($lok = PengaturanSekolah::lokasi()) ? $lok + ['radius_meter' => PengaturanSekolah::radiusMeter(), 'nama' => Sekolah::NAMA] : null,
             'wajah_terdaftar' => WajahGuru::where('guru_id', $guru->id)->exists(),
@@ -63,7 +63,7 @@ class AbsenController extends Controller
         if ($absen?->jam_masuk) {
             return $this->gagal('sudah_absen', 'Anda sudah absen masuk hari ini pukul '.substr($absen->jam_masuk, 0, 5).'.', 409);
         }
-        if (($batas = config('presensi_guru.batas_tidak_hadir')) && $now->format('H:i') >= $batas) {
+        if (($batas = PengaturanSekolah::batasMasuk()) && $now->format('H:i') >= $batas) {
             return $this->gagal('lewat_batas', "Absen masuk ditutup pukul {$batas}. Hubungi Tata Usaha untuk koreksi.");
         }
         [$lokasi, $skor, $err] = $this->verifikasi($guru->id, $data);

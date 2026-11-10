@@ -55,6 +55,12 @@
             <p class="text-xs text-gray-500 mt-1">Absen masuk setelah jam ini ditandai Terlambat.</p>
         </div>
         <div>
+            <label for="batas_masuk" class="block text-sm font-bold text-gray-700 mb-1.5">Batas akhir absen masuk</label>
+            <input id="batas_masuk" name="batas_masuk" type="time" value="{{ old('batas_masuk', $batasMasuk) }}"
+                class="w-full border border-gray-200 rounded-lg text-sm h-11 px-3">
+            <p class="text-xs text-gray-500 mt-1">Absen masuk ditutup setelah jam ini (kosongkan jika tidak dibatasi).</p>
+        </div>
+        <div>
             <label for="jam_pulang" class="block text-sm font-bold text-gray-700 mb-1.5">Jam pulang guru</label>
             <input id="jam_pulang" name="jam_pulang" type="time" required value="{{ old('jam_pulang', $jamPulang) }}"
                 class="w-full border border-gray-200 rounded-lg text-sm h-11 px-3">

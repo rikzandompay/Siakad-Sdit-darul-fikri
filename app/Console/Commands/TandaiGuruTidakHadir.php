@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\HariLibur;
+use App\Models\PengaturanSekolah;
 use App\Models\PresensiGuru;
 use App\Models\User;
 use Carbon\Carbon;
@@ -38,7 +39,7 @@ class TandaiGuruTidakHadir extends Command
         }
 
         $tanggalStr = $tanggal->toDateString();
-        $batas = config('presensi_guru.batas_tidak_hadir');
+        $batas = PengaturanSekolah::batasMasuk();
         $now = now();
 
         $rows = User::where('status', 'Aktif')
