@@ -89,7 +89,7 @@ class GuruApiTest extends TestCase
 
     private function lokasi(float $offsetLat = 0.00038): array
     {
-        return ['latitude' => self::LAT + $offsetLat, 'longitude' => self::LNG, 'akurasi' => 8, 'mock' => false, 'embedding' => $this->wajahDari(0.05), 'liveness' => true,
+        return ['latitude' => self::LAT + $offsetLat, 'longitude' => self::LNG, 'akurasi' => 8, 'mock' => false, 'embedding' => $this->wajahDari(0.05), 'liveness' => true, 'pipeline_wajah' => 2,
             // Absen wajib menyertakan identitas perangkat (satu guru satu HP).
             'perangkat_id' => 'perangkat-uji-001', 'perangkat_nama' => 'Samsung SM-A125F', 'perangkat_platform' => 'android', 'perangkat_versi_os' => '13'];
     }
@@ -323,81 +323,6 @@ class GuruApiTest extends TestCase
         $this->withHeaders($h)->postJson('/api/v1/guru/absen/cek-lokasi', $this->lokasi())->assertJsonValidationErrors('latitude');
     }
 
-    public function test_daftar_wajah_sekali_dan_template_terenkripsi(): void
-    {
-        $this->guru->update(['foto_profil' => 'foto_guru/a.jpg']);
-        $h = $this->tokenGuru();
-        $template = array_map(fn ($i) => round(sin($i) / 3, 4), range(1, 192));
-        $foto = $this->wajahDari(0.3);
-
-        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => [1, 2], 'foto_embedding' => $foto])->assertJsonValidationErrors('template');
-        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => $template])->assertJsonValidationErrors('foto_embedding');
-        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => $template, 'foto_embedding' => $foto])->assertCreated();
-        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => $template, 'foto_embedding' => $foto])->assertStatus(409)->assertJsonPath('kode', 'sudah_terdaftar');
-
-        $this->assertStringNotContainsString((string) $template[0], \DB::table('wajah_guru')->value('template'));
-        // Template tidak pernah dikirim balik ke HP.
-        $res = $this->withHeaders($h)->getJson('/api/v1/guru/wajah')->assertOk()->assertJsonPath('terdaftar', true);
-        $this->assertArrayNotHasKey('template', $res->json());
-        $this->withHeaders($this->tokenGuru($this->guruLain))->getJson('/api/v1/guru/wajah')->assertJsonPath('terdaftar', false);
-        $this->assertSame(1, WajahGuru::count());
-    }
-
-    public function test_daftar_wajah_harus_cocok_dengan_foto_profil_yang_disetujui(): void
-    {
-        $h = $this->tokenGuru();
-        $template = $this->wajahDari(0);
-        $body = ['template' => $template, 'foto_embedding' => $this->wajahDari(0.3)];
-
-        // Belum ada foto profil.
-        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', $body)->assertStatus(422)->assertJsonPath('kode', 'foto_belum_disetujui');
-
-        // Foto masih menunggu persetujuan: belum bisa jadi acuan.
-        $this->guru->update(['foto_pengajuan' => 'foto_guru_pengajuan/a.jpg']);
-        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', $body)->assertStatus(422)->assertJsonPath('kode', 'foto_belum_disetujui');
-
-        $this->guru->update(['foto_profil' => 'foto_guru/a.jpg', 'foto_pengajuan' => null]);
-        $h = $this->tokenGuru();
-
-        // Wajah orang lain tidak cocok dengan foto profil.
-        $orangLain = array_map(fn ($i) => cos($i * 3), range(1, 192));
-        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => $orangLain, 'foto_embedding' => $template])
-            ->assertStatus(422)->assertJsonPath('kode', 'wajah_tidak_cocok_foto');
-
-        // Vektor foto hasil salin dari kamera ditolak.
-        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', ['template' => $template, 'foto_embedding' => $template])
-            ->assertStatus(422)->assertJsonPath('kode', 'wajah_tidak_cocok_foto');
-        $this->assertSame(0, WajahGuru::count());
-
-        $this->withHeaders($h)->postJson('/api/v1/guru/wajah', $body)->assertCreated();
-        $this->assertGreaterThanOrEqual(60, WajahGuru::first()->skor_foto);
-    }
-
-    public function test_wajah_mirip_guru_lain_ditandai_saat_daftar(): void
-    {
-        $this->guru->update(['foto_profil' => 'foto_guru/a.jpg']);
-        $this->daftarkanWajah($this->guruLain);
-
-        $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/wajah', ['template' => $this->wajahDari(0.1), 'foto_embedding' => $this->wajahDari(0.3)])->assertCreated();
-
-        $this->assertSame($this->guruLain->id, WajahGuru::where('guru_id', $this->guru->id)->first()->mirip_guru_id);
-        $this->assertSame($this->guru->id, WajahGuru::where('guru_id', $this->guruLain->id)->first()->mirip_guru_id);
-
-        // Reset data wajah membersihkan tanda pada pasangannya.
-        $this->guru->hapusWajah();
-        $this->assertNull(WajahGuru::where('guru_id', $this->guruLain->id)->first()->mirip_guru_id);
-    }
-
-    public function test_wajah_berbeda_tidak_ditandai_mirip(): void
-    {
-        $this->guru->update(['foto_profil' => 'foto_guru/a.jpg']);
-        WajahGuru::create(['guru_id' => $this->guruLain->id, 'template' => json_encode(array_map(fn ($i) => cos($i * 3), range(1, 192))), 'didaftarkan_pada' => now()]);
-
-        $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/wajah', ['template' => $this->wajahDari(0), 'foto_embedding' => $this->wajahDari(0.3)])->assertCreated();
-
-        $this->assertSame(0, WajahGuru::whereNotNull('mirip_guru_id')->count());
-    }
-
     public function test_wajah_lebih_mirip_guru_lain_diverifikasi_tambahan_lalu_ditolak(): void
     {
         // Template sendiri lolos ambang, tetapi wajah di kamera lebih dekat ke guru lain.
@@ -426,17 +351,6 @@ class GuruApiTest extends TestCase
         $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/absen/masuk', $this->lokasi())->assertOk();
 
         $this->assertSame($this->guruLain->id, WajahGuru::where('guru_id', $this->guru->id)->first()->mirip_guru_id);
-    }
-
-    public function test_absen_otomatis_mendaftar_dari_foto_profil(): void
-    {
-        $this->guru->update(['foto_profil' => 'foto_guru/profil_saya.jpg']);
-        $this->assertNull(WajahGuru::where('guru_id', $this->guru->id)->first());
-
-        $payload = $this->lokasi() + ['foto_embedding' => $this->wajahDari(0)];
-        $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/absen/masuk', $payload)->assertOk();
-
-        $this->assertNotNull(WajahGuru::where('guru_id', $this->guru->id)->first());
     }
 
     public function test_kembar_identik_lolos_setelah_verifikasi_tambahan_dan_dicatat(): void

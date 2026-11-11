@@ -25,6 +25,13 @@ return [
     // Lebih rendah dari absen harian karena foto profil berbeda cahaya, sudut, dan waktu.
     'min_skor_foto' => (float) env('GURU_MIN_SKOR_FOTO', 60),
 
+    // Acuan wajah dibuat di server dari foto profil (scripts/wajah/embedding.py) memakai Python
+    // dengan numpy, opencv-python-headless, dan tflite-runtime, mis. venv /opt/siakad-wajah.
+    'python_wajah' => env('GURU_WAJAH_PYTHON', 'python3'),
+
+    // Buat acuan otomatis saat foto profil disetujui/diganti (dimatikan di tes).
+    'acuan_otomatis' => (bool) env('GURU_ACUAN_OTOMATIS', true),
+
     // Akurasi GPS terburuk (meter) yang masih diterima saat absen.
     'maks_akurasi_meter' => (int) env('GURU_MAKS_AKURASI_METER', 50),
 

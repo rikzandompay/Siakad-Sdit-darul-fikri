@@ -135,6 +135,20 @@ class User extends Authenticatable
     {
         WajahGuru::where('guru_id', $this->id)->delete();
         WajahGuru::where('mirip_guru_id', $this->id)->update(['mirip_guru_id' => null, 'mirip_skor' => null, 'mirip_pada' => null]);
+        $this->siapkanAcuanWajah();
+    }
+
+    /**
+     * Jadwalkan pembuatan acuan wajah dari foto profil (di server). Dipanggil setiap kali acuan
+     * lama dihapus: foto disetujui/diganti, atau admin mereset data wajah.
+     */
+    public function siapkanAcuanWajah(): void
+    {
+        \Illuminate\Support\Facades\Cache::forget(\App\Jobs\BuatAcuanWajah::kunciGagal($this->id));
+        if ($this->foto_profil && config('presensi_guru.acuan_otomatis')) {
+            \Illuminate\Support\Facades\Cache::put('acuan-wajah-antre:'.$this->id, true, now()->addMinutes(10));
+            \App\Jobs\BuatAcuanWajah::dispatch($this->id)->afterCommit();
+        }
     }
 
     public function isAdmin(): bool

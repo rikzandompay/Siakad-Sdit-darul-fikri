@@ -28,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(\App\Support\PengenalWajah::class, \App\Support\PengenalWajahPython::class);
         // Boolean ke kolom Postgres aman di PHP 8.4 (lihat PostgresKoneksi).
         Connection::resolverFor('pgsql', fn ($pdo, $database, $prefix, $config) => new PostgresKoneksi($pdo, $database, $prefix, $config));
     }

@@ -60,7 +60,6 @@ Route::prefix('v1')->group(function () {
             Route::get('/absen/rekap', [AbsenController::class, 'rekap']);
             Route::get('/absen/perangkat', [AbsenController::class, 'perangkat']);
             Route::get('/wajah', [AbsenController::class, 'wajah']);
-            Route::post('/wajah', [AbsenController::class, 'daftarWajah'])->middleware('throttle:api-wajah');
 
             // Tugas & nilai tugas, izin, pengumuman, jadwal, konseling
             Route::get('/tugas', [LainnyaController::class, 'tugas']);

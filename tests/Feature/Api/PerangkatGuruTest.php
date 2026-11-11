@@ -6,6 +6,7 @@ use App\Models\PengaturanSekolah;
 use App\Models\PerangkatGuru;
 use App\Models\PresensiGuru;
 use App\Models\User;
+use App\Models\WajahGuru;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -65,7 +66,7 @@ class PerangkatGuruTest extends TestCase
     {
         return [
             'latitude' => self::LAT + 0.00038, 'longitude' => self::LNG, 'akurasi' => 8,
-            'mock' => false, 'embedding' => $this->wajahDari(0.05), 'liveness' => true,
+            'mock' => false, 'embedding' => $this->wajahDari(0.05), 'liveness' => true, 'pipeline_wajah' => 2,
             'perangkat_id' => $perangkatId, 'perangkat_nama' => $nama,
             'perangkat_platform' => 'android', 'perangkat_versi_os' => '13',
         ];
@@ -73,11 +74,9 @@ class PerangkatGuruTest extends TestCase
 
     private function siapkanWajah(): void
     {
-        // Foto profil harus sudah disetujui sebelum wajah boleh didaftarkan.
+        // Acuan wajah dibuat server dari foto profil yang disetujui (lihat AcuanWajahServerTest).
         $this->guru->update(['foto_profil' => 'foto_guru/a.jpg', 'foto_pengajuan' => null]);
-        $this->withHeaders($this->token($this->guru))
-            ->postJson('/api/v1/guru/wajah', ['foto_embedding' => $this->wajahDari(0), 'dari_foto_profil' => true])
-            ->assertCreated();
+        WajahGuru::create(['guru_id' => $this->guru->id, 'template' => json_encode($this->wajahDari(0)), 'didaftarkan_pada' => now()]);
     }
 
     public function test_absen_tanpa_perangkat_id_ditolak(): void

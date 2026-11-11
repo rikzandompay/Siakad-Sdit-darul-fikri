@@ -50,26 +50,27 @@ notifikasi HP butuh proyek Firebase (gratis):
 
 Tanpa langkah 2–3 aplikasi tetap jalan; notifikasi hanya tampil di riwayat lonceng.
 
-## Pengenalan wajah (di HP)
+## Pengenalan wajah
 
-- `google_mlkit_face_detection`: deteksi wajah dan kedipan (liveness).
+- `google_mlkit_face_detection`: deteksi wajah, posisi mata, dan kedipan (liveness).
 - `tflite_flutter` + `assets/models/mobilefacenet.tflite`: wajah → embedding 192 angka.
   Model dari [FaceRecognitionAuth](https://github.com/MCarlomagno/FaceRecognitionAuth) (lisensi BSD-3-Clause).
-- Foto kamera tidak dikirim ke server. Server menyimpan template (embedding) terenkripsi, lalu
-  mencocokkannya saat absen dan memeriksa ulang jarak, skor minimal, jam, dan hari sekolah.
-- Foto profil adalah acuan wajah: foto guru berlaku setelah disetujui kepala sekolah, lalu acuan
-  dibuat otomatis dari foto itu saat guru membuka Presensi Guru. Tidak ada langkah daftar wajah
-  terpisah. Foto yang diganti membuat acuan baru.
-- Saat absen wajah dibandingkan dengan semua guru: ditolak bila lebih mirip guru lain. Pasangan yang
-  sangat mirip (mis. kembar) ditandai untuk admin. Wajah saja tidak bisa membedakan kembar identik.
-- Ambang kecocokan: `GURU_MIN_SKOR_WAJAH` di `.env` server (default 85).
-  Konversi skor ada di `lib/features/face/face_service.dart` (`_cosNol`, `_cosPenuh`) —
-  **perlu dikalibrasi dengan uji coba di HP guru** sebelum dipakai resmi.
+- **Acuan wajah dibuat di server** dari foto profil yang sudah disetujui kepala sekolah
+  (`scripts/wajah/`, model yang sama). HP tidak pernah mengirim atau menerima acuan; HP hanya
+  mengirim embedding dari kamera, lalu server mencocokkan dan menghitung skornya.
+- Pemotongan wajah di HP (`FaceService.potongWajah`) harus identik dengan server; dijaga oleh
+  `test/potong_wajah_test.dart`. Aplikasi mengirim `pipeline_wajah: 2`; aplikasi lama diminta
+  memperbarui diri.
+- Kembar/wajah mirip: bila selisihnya tipis, aplikasi mengambil foto tambahan; kembar identik
+  dipastikan lewat akun dan HP terdaftar, lalu absennya diberi catatan untuk ditinjau admin.
+- Ambang kecocokan: `GURU_MIN_SKOR_WAJAH` di `.env` server (default 70). **Kalibrasi ulang dengan
+  uji coba di HP guru**, karena acuan kini berasal dari foto profil.
 
-Keterbatasan: wajah dihitung di HP, jadi aplikasi yang dimodifikasi bisa mengirim data wajah atau
-hasil kedip palsu. Server tetap memvalidasi lokasi dan menolak GPS palsu yang terdeteksi Android;
-setiap percobaan dengan lokasi palsu dikirim sebagai peringatan ke kepala sekolah (maksimal satu per
-guru per 30 menit).
+Keterbatasan: embedding kamera, hasil kedip, dan tanda lokasi palsu tetap berasal dari HP. Titip
+absen di HP orang lain tertutup oleh pengikatan satu guru satu HP dan acuan dari server; guru yang
+memodifikasi aplikasi di HP-nya sendiri hanya bisa dicegah dengan Google Play Integrity (belum
+dipasang). Percobaan lokasi palsu yang terdeteksi Android ditolak, memblokir absen hari itu, dan
+dikirim sebagai peringatan ke kepala sekolah.
 
 ## Struktur
 

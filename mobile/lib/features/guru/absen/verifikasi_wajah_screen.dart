@@ -8,7 +8,6 @@ import 'package:provider/provider.dart';
 import '../../../core/api_client.dart';
 import '../../../core/format.dart';
 import '../../../core/perangkat.dart';
-import '../../../core/session.dart';
 import '../../../core/theme.dart';
 import '../../../widgets/common.dart';
 import '../../face/face_capture.dart';
@@ -189,7 +188,6 @@ class _VerifikasiWajahScreenState extends State<VerifikasiWajahScreen> {
 
   Future<void> _fotoSiap(List<String> foto) async {
     final api = context.read<ApiClient>();
-    final fotoUrl = context.read<Session>().akun['foto_url'] as String?;
     try {
       final embeddings = <List<double>>[];
       for (final path in foto) {
@@ -200,15 +198,10 @@ class _VerifikasiWajahScreenState extends State<VerifikasiWajahScreen> {
       if (embeddings.isEmpty) throw FaceException('Wajah tidak terdeteksi di foto. Coba lagi dengan wajah di dalam bingkai.');
       if (_tambahan && embeddings.length < 3) throw FaceException('Wajah kurang jelas di foto verifikasi tambahan. Tahan HP tetap diam lalu coba lagi.');
 
-      List<double>? fotoEmb;
-      if (fotoUrl != null) {
-        try {
-          fotoEmb = await FaceService.instance.embeddingDariFotoProfil(await api.bytes(fotoUrl));
-        } catch (_) {}
-      }
-      // Pilih tangkapan kamera yang paling mirip foto profil; server tetap yang memutuskan.
-      final ref = fotoEmb;
-      final emb = ref != null && embeddings.length > 1 ? embeddings.reduce((a, b) => FaceService.skor(a, ref) >= FaceService.skor(b, ref) ? a : b) : embeddings.first;
+      // Semua tangkapan dikirim; server merata-ratakannya lalu membandingkan dengan acuan dari
+      // foto profil (acuan dibuat dan disimpan di server, tidak pernah dikirim ke HP).
+      final emb = embeddings.first;
+      final lainnya = embeddings.skip(1).toList();
 
       if (_lokasi == _Lokasi.mencari || _lokasi == _Lokasi.kurangAkurat) {
         setState(() => _pesanProses = 'Menunggu lokasi GPS…');
@@ -240,10 +233,11 @@ class _VerifikasiWajahScreenState extends State<VerifikasiWajahScreen> {
         'akurasi': p.accuracy,
         'mock': _palsu,
         'embedding': emb,
-        'foto_embedding': ?fotoEmb,
+        if (lainnya.length >= 2) 'embeddings': lainnya,
+        // Versi cara memotong wajah; harus sama dengan pembuat acuan di server.
+        'pipeline_wajah': 2,
         'liveness': true,
         if (_tambahan) 'verifikasi_tambahan': true,
-        if (_tambahan) 'embeddings': embeddings.where((e) => !identical(e, emb)).toList(),
         // Satu guru satu perangkat: server menolak absen dari HP yang belum disetujui.
         'perangkat_id': perangkat.id,
         'perangkat_nama': perangkat.nama,

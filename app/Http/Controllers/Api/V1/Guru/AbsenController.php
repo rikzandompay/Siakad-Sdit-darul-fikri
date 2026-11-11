@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Guru;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\BuatAcuanWajah;
 use App\Models\PengaturanSekolah;
 use App\Models\PerangkatGuru;
 use App\Models\PresensiGuru;
@@ -20,12 +21,16 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Absen guru dengan verifikasi lokasi + wajah.
- * HP hanya mengirim embedding wajah hasil kamera; pencocokan dengan template (terenkripsi,
- * tidak pernah dikirim ke HP) dan skor dihitung di server. Server juga memeriksa jarak,
+ * HP hanya mengirim embedding wajah hasil kamera. Acuan (template) dibuat server dari foto profil
+ * yang disetujui kepala sekolah (BuatAcuanWajah), disimpan terenkripsi, dan tidak pernah dikirim ke
+ * HP; pencocokan dan skor dihitung di server. Server juga memeriksa jarak,
  * akurasi GPS, lokasi palsu, jam, dan hari sekolah.
  */
 class AbsenController extends Controller
 {
+    /** Harus sama dengan `pipeline_wajah` yang dikirim aplikasi dan dengan scripts/wajah/embedding.py. */
+    private const PIPELINE_WAJAH = 2;
+
     public function status(Request $request): JsonResponse
     {
         $guru = $request->user();
@@ -44,6 +49,7 @@ class AbsenController extends Controller
             'lokasi' => ($lok = PengaturanSekolah::lokasi()) ? $lok + ['radius_meter' => PengaturanSekolah::radiusMeter(), 'nama' => Sekolah::NAMA] : null,
             'wajah_terdaftar' => WajahGuru::where('guru_id', $guru->id)->exists(),
             'foto_acuan' => (bool) $guru->foto_profil,
+            ...self::statusAcuan($guru),
             'foto_menunggu' => (bool) $guru->foto_pengajuan,
             'hari_ini' => self::ringkasHariIni($absen),
         ]);
@@ -105,7 +111,7 @@ class AbsenController extends Controller
         if (($batas = PengaturanSekolah::batasMasuk()) && $now->format('H:i') >= $batas) {
             return $this->gagal('lewat_batas', "Absen masuk ditutup pukul {$batas}. Hubungi Tata Usaha untuk koreksi.");
         }
-        if ($err = $this->pastikanPerangkat($guru, $data)) {
+        if ($err = $this->pastikanPipeline($data) ?? $this->pastikanPerangkat($guru, $data)) {
             return $err;
         }
         [$lokasi, $skor, $err, $catatan] = $this->verifikasi($guru->id, $data);
@@ -145,7 +151,7 @@ class AbsenController extends Controller
         if ($absen->jam_pulang) {
             return $this->gagal('sudah_absen', 'Anda sudah absen pulang pukul '.substr($absen->jam_pulang, 0, 5).'.', 409);
         }
-        if ($err = $this->pastikanPerangkat($guru, $data)) {
+        if ($err = $this->pastikanPipeline($data) ?? $this->pastikanPerangkat($guru, $data)) {
             return $err;
         }
         [$lokasi, $skor, $err, $catatan] = $this->verifikasi($guru->id, $data);
@@ -203,65 +209,33 @@ class AbsenController extends Controller
         ]);
     }
 
-    /**
-     * Pendaftaran wajah: wajah di kamera harus cocok dengan foto profil yang sudah disetujui admin,
-     * supaya seseorang tidak bisa mendaftarkan wajah orang lain di akunnya.
-     */
-    public function daftarWajah(Request $request): JsonResponse
-    {
-        $guru = $request->user();
-        $data = $request->validate([
-            'template' => 'nullable|array|min:64|max:1024',
-            'template.*' => 'numeric|between:-100,100',
-            'foto_embedding' => 'required|array|min:64|max:1024',
-            'foto_embedding.*' => 'numeric|between:-100,100',
-            'dari_foto_profil' => 'nullable|boolean',
-        ]);
+    // ── Bantuan ────────────────────────────────────────────────────
 
+    /**
+     * Status acuan wajah (dibuat server dari foto profil): siap | diproses | gagal | foto_menunggu | perlu_foto.
+     * Foto lama yang belum punya acuan (mis. dari sebelum acuan dibuat server) otomatis dijadwalkan.
+     *
+     * @return array{acuan_wajah: string, acuan_pesan: string|null}
+     */
+    private static function statusAcuan(User $guru): array
+    {
         if (WajahGuru::where('guru_id', $guru->id)->exists()) {
-            return $this->gagal('sudah_terdaftar', 'Wajah sudah terdaftar. Minta admin mereset data wajah jika perlu mendaftar ulang.', 409);
+            return ['acuan_wajah' => 'siap', 'acuan_pesan' => null];
         }
         if (! $guru->foto_profil) {
-            return $this->gagal('foto_belum_disetujui', $guru->foto_pengajuan
-                ? 'Foto profil Anda masih menunggu persetujuan kepala sekolah.'
-                : 'Unggah foto profil yang jelas menampilkan wajah Anda, lalu tunggu persetujuan kepala sekolah.');
+            return $guru->foto_pengajuan
+                ? ['acuan_wajah' => 'foto_menunggu', 'acuan_pesan' => 'Foto profil Anda menunggu persetujuan kepala sekolah. Presensi bisa dilakukan setelah disetujui.']
+                : ['acuan_wajah' => 'perlu_foto', 'acuan_pesan' => 'Unggah foto profil yang jelas menampilkan wajah Anda, lalu tunggu persetujuan kepala sekolah.'];
+        }
+        if ($pesan = Cache::get(BuatAcuanWajah::kunciGagal($guru->id))) {
+            return ['acuan_wajah' => 'gagal', 'acuan_pesan' => $pesan.' Ganti foto profil lalu tunggu persetujuan kepala sekolah.'];
+        }
+        if (! Cache::has('acuan-wajah-antre:'.$guru->id)) {
+            $guru->siapkanAcuanWajah();
         }
 
-        $fotoEmbedding = array_map('floatval', $data['foto_embedding']);
-        $template = isset($data['template']) ? array_map('floatval', $data['template']) : $fotoEmbedding;
-
-        $min = (float) config('presensi_guru.min_skor_foto');
-        if (! $request->boolean('dari_foto_profil') && isset($data['template'])) {
-            if (WajahGuru::identik($template, $fotoEmbedding)) {
-                return $this->gagal('wajah_tidak_cocok_foto', 'Data wajah tidak valid. Ulangi dengan kamera.', 422, ['skor_foto' => 0.0, 'min_skor_foto' => $min]);
-            }
-            $skorFoto = WajahGuru::skor($template, $fotoEmbedding);
-            if ($skorFoto < $min) {
-                return $this->gagal('wajah_tidak_cocok_foto', "Wajah di kamera tidak cocok dengan foto profil ({$skorFoto}%, minimal {$min}%). Pastikan wajah terang dan menghadap kamera.", 422, ['skor_foto' => $skorFoto, 'min_skor_foto' => $min]);
-            }
-        } else {
-            $skorFoto = 100.0;
-        }
-
-        // Acuan presensi wajah memakai embedding dari gambar profil akun
-        WajahGuru::create([
-            'guru_id' => $guru->id,
-            'template' => json_encode($fotoEmbedding),
-            'didaftarkan_pada' => now(),
-            'skor_foto' => $skorFoto,
-        ]);
-
-        // Wajah yang sangat mirip guru lain (mis. kembar) ditandai agar diketahui admin
-        $ambangDeteksi = (float) config('presensi_guru.ambang_kembar_deteksi', 75);
-        $mirip = WajahGuru::palingMirip($fotoEmbedding, $guru->id);
-        if ($mirip && $mirip['skor'] >= $ambangDeteksi) {
-            WajahGuru::tandaiMirip($guru->id, $mirip['guru_id'], $mirip['skor']);
-        }
-
-        return response()->json(['message' => 'Wajah dari gambar profil akun berhasil didaftarkan.', 'skor_foto' => $skorFoto], 201);
+        return ['acuan_wajah' => 'diproses', 'acuan_pesan' => 'Acuan wajah dari foto profil sedang disiapkan server. Coba lagi sebentar lagi.'];
     }
-
-    // ── Bantuan ────────────────────────────────────────────────────
 
     public static function ringkasHariIni(?PresensiGuru $absen): array
     {
@@ -292,9 +266,9 @@ class AbsenController extends Controller
             'mock' => 'required|declined',
             'embedding' => 'required|array|min:64|max:1024',
             'embedding.*' => 'numeric|between:-100,100',
-            'foto_embedding' => 'nullable|array|min:64|max:1024',
-            'foto_embedding.*' => 'numeric|between:-100,100',
             'liveness' => 'required|accepted',
+            // Versi cara memotong wajah di aplikasi; harus sama dengan pembuat acuan di server.
+            'pipeline_wajah' => 'nullable|integer',
             // Verifikasi tambahan (wajah mirip guru lain): beberapa tangkapan kamera sekaligus.
             'embeddings' => 'nullable|array|min:2|max:6',
             'embeddings.*' => 'array|min:64|max:1024',
@@ -306,6 +280,14 @@ class AbsenController extends Controller
             'perangkat_platform' => 'nullable|string|max:20',
             'perangkat_versi_os' => 'nullable|string|max:40',
         ];
+    }
+
+    /** Aplikasi lama memotong wajah dengan cara lain, sehingga tidak sebanding dengan acuan server. */
+    private function pastikanPipeline(array $data): ?JsonResponse
+    {
+        return (int) ($data['pipeline_wajah'] ?? 0) === self::PIPELINE_WAJAH
+            ? null
+            : $this->gagal('perbarui_aplikasi', 'Perbarui aplikasi MyDarfik ke versi terbaru untuk melakukan presensi.', 426);
     }
 
     /**
@@ -422,26 +404,13 @@ class AbsenController extends Controller
             return [$lokasi, null, $this->gagal('di_luar_area', 'Anda berada di luar area sekolah.', 422, $lokasi), null];
         }
 
+        // Acuan hanya dibuat server dari foto profil yang disetujui (BuatAcuanWajah), tidak pernah
+        // dari data kiriman HP.
         $wajah = WajahGuru::where('guru_id', $guruId)->first();
-        if (! $wajah && ! empty($data['foto_embedding'])) {
-            $guru = User::find($guruId);
-            if ($guru?->foto_profil) {
-                $fotoEmb = array_map('floatval', $data['foto_embedding']);
-                $wajah = WajahGuru::create([
-                    'guru_id' => $guruId,
-                    'template' => json_encode($fotoEmb),
-                    'didaftarkan_pada' => now(),
-                    'skor_foto' => 100.0,
-                ]);
-                $ambangDeteksi = (float) config('presensi_guru.ambang_kembar_deteksi', 75);
-                $m = WajahGuru::palingMirip($fotoEmb, $guruId);
-                if ($m && $m['skor'] >= $ambangDeteksi) {
-                    WajahGuru::tandaiMirip($guruId, $m['guru_id'], $m['skor']);
-                }
-            }
-        }
         if (! $wajah) {
-            return [$lokasi, null, $this->gagal('wajah_belum_terdaftar', 'Acuan wajah belum ada. Buka menu Presensi Guru; acuan dibuat dari foto profil yang disetujui kepala sekolah.'), null];
+            $status = self::statusAcuan(User::find($guruId));
+
+            return [$lokasi, null, $this->gagal('wajah_belum_terdaftar', $status['acuan_pesan'] ?? 'Acuan wajah belum siap.', 422, ['acuan_wajah' => $status['acuan_wajah']]), null];
         }
 
         $template = $wajah->vektor();
