@@ -89,7 +89,9 @@ class GuruApiTest extends TestCase
 
     private function lokasi(float $offsetLat = 0.00038): array
     {
-        return ['latitude' => self::LAT + $offsetLat, 'longitude' => self::LNG, 'akurasi' => 8, 'mock' => false, 'embedding' => $this->wajahDari(0.05), 'liveness' => true];
+        return ['latitude' => self::LAT + $offsetLat, 'longitude' => self::LNG, 'akurasi' => 8, 'mock' => false, 'embedding' => $this->wajahDari(0.05), 'liveness' => true,
+            // Absen wajib menyertakan identitas perangkat (satu guru satu HP).
+            'perangkat_id' => 'perangkat-uji-001', 'perangkat_nama' => 'Samsung SM-A125F', 'perangkat_platform' => 'android', 'perangkat_versi_os' => '13'];
     }
 
     /** Template = sin(i); embedding kamera = template + derau kecil (bukan salinan). */
@@ -396,18 +398,24 @@ class GuruApiTest extends TestCase
         $this->assertSame(0, WajahGuru::whereNotNull('mirip_guru_id')->count());
     }
 
-    public function test_absen_ditolak_bila_wajah_lebih_mirip_guru_lain(): void
+    public function test_wajah_lebih_mirip_guru_lain_diverifikasi_tambahan_lalu_ditolak(): void
     {
         // Template sendiri lolos ambang, tetapi wajah di kamera lebih dekat ke guru lain.
         WajahGuru::create(['guru_id' => $this->guru->id, 'template' => json_encode($this->wajahDari(0.9)), 'didaftarkan_pada' => now()]);
         $this->daftarkanWajah($this->guruLain);
+        $h = $this->tokenGuru();
 
-        $res = $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/absen/masuk', $this->lokasi())->assertStatus(422)->assertJsonPath('kode', 'wajah_mirip_guru_lain');
+        // Tidak langsung ditolak: aplikasi diminta mengambil beberapa foto lagi.
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', $this->lokasi())->assertStatus(422)->assertJsonPath('kode', 'verifikasi_tambahan');
+        $this->assertSame($this->guruLain->id, WajahGuru::where('guru_id', $this->guru->id)->first()->mirip_guru_id);
+
+        // Setelah verifikasi tambahan wajah tetap jelas lebih cocok dengan guru lain.
+        $tambahan = $this->lokasi() + ['verifikasi_tambahan' => true, 'embeddings' => [$this->wajahDari(0.04), $this->wajahDari(0.06)]];
+        $res = $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', $tambahan)->assertStatus(422)->assertJsonPath('kode', 'wajah_mirip_guru_lain');
 
         // Nama guru lain tidak dibocorkan ke yang mencoba absen.
         $this->assertStringNotContainsString('Guru Lain', $res->getContent());
         $this->assertSame(0, PresensiGuru::count());
-        $this->assertSame($this->guruLain->id, WajahGuru::where('guru_id', $this->guru->id)->first()->mirip_guru_id);
     }
 
     public function test_absen_tetap_berhasil_bila_wajah_paling_mirip_diri_sendiri_dan_pasangan_ditandai(): void
@@ -431,30 +439,45 @@ class GuruApiTest extends TestCase
         $this->assertNotNull(WajahGuru::where('guru_id', $this->guru->id)->first());
     }
 
-    public function test_absen_ditolak_bila_wajah_kembar_selisih_terlalu_tipis(): void
+    public function test_kembar_identik_lolos_setelah_verifikasi_tambahan_dan_dicatat(): void
     {
         WajahGuru::create(['guru_id' => $this->guru->id, 'template' => json_encode($this->wajahDari(0)), 'didaftarkan_pada' => now(), 'mirip_guru_id' => $this->guruLain->id]);
         WajahGuru::create(['guru_id' => $this->guruLain->id, 'template' => json_encode($this->wajahDari(0.04)), 'didaftarkan_pada' => now(), 'mirip_guru_id' => $this->guru->id]);
+        $h = $this->tokenGuru();
+        $kembar = ['embedding' => $this->wajahDari(0.01)] + $this->lokasi();
 
-        $kameraKembar = $this->wajahDari(0.01);
-        $payload = ['latitude' => self::LAT + 0.00038, 'longitude' => self::LNG, 'akurasi' => 8, 'mock' => false, 'embedding' => $kameraKembar, 'liveness' => true];
+        // Selisih kemiripan terlalu tipis: minta verifikasi tambahan, bukan langsung gagal.
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', $kembar)->assertStatus(422)->assertJsonPath('kode', 'verifikasi_tambahan');
+        // Satu foto saja tidak cukup walau menandai verifikasi tambahan.
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', $kembar + ['verifikasi_tambahan' => true])->assertJsonPath('kode', 'verifikasi_tambahan');
 
-        $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/absen/masuk', $payload)
-            ->assertStatus(422)
-            ->assertJsonPath('kode', 'wajah_kembar_terdeteksi');
+        $tambahan = $kembar + ['verifikasi_tambahan' => true, 'embeddings' => [$this->wajahDari(0.012), $this->wajahDari(0.008), $this->wajahDari(0.011)]];
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', $tambahan)->assertOk();
+
+        $absen = PresensiGuru::where('guru_id', $this->guru->id)->first();
+        $this->assertSame(PresensiGuru::HADIR, $absen->status);
+        $this->assertStringContainsString('sangat mirip guru lain', $absen->keterangan);
+        $this->assertStringNotContainsString('Guru Lain', $absen->keterangan);
     }
 
-    public function test_absen_ditolak_bila_skor_tidak_mencapai_ambang_kembar(): void
+    public function test_wajah_kurang_mirip_tetap_tidak_cocok_walau_akun_ditandai_kembar(): void
     {
         WajahGuru::create(['guru_id' => $this->guru->id, 'template' => json_encode($this->wajahDari(0)), 'didaftarkan_pada' => now(), 'mirip_guru_id' => $this->guruLain->id]);
         WajahGuru::create(['guru_id' => $this->guruLain->id, 'template' => json_encode(array_map(fn ($i) => cos($i * 3), range(1, 192))), 'didaftarkan_pada' => now(), 'mirip_guru_id' => $this->guru->id]);
 
-        $derau = $this->wajahDari(1.5);
-        $payload = ['latitude' => self::LAT + 0.00038, 'longitude' => self::LNG, 'akurasi' => 8, 'mock' => false, 'embedding' => $derau, 'liveness' => true];
+        $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/absen/masuk', ['embedding' => $this->wajahDari(3)] + $this->lokasi())
+            ->assertStatus(422)->assertJsonPath('kode', 'wajah_tidak_cocok');
+    }
 
-        $res = $this->withHeaders($this->tokenGuru())->postJson('/api/v1/guru/absen/masuk', $payload);
-        $res->assertStatus(422)->assertJsonPath('kode', 'wajah_tidak_cocok');
-        $this->assertStringContainsString('kembar', $res->json('message'));
+    public function test_akurasi_gps_memberi_toleransi_terbatas_di_tepi_radius(): void
+    {
+        // Radius 100 m; titik ~111 m dari sekolah.
+        $tepi = ['latitude' => self::LAT + 0.001, 'longitude' => self::LNG];
+        $h = $this->tokenGuru();
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/cek-lokasi', $tepi + ['akurasi' => 3])->assertOk()->assertJsonPath('di_dalam_area', false);
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/cek-lokasi', $tepi + ['akurasi' => 20])->assertOk()->assertJsonPath('di_dalam_area', true);
+        // Toleransi dibatasi 30 m: titik ~167 m tetap di luar walau akurasi buruk.
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/cek-lokasi', ['latitude' => self::LAT + 0.0015, 'longitude' => self::LNG, 'akurasi' => 50])->assertOk()->assertJsonPath('di_dalam_area', false);
     }
 
     public function test_ubah_sandi_guru(): void

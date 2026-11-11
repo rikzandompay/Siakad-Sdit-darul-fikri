@@ -58,6 +58,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/absen/masuk', [AbsenController::class, 'masuk'])->middleware('throttle:api-absen');
             Route::post('/absen/pulang', [AbsenController::class, 'pulang'])->middleware('throttle:api-absen');
             Route::get('/absen/rekap', [AbsenController::class, 'rekap']);
+            Route::get('/absen/perangkat', [AbsenController::class, 'perangkat']);
             Route::get('/wajah', [AbsenController::class, 'wajah']);
             Route::post('/wajah', [AbsenController::class, 'daftarWajah'])->middleware('throttle:api-wajah');
 
@@ -104,6 +105,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/foto-pengajuan', [KelolaSekolahController::class, 'fotoPengajuan']);
             Route::post('/foto-pengajuan/{guru}/setujui', [KelolaSekolahController::class, 'setujuiFoto']);
             Route::post('/foto-pengajuan/{guru}/tolak', [KelolaSekolahController::class, 'tolakFoto']);
+
+            // Perangkat absen: satu guru satu HP, ganti HP minta persetujuan admin.
+            Route::get('/perangkat-guru', [KelolaSekolahController::class, 'perangkatGuru']);
+            Route::post('/perangkat-guru/{perangkat}/setujui', [KelolaSekolahController::class, 'setujuiPerangkat']);
+            Route::post('/perangkat-guru/{perangkat}/tolak', [KelolaSekolahController::class, 'tolakPerangkat']);
+            Route::delete('/perangkat-guru/{perangkat}', [KelolaSekolahController::class, 'cabutPerangkat']);
             Route::get('/wali', [KelolaSekolahController::class, 'wali']);
             Route::post('/wali/sinkron', [KelolaSekolahController::class, 'sinkronWali']);
             Route::get('/ekspor/{jenis}/{format}', \App\Http\Controllers\Api\V1\Admin\EksporController::class)->middleware('throttle:30,1');

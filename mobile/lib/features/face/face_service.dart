@@ -41,9 +41,16 @@ class FaceService {
     return _interpreter ??= await Interpreter.fromAsset('assets/models/mobilefacenet.tflite', options: InterpreterOptions()..threads = 2);
   }
 
+  /// Margin di sekitar wajah, relatif terhadap sisi kotak wajah.
+  static const _marginRel = 0.2;
+
   /// Embedding (sudah dinormalisasi L2) dari satu foto berisi tepat satu wajah.
-  /// Wajah otomatis di-align (rotasi supaya kedua mata sejajar horizontal)
-  /// sebelum di-crop dan diumpankan ke MobileFaceNet.
+  ///
+  /// Urutan pemrosesan penting: wajah dipotong dulu memakai koordinat asli dari
+  /// ML Kit, baru potongannya di-align. Kalau seluruh foto diputar lebih dulu,
+  /// `boundingBox` menjadi tidak valid karena `copyRotate` memperbesar kanvas dan
+  /// menggeser posisi wajah (puluhan persen lebar wajah), sehingga yang masuk ke
+  /// MobileFaceNet adalah sebagian wajah + latar.
   Future<List<double>> embeddingDariFoto(String path) async {
     final faces = await _detector.processImage(InputImage.fromFilePath(path));
     if (faces.isEmpty) throw FaceException('Wajah tidak terlihat. Pastikan wajah berada di dalam bingkai dan cukup terang.');
@@ -51,11 +58,21 @@ class FaceService {
 
     final decoded = img.decodeImage(await File(path).readAsBytes());
     if (decoded == null) throw FaceException('Foto tidak dapat dibaca. Coba lagi.');
-    var foto = img.bakeOrientation(decoded);
+    final foto = img.bakeOrientation(decoded);
 
     final face = faces.first;
+    final box = face.boundingBox;
 
-    // Align: rotasi gambar agar garis antara kedua mata sejajar horizontal.
+    // Sisi kotak persegi: cukup memuat seluruh wajah + margin.
+    final sisiDiminta = math.max(box.width, box.height) * (1 + 2 * _marginRel);
+    if (sisiDiminta < 80) throw FaceException('Wajah terlalu jauh. Dekatkan wajah ke kamera.');
+
+    // Potong dengan koordinat yang masih valid (gambar belum dirotasi).
+    var potong = _potongKotak(foto, box.center.dx, box.center.dy, sisiDiminta);
+    final sisi = potong.width;
+
+    // Align: putar potongan saja agar garis kedua mata sejajar horizontal.
+    // Wajah berada di tengah potongan, jadi rotasi tidak menggesernya.
     final mataKiri = face.landmarks[FaceLandmarkType.leftEye]?.position;
     final mataKanan = face.landmarks[FaceLandmarkType.rightEye]?.position;
     if (mataKiri != null && mataKanan != null) {
@@ -63,23 +80,25 @@ class FaceService {
       final dy = mataKanan.y - mataKiri.y;
       final sudut = math.atan2(dy, dx);
       if (sudut.abs() > 0.02) {
-        foto = img.copyRotate(foto, angle: -sudut * 180 / math.pi);
+        final diputar = img.copyRotate(potong, angle: -sudut * 180 / math.pi, interpolation: img.Interpolation.linear);
+        // Rotasi memperbesar kanvas; ambil ulang kotak seukuran asli dari tengah.
+        potong = img.copyCrop(
+          diputar,
+          x: (diputar.width - sisi) ~/ 2,
+          y: (diputar.height - sisi) ~/ 2,
+          width: sisi,
+          height: sisi,
+        );
       }
     }
-
-    final box = face.boundingBox;
-    final margin = box.width * 0.2;
-    final x = math.max(0, (box.left - margin).round());
-    final y = math.max(0, (box.top - margin).round());
-    final w = math.min(foto.width - x, (box.width + margin * 2).round());
-    final h = math.min(foto.height - y, (box.height + margin * 2).round());
-    if (w < 80 || h < 80) throw FaceException('Wajah terlalu jauh. Dekatkan wajah ke kamera.');
 
     final interpreter = await _model();
     final inShape = interpreter.getInputTensor(0).shape; // [1, 112, 112, 3]
     final outShape = interpreter.getOutputTensor(0).shape; // [1, 192]
     final size = inShape[1];
-    final wajah = img.copyResize(img.copyCrop(foto, x: x, y: y, width: w, height: h), width: size, height: size);
+    // Interpolasi linear: default package ini `nearest`, yang menimbulkan aliasing
+    // parah saat 400+ px diperkecil ke 112 px dan merusak embedding.
+    final wajah = img.copyResize(potong, width: size, height: size, interpolation: img.Interpolation.linear);
 
     final input = Float32List(size * size * 3);
     var i = 0;
@@ -91,6 +110,17 @@ class FaceService {
     final output = List.generate(1, (_) => List.filled(outShape.last, 0.0));
     interpreter.run(input.reshape([1, size, size, 3]), output);
     return _normalisasi(output.first);
+  }
+
+  /// Potong kotak persegi berpusat di [cx],[cy]. Ukuran dibatasi agar kotak tetap
+  /// berada di dalam gambar, sehingga wajah selalu berada tepat di tengah hasil.
+  static img.Image _potongKotak(img.Image src, double cx, double cy, double sisiDiminta) {
+    final maks = 2 * math.min(math.min(cx, cy), math.min(src.width - cx, src.height - cy));
+    final batas = math.min(src.width, src.height);
+    final s = math.min(sisiDiminta, maks).floor().clamp(1, batas).toInt();
+    final x = (cx - s / 2).round().clamp(0, src.width - s).toInt();
+    final y = (cy - s / 2).round().clamp(0, src.height - s).toInt();
+    return img.copyCrop(src, x: x, y: y, width: s, height: s);
   }
 
   /// Embedding dari foto profil (acuan identitas saat daftar wajah). Pesannya menyebut foto profil,

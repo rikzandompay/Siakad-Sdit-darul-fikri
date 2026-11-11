@@ -159,6 +159,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/presensi-guru/foto/{guru}/setujui', [RekapPresensiGuruController::class, 'setujuiFoto'])->middleware('throttle:30,1')->name('presensi-guru.foto.setujui');
         Route::post('/presensi-guru/foto/{guru}/tolak', [RekapPresensiGuruController::class, 'tolakFoto'])->middleware('throttle:30,1')->name('presensi-guru.foto.tolak');
         Route::delete('/presensi-guru/wajah/{guru}', [RekapPresensiGuruController::class, 'resetWajah'])->middleware('throttle:30,1')->name('presensi-guru.wajah.reset');
+        Route::post('/presensi-guru/perangkat/{perangkat}/setujui', [RekapPresensiGuruController::class, 'setujuiPerangkat'])->middleware('throttle:30,1')->name('presensi-guru.perangkat.setujui');
+        Route::post('/presensi-guru/perangkat/{perangkat}/tolak', [RekapPresensiGuruController::class, 'tolakPerangkat'])->middleware('throttle:30,1')->name('presensi-guru.perangkat.tolak');
+        Route::delete('/presensi-guru/perangkat/{perangkat}', [RekapPresensiGuruController::class, 'cabutPerangkat'])->middleware('throttle:30,1')->name('presensi-guru.perangkat.cabut');
 
         // Pengaturan sekolah: lokasi, radius, jam masuk, hari libur
         Route::get('/pengaturan-sekolah', [PengaturanSekolahController::class, 'index'])->name('pengaturan-sekolah.index');

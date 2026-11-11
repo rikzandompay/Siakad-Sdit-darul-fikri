@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\PengaturanSekolah;
+use App\Models\PerangkatGuru;
 use App\Models\PresensiGuru;
 use App\Models\User;
 use App\Models\WajahGuru;
@@ -62,6 +63,28 @@ class AbsenController extends Controller
         return response()->json($this->hitungLokasi($data));
     }
 
+    /**
+     * Status perangkat absen guru ini (dipakai aplikasi sebelum membuka kamera).
+     * Tidak mendaftarkan perangkat; pendaftaran terjadi saat absen dikirim.
+     */
+    public function perangkat(Request $request): JsonResponse
+    {
+        $guru = $request->user();
+        $data = $request->validate(['perangkat_id' => 'nullable|string|min:8|max:191']);
+
+        $aktif = PerangkatGuru::aktifMilik($guru->id);
+        $ini = isset($data['perangkat_id'])
+            ? PerangkatGuru::where('perangkat_id', $data['perangkat_id'])->where('guru_id', $guru->id)->first()
+            : null;
+
+        return response()->json([
+            'terdaftar' => (bool) $aktif,
+            'perangkat_aktif' => $aktif ? ['nama' => $aktif->nama, 'platform' => $aktif->platform] : null,
+            'perangkat_ini' => $ini ? ['nama' => $ini->nama, 'status' => $ini->status, 'catatan' => $ini->catatan] : null,
+            'boleh_absen' => $aktif !== null && ($ini === null || $ini->aktif()),
+        ]);
+    }
+
     public function masuk(Request $request): JsonResponse
     {
         if ($request->boolean('mock')) {
@@ -82,7 +105,10 @@ class AbsenController extends Controller
         if (($batas = PengaturanSekolah::batasMasuk()) && $now->format('H:i') >= $batas) {
             return $this->gagal('lewat_batas', "Absen masuk ditutup pukul {$batas}. Hubungi Tata Usaha untuk koreksi.");
         }
-        [$lokasi, $skor, $err] = $this->verifikasi($guru->id, $data);
+        if ($err = $this->pastikanPerangkat($guru, $data)) {
+            return $err;
+        }
+        [$lokasi, $skor, $err, $catatan] = $this->verifikasi($guru->id, $data);
         if ($err) {
             return $err;
         }
@@ -93,7 +119,7 @@ class AbsenController extends Controller
                 'status' => PresensiGuru::HADIR, 'jam_masuk' => $now->format('H:i:s'), 'jam_pulang' => null,
                 'masuk_latitude' => $data['latitude'], 'masuk_longitude' => $data['longitude'],
                 'masuk_jarak_meter' => $lokasi['jarak_meter'], 'masuk_skor_wajah' => $skor,
-                'sumber' => 'aplikasi', 'keterangan' => null,
+                'sumber' => 'aplikasi', 'keterangan' => $catatan,
             ]
         );
 
@@ -119,7 +145,10 @@ class AbsenController extends Controller
         if ($absen->jam_pulang) {
             return $this->gagal('sudah_absen', 'Anda sudah absen pulang pukul '.substr($absen->jam_pulang, 0, 5).'.', 409);
         }
-        [$lokasi, $skor, $err] = $this->verifikasi($guru->id, $data);
+        if ($err = $this->pastikanPerangkat($guru, $data)) {
+            return $err;
+        }
+        [$lokasi, $skor, $err, $catatan] = $this->verifikasi($guru->id, $data);
         if ($err) {
             return $err;
         }
@@ -128,7 +157,7 @@ class AbsenController extends Controller
             'jam_pulang' => $now->format('H:i:s'),
             'pulang_latitude' => $data['latitude'], 'pulang_longitude' => $data['longitude'],
             'pulang_jarak_meter' => $lokasi['jarak_meter'], 'pulang_skor_wajah' => $skor,
-        ]);
+        ] + ($catatan && ! $absen->keterangan ? ['keterangan' => $catatan] : []));
 
         return response()->json(['message' => 'Absen pulang berhasil.', 'skor_wajah' => $skor, 'hari_ini' => self::ringkasHariIni($absen->fresh())]);
     }
@@ -266,7 +295,54 @@ class AbsenController extends Controller
             'foto_embedding' => 'nullable|array|min:64|max:1024',
             'foto_embedding.*' => 'numeric|between:-100,100',
             'liveness' => 'required|accepted',
+            // Verifikasi tambahan (wajah mirip guru lain): beberapa tangkapan kamera sekaligus.
+            'embeddings' => 'nullable|array|min:2|max:6',
+            'embeddings.*' => 'array|min:64|max:1024',
+            'embeddings.*.*' => 'numeric|between:-100,100',
+            'verifikasi_tambahan' => 'nullable|boolean',
+            // Identitas perangkat: wajib supaya absen tidak bisa dititipkan ke HP lain.
+            'perangkat_id' => 'required|string|min:8|max:191',
+            'perangkat_nama' => 'nullable|string|max:120',
+            'perangkat_platform' => 'nullable|string|max:20',
+            'perangkat_versi_os' => 'nullable|string|max:40',
         ];
+    }
+
+    /**
+     * Pastikan absen hanya dari perangkat yang terdaftar.
+     *
+     * Perangkat pertama otomatis aktif. Ganti HP membuat perangkat baru berstatus
+     * menunggu, dan absen ditolak sampai admin/kepala sekolah menyetujui.
+     */
+    private function pastikanPerangkat(User $guru, array $data): ?JsonResponse
+    {
+        [$perangkat, $boleh] = PerangkatGuru::periksa(
+            $guru->id,
+            $data['perangkat_id'],
+            $data['perangkat_nama'] ?? null,
+            $data['perangkat_platform'] ?? null,
+            $data['perangkat_versi_os'] ?? null,
+        );
+
+        if ($boleh) {
+            return null;
+        }
+
+        $aktif = PerangkatGuru::aktifMilik($guru->id);
+
+        return match ($perangkat->status) {
+            PerangkatGuru::MENUNGGU => $this->gagal('perangkat_menunggu', 'Perangkat baru menunggu persetujuan admin. Absen bisa dilakukan setelah disetujui.', 423, [
+                'perangkat' => [
+                    'nama' => $perangkat->nama,
+                    'status' => $perangkat->status,
+                    'terdaftar_lain' => $aktif?->nama,
+                ],
+            ]),
+            PerangkatGuru::DITOLAK => $this->gagal('perangkat_ditolak', 'Perangkat ini tidak diizinkan untuk absen. Hubungi Tata Usaha untuk mengaktifkan.', 423, [
+                'perangkat' => ['nama' => $perangkat->nama, 'status' => $perangkat->status, 'catatan' => $perangkat->catatan],
+            ]),
+            default => $this->gagal('perangkat_lain', 'Perangkat ini terikat ke akun lain dan tidak bisa dipakai absen.', 423),
+        };
     }
 
     /**
@@ -324,21 +400,26 @@ class AbsenController extends Controller
         $jarak = Sekolah::jarakMeter((float) $data['latitude'], (float) $data['longitude'], $sekolah['latitude'], $sekolah['longitude']);
         $radius = PengaturanSekolah::radiusMeter();
 
+        // GPS di dalam gedung bisa meleset puluhan meter: titik dianggap di area bila lingkaran
+        // akurasinya menyentuh radius sekolah (toleransi dibatasi agar tidak terlalu longgar).
+        $toleransi = min((float) ($data['akurasi'] ?? 0), (float) config('presensi_guru.toleransi_akurasi_meter'));
+
         return [
             'jarak_meter' => $jarak,
             'radius_meter' => $radius,
             'akurasi_meter' => isset($data['akurasi']) ? (int) round($data['akurasi']) : null,
-            'di_dalam_area' => $jarak <= $radius,
+            'maks_akurasi_meter' => (int) config('presensi_guru.maks_akurasi_meter'),
+            'di_dalam_area' => $jarak - $toleransi <= $radius,
             'sekolah' => $sekolah + ['nama' => Sekolah::NAMA],
         ];
     }
 
-    /** @return array{0: array, 1: float|null, 2: JsonResponse|null} */
+    /** @return array{0: array, 1: float|null, 2: JsonResponse|null, 3: string|null} */
     private function verifikasi(int $guruId, array $data): array
     {
         $lokasi = $this->hitungLokasi($data);
         if (! $lokasi['di_dalam_area']) {
-            return [$lokasi, null, $this->gagal('di_luar_area', 'Anda berada di luar area sekolah.', 422, $lokasi)];
+            return [$lokasi, null, $this->gagal('di_luar_area', 'Anda berada di luar area sekolah.', 422, $lokasi), null];
         }
 
         $wajah = WajahGuru::where('guru_id', $guruId)->first();
@@ -360,61 +441,63 @@ class AbsenController extends Controller
             }
         }
         if (! $wajah) {
-            return [$lokasi, null, $this->gagal('wajah_belum_terdaftar', 'Acuan wajah belum ada. Buka menu Presensi Guru; acuan dibuat dari foto profil yang disetujui kepala sekolah.')];
+            return [$lokasi, null, $this->gagal('wajah_belum_terdaftar', 'Acuan wajah belum ada. Buka menu Presensi Guru; acuan dibuat dari foto profil yang disetujui kepala sekolah.'), null];
         }
 
         $template = $wajah->vektor();
-        $embedding = array_map('floatval', $data['embedding']);
-        $cosSelf = WajahGuru::cosinus($embedding, $template);
-        $skor = WajahGuru::skor($embedding, $template);
+        $sampel = [array_map('floatval', $data['embedding'])];
+        foreach ($data['embeddings'] ?? [] as $e) {
+            $sampel[] = array_map('floatval', $e);
+        }
         $min = (float) config('presensi_guru.min_skor_wajah');
 
         // Embedding identik dengan template = data hasil salin, bukan tangkapan kamera.
-        if (WajahGuru::identik($embedding, $template)) {
-            return [$lokasi, null, $this->gagal('wajah_tidak_cocok', 'Data wajah tidak valid. Ulangi verifikasi dengan kamera.', 422, ['skor_wajah' => 0.0, 'min_skor_wajah' => $min])];
-        }
-
-        // Perketat deteksi dan verifikasi jika ada orang kembar / profil serupa
-        $ambangDeteksi = (float) config('presensi_guru.ambang_kembar_deteksi', 75);
-        $minSelisihKembar = (float) config('presensi_guru.min_selisih_kembar', 0.03);
-        $minSkorKembar = (float) config('presensi_guru.min_skor_kembar', 90);
-
-        $mirip = WajahGuru::palingMirip($embedding, $guruId);
-        $adaKembaran = $wajah->mirip_guru_id !== null || ($mirip && $mirip['skor'] >= $ambangDeteksi);
-
-        if ($mirip && $mirip['skor'] >= $ambangDeteksi) {
-            WajahGuru::tandaiMirip($guruId, $mirip['guru_id'], $mirip['skor']);
-        }
-
-        // 1. Wajah di kamera lebih mirip dengan guru lain
-        if ($mirip && $mirip['cosinus'] >= $cosSelf) {
-            return [$lokasi, null, $this->gagal('wajah_mirip_guru_lain', 'Wajah ini lebih mirip dengan data guru lain (indikasi orang kembar/serupa). Absen ditolak; hubungi Tata Usaha untuk verifikasi manual.', 422, [
-                'skor_wajah' => $skor,
-                'min_skor_wajah' => $min,
-            ])];
-        }
-
-        // 2. Jika akun terindikasi kembar, selisih kemiripan harus jelas (tidak boleh ambigu)
-        if ($adaKembaran && $mirip) {
-            $selisih = $cosSelf - $mirip['cosinus'];
-            if ($selisih < $minSelisihKembar) {
-                return [$lokasi, null, $this->gagal('wajah_kembar_terdeteksi', 'Terdeteksi kemiripan sangat tinggi dengan profil guru kembar/serupa. Perbedaan kemiripan wajah terlalu tipis untuk memastikan identitas. Pastikan wajah tegak lurus, lepas kacamata/masker, dan pencahayaan terang.', 422, [
-                    'skor_wajah' => $skor,
-                    'selisih' => round($selisih * 100, 1),
-                ])];
+        foreach ($sampel as $e) {
+            if (WajahGuru::identik($e, $template)) {
+                return [$lokasi, null, $this->gagal('wajah_tidak_cocok', 'Data wajah tidak valid. Ulangi verifikasi dengan kamera.', 422, ['skor_wajah' => 0.0, 'min_skor_wajah' => $min]), null];
             }
         }
 
-        // 3. Ambang batas kecocokan: lebih ketat untuk akun yang terindikasi kembar
-        $minDiperlukan = $adaKembaran ? max($min, $minSkorKembar) : $min;
-        if ($skor < $minDiperlukan) {
-            $pesan = $adaKembaran
-                ? "Akun Anda memiliki profil guru kembar/serupa di sistem. Diperlukan kecocokan minimal {$minDiperlukan}% (hasil verifikasi: {$skor}%). Pastikan pencahayaan cukup dan wajah menghadap kamera."
-                : "Kecocokan wajah {$skor}% (minimal {$minDiperlukan}%).";
-            return [$lokasi, null, $this->gagal('wajah_tidak_cocok', $pesan, 422, ['skor_wajah' => $skor, 'min_skor_wajah' => $minDiperlukan])];
+        // Rata-rata beberapa tangkapan mengurangi derau cahaya dan sudut.
+        $embedding = WajahGuru::rataRata($sampel);
+        $cosSelf = WajahGuru::cosinus($embedding, $template);
+        $skor = WajahGuru::skor($embedding, $template);
+
+        // 1. Wajah harus cocok dengan foto profil akun ini.
+        if ($skor < $min) {
+            return [$lokasi, null, $this->gagal('wajah_tidak_cocok', "Kecocokan wajah {$skor}% (minimal {$min}%). Pastikan pencahayaan cukup, wajah tegak menghadap kamera, dan lepas kacamata/masker.", 422, ['skor_wajah' => $skor, 'min_skor_wajah' => $min, 'cosinus' => round($cosSelf, 4)]), null];
         }
 
-        return [$lokasi, $skor, null];
+        // 2. Ada guru lain yang wajahnya mirip (mis. kembar): jangan langsung ditolak, pastikan dulu.
+        $ambangDeteksi = (float) config('presensi_guru.ambang_kembar_deteksi', 75);
+        $minSelisih = (float) config('presensi_guru.min_selisih_kembar', 0.03);
+        $mirip = WajahGuru::palingMirip($embedding, $guruId);
+        if (! $mirip || $mirip['skor'] < $ambangDeteksi) {
+            return [$lokasi, $skor, null, null];
+        }
+        WajahGuru::tandaiMirip($guruId, $mirip['guru_id'], $mirip['skor']);
+
+        $selisih = $cosSelf - $mirip['cosinus'];
+        if ($selisih >= $minSelisih) {
+            return [$lokasi, $skor, null, null]; // jelas lebih cocok dengan diri sendiri
+        }
+
+        // Selisih tipis: minta verifikasi tambahan (beberapa tangkapan kamera sekaligus).
+        $tambahan = ! empty($data['verifikasi_tambahan']) && count($sampel) >= 3;
+        if (! $tambahan) {
+            return [$lokasi, null, $this->gagal('verifikasi_tambahan', 'Wajah Anda mirip dengan guru lain. Kedipkan mata sekali lagi; beberapa foto diambil untuk memastikan.', 422, ['skor_wajah' => $skor]), null];
+        }
+
+        // Setelah verifikasi tambahan wajah tetap jelas lebih cocok dengan guru lain: kemungkinan
+        // orang lain memakai akun dan HP ini.
+        if ($selisih <= -$minSelisih) {
+            return [$lokasi, null, $this->gagal('wajah_mirip_guru_lain', 'Wajah lebih cocok dengan data guru lain daripada foto profil akun ini. Absen ditolak; minta kepala sekolah mencatat absen secara manual bila ini keliru.', 422, ['skor_wajah' => $skor]), null];
+        }
+
+        // Kembar identik: wajah memang tidak bisa membedakan. Identitas dipastikan oleh akun dan HP
+        // terdaftar guru ini (diperiksa sebelum wajah), lalu dicatat agar bisa ditinjau admin
+        // (pasangan yang mirip terlihat di data wajah guru). Nama guru lain tidak disebut ke HP.
+        return [$lokasi, $skor, null, 'Wajah sangat mirip guru lain; dipastikan lewat verifikasi tambahan, akun, dan HP terdaftar.'];
     }
 
     private function pastikanHariSekolah(Carbon $now): void

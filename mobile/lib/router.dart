@@ -3,9 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'core/session.dart';
 import 'features/auth/login_screen.dart';
 import 'features/guru/absen/absen_screen.dart';
-import 'features/guru/absen/hasil_absen_screen.dart';
 import 'features/guru/absen/rekap_absen_screen.dart';
-import 'features/guru/absen/verifikasi_lokasi_screen.dart';
 import 'features/guru/absen/verifikasi_wajah_screen.dart';
 import 'features/guru/dashboard_screen.dart';
 import 'features/guru/presensi/pilih_kelas_screen.dart';
@@ -116,9 +114,7 @@ GoRouter buildRouter(Session session) {
         GoRoute(path: 'sholat-tersimpan', builder: (_, s) => SholatTersimpanScreen(data: s.extra as Map<String, dynamic>)),
         // Absen guru
         GoRoute(path: 'absen', builder: (_, _) => const AbsenScreen()),
-        GoRoute(path: 'absen/lokasi', builder: (_, s) => VerifikasiLokasiScreen(aksi: s.extra as String)),
-        GoRoute(path: 'absen/wajah', builder: (_, s) => VerifikasiWajahScreen(args: s.extra as Map<String, dynamic>)),
-        GoRoute(path: 'absen/hasil', builder: (_, s) => HasilAbsenScreen(hasil: s.extra as Map<String, dynamic>)),
+        GoRoute(path: 'absen/wajah', builder: (_, s) => VerifikasiWajahScreen(aksi: s.extra as String)),
         GoRoute(path: 'absen/rekap', builder: (_, _) => const RekapAbsenScreen()),
         GoRoute(path: 'tugas', builder: (_, _) => const TugasScreen()),
         GoRoute(path: 'tugas/:id', builder: (_, s) => PenilaianScreen(tugasId: int.parse(s.pathParameters['id']!))),

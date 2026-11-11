@@ -57,6 +57,21 @@ class WajahGuru extends Model
     }
 
     /** Dua vektor sama persis berarti data hasil salin, bukan tangkapan kamera. */
+    /** Rata-rata beberapa embedding (masing-masing dinormalkan dulu), lalu dinormalkan lagi. */
+    public static function rataRata(array $vektor): array
+    {
+        $jumlah = [];
+        foreach ($vektor as $v) {
+            $n = sqrt(array_sum(array_map(fn ($x) => $x * $x, $v))) ?: 1.0;
+            foreach ($v as $i => $x) {
+                $jumlah[$i] = ($jumlah[$i] ?? 0.0) + $x / $n;
+            }
+        }
+        $n = sqrt(array_sum(array_map(fn ($x) => $x * $x, $jumlah))) ?: 1.0;
+
+        return array_map(fn ($x) => $x / $n, $jumlah);
+    }
+
     public static function identik(array $a, array $b): bool
     {
         if (count($a) !== count($b)) {

@@ -85,7 +85,7 @@ class _AbsenScreenState extends State<AbsenScreen> {
       }
     }
     if (!mounted) return;
-    await context.push('/guru/absen/lokasi', extra: aksi);
+    await context.push('/guru/absen/wajah', extra: aksi);
     if (mounted) _load();
   }
 

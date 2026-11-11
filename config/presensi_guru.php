@@ -14,8 +14,6 @@ return [
     // Kecocokan wajah minimal (persen) yang diterima server dari aplikasi.
     'min_skor_wajah' => (float) env('GURU_MIN_SKOR_WAJAH', 70),
 
-    // Kecocokan minimal khusus untuk guru yang memiliki profil kembar atau serupa (persen).
-    'min_skor_kembar' => (float) env('GURU_MIN_SKOR_KEMBAR', 90),
 
     // Selisih minimal skor cosine antara diri sendiri dan guru lain yang mirip (pencegahan joki kembar).
     'min_selisih_kembar' => (float) env('GURU_MIN_SELISIH_KEMBAR', 0.03),
@@ -29,6 +27,10 @@ return [
 
     // Akurasi GPS terburuk (meter) yang masih diterima saat absen.
     'maks_akurasi_meter' => (int) env('GURU_MAKS_AKURASI_METER', 50),
+
+    // Toleransi akurasi GPS (meter): titik dianggap di area bila jarak dikurangi akurasi (maksimal
+    // nilai ini) masih di dalam radius. GPS di dalam gedung sering meleset 10-30 m.
+    'toleransi_akurasi_meter' => (int) env('GURU_TOLERANSI_AKURASI_METER', 30),
 
     // Radius area sekolah (meter) jika belum diatur di Pengaturan Sekolah.
     'radius_meter' => (int) env('GURU_RADIUS_METER', 100),

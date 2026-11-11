@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\HariLibur;
 use App\Models\Kelas;
 use App\Models\PengaturanSekolah;
+use App\Models\PerangkatGuru;
 use App\Models\PresensiGuru;
 use App\Models\User;
 use App\Models\WajahGuru;
@@ -219,6 +220,59 @@ class KelolaSekolahController extends Controller
         $guru->tolakFotoPengajuan($data['catatan'] ?? null);
 
         return response()->json(['message' => 'Foto ditolak.']);
+    }
+
+    // ── Perangkat absen guru ─────────────────────────────────────────
+
+    /** Daftar perangkat: yang menunggu persetujuan dan yang sudah aktif. */
+    public function perangkatGuru(): JsonResponse
+    {
+        $semua = PerangkatGuru::with('guru')->orderByDesc('created_at')->get();
+
+        $bentuk = fn (PerangkatGuru $p) => [
+            'id' => $p->id,
+            'guru_id' => $p->guru_id,
+            'nama_guru' => $p->guru?->nama_lengkap ?? $p->guru?->name,
+            'inisial' => Sekolah::inisial($p->guru?->nama_lengkap ?? $p->guru?->name ?? ''),
+            'perangkat' => $p->nama,
+            'platform' => $p->platform,
+            'versi_os' => $p->versi_os,
+            'status' => $p->status,
+            'catatan' => $p->catatan,
+            'diajukan' => $p->created_at?->toIso8601String(),
+            'terakhir_dipakai' => $p->terakhir_dipakai?->toIso8601String(),
+        ];
+
+        return response()->json([
+            'menunggu' => $semua->where('status', PerangkatGuru::MENUNGGU)->map($bentuk)->values(),
+            'aktif' => $semua->where('status', PerangkatGuru::AKTIF)->map($bentuk)->values(),
+            'jumlah_menunggu' => $semua->where('status', PerangkatGuru::MENUNGGU)->count(),
+        ]);
+    }
+
+    public function setujuiPerangkat(Request $request, PerangkatGuru $perangkat): JsonResponse
+    {
+        abort_if($perangkat->aktif(), 409, 'Perangkat ini sudah aktif.');
+        $perangkat->setujui($request->user()->id);
+
+        return response()->json(['message' => 'Perangkat disetujui. Guru bisa absen dari HP ini.']);
+    }
+
+    public function tolakPerangkat(Request $request, PerangkatGuru $perangkat): JsonResponse
+    {
+        abort_if($perangkat->aktif(), 409, 'Perangkat ini sedang aktif.');
+        $data = $request->validate(['catatan' => 'nullable|string|max:200']);
+        $perangkat->tolak($data['catatan'] ?? null);
+
+        return response()->json(['message' => 'Perangkat ditolak.']);
+    }
+
+    /** Cabut perangkat aktif tanpa menunggu pengajuan (mis. HP hilang). */
+    public function cabutPerangkat(PerangkatGuru $perangkat): JsonResponse
+    {
+        $perangkat->tolak('Dicabut admin');
+
+        return response()->json(['message' => 'Perangkat dicabut. Guru perlu mengajukan HP baru untuk absen.']);
     }
 
     // ── Akun wali ────────────────────────────────────────────────────

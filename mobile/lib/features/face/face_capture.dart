@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -8,42 +8,74 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 import '../../core/theme.dart';
 
-/// Data status verifikasi lokasi yang ditampilkan di bawah liveness.
-class LokasiStatus {
-  const LokasiStatus({
-    required this.sukses,
-    required this.nama,
-    this.pesan,
-    this.persen = 100,
-  });
+/// Hasil pencocokan yang ditampilkan lewat warna bingkai: hijau cocok, merah tidak cocok.
+enum HasilWajah { belum, cocok, tidakCocok }
 
-  final bool sukses;
-  final String nama;
-  final String? pesan;
-  final int persen;
+// Bingkai oval, relatif terhadap area kamera (lebar : tinggi = 0.82 : 1).
+const _rasio = 0.82;
+const _ovalCy = 0.44;
+const _ovalR = 0.31;
+
+/// Peringatan posisi wajah, atau null bila tepat satu wajah berada di tengah bingkai oval
+/// dengan ukuran dan arah yang pas.
+///
+/// [kotak] memakai koordinat gambar yang sudah ditegakkan (seperti hasil ML Kit), sedangkan
+/// [ukuranMentah] adalah ukuran frame kamera sebelum diputar ([diputar] = rotasi 90/270).
+/// Pratinjau ditampilkan BoxFit.cover pada area 0.82 x 1 dan dicerminkan (kamera depan).
+@visibleForTesting
+String? cekPosisiWajah({required int jumlahWajah, Rect? kotak, required Size ukuranMentah, required bool diputar, double eulerY = 0, double eulerZ = 0}) {
+  if (jumlahWajah == 0 || kotak == null && jumlahWajah == 1) return 'Wajah tidak ditemukan';
+  if (jumlahWajah > 1) return 'Terlihat lebih dari satu wajah';
+
+  final iw = diputar ? ukuranMentah.height : ukuranMentah.width;
+  final ih = diputar ? ukuranMentah.width : ukuranMentah.height;
+  final s = math.max(_rasio / iw, 1 / ih);
+  final ox = (_rasio - iw * s) / 2;
+  final oy = (1 - ih * s) / 2;
+  final fx = ox + (iw - kotak!.center.dx) * s;
+  final fy = oy + kotak.center.dy * s;
+  final lebar = kotak.width * s;
+
+  const rx = _rasio * _ovalR;
+  const ry = _ovalR;
+  final dx = (fx - _rasio / 2) / rx;
+  final dy = (fy - _ovalCy) / ry;
+  if (dx * dx + dy * dy > 0.3) return 'Masukkan wajah ke dalam bingkai';
+  if (lebar < rx * 2 * 0.5) return 'Dekatkan wajah ke kamera';
+  if (lebar > rx * 2 * 1.25) return 'Jauhkan sedikit wajah dari kamera';
+  if (eulerY.abs() > 20 || eulerZ.abs() > 20) return 'Hadapkan wajah lurus ke kamera';
+  return null;
 }
 
 /// Kamera depan + cek kehidupan (kedip mata) lalu mengambil foto.
-/// Setelah lolos liveness, [jumlahFoto] foto diambil dan dikembalikan lewat [onSelesai].
+///
+/// Kedipan hanya dihitung saat tepat satu wajah berada di dalam bingkai oval; bila wajah
+/// tidak ditemukan, keluar bingkai, terlalu jauh/dekat, atau miring, muncul peringatan dan
+/// cek kehidupan diulang. Setelah lolos, [jumlahFoto] foto diambil dan dikirim lewat [onSelesai].
+/// Hasil pencocokan ditampilkan lewat [hasil] tanpa pindah halaman.
 class FaceCapture extends StatefulWidget {
   const FaceCapture({
     super.key,
     required this.onSelesai,
     required this.onGagal,
     this.jumlahFoto = 1,
-    this.lokasi,
+    this.hasil = HasilWajah.belum,
+    this.pesanProses,
   });
 
   final Future<void> Function(List<String> fotoPaths) onSelesai;
   final void Function(String pesan) onGagal;
   final int jumlahFoto;
-  final LokasiStatus? lokasi;
+  final HasilWajah hasil;
+
+  /// Teks di bawah bingkai saat foto sudah diambil (mis. "Menunggu lokasi…").
+  final String? pesanProses;
 
   @override
   State<FaceCapture> createState() => _FaceCaptureState();
 }
 
-enum _Tahap { memulai, cariWajah, kedip, mengambil, memproses }
+enum _Tahap { memulai, posisikan, kedip, mengambil, memproses }
 
 class _FaceCaptureState extends State<FaceCapture> {
   CameraController? _camera;
@@ -52,8 +84,11 @@ class _FaceCaptureState extends State<FaceCapture> {
   bool _sibuk = false;
   bool _mataTertutup = false;
   double _progress = 0;
-  Timer? _batasWaktu;
-  final _detector = FaceDetector(options: FaceDetectorOptions(enableClassification: true, performanceMode: FaceDetectorMode.fast, minFaceSize: 0.25));
+
+  /// Peringatan posisi wajah (null = wajah sudah pas di bingkai).
+  String? _peringatan = 'Wajah tidak ditemukan';
+
+  final _detector = FaceDetector(options: FaceDetectorOptions(enableClassification: true, performanceMode: FaceDetectorMode.fast, minFaceSize: 0.15));
 
   @override
   void initState() {
@@ -79,12 +114,9 @@ class _FaceCaptureState extends State<FaceCapture> {
       }
       setState(() {
         _camera = c;
-        _tahap = _Tahap.cariWajah;
+        _tahap = _Tahap.posisikan;
       });
       await c.startImageStream(_olahFrame);
-      _batasWaktu = Timer(const Duration(seconds: 25), () {
-        if (mounted && _tahap.index < _Tahap.mengambil.index) widget.onGagal('Waktu habis. Pastikan wajah terlihat jelas lalu kedipkan mata sekali.');
-      });
     } on CameraException catch (e) {
       widget.onGagal(e.code == 'CameraAccessDenied' ? 'Izin kamera ditolak. Aktifkan izin kamera untuk MyDarfik di pengaturan HP.' : 'Kamera tidak dapat dibuka.');
     }
@@ -98,18 +130,25 @@ class _FaceCaptureState extends State<FaceCapture> {
       if (input == null) return;
       final faces = await _detector.processImage(input);
       if (!mounted) return;
-      if (faces.length != 1) {
+
+      final peringatan = _cekPosisi(faces, input.metadata!);
+      if (peringatan != null) {
+        // Wajah hilang/keluar bingkai di tengah cek kehidupan: ulangi dari awal.
         setState(() {
-          _tahap = _Tahap.cariWajah;
+          _peringatan = peringatan;
+          _tahap = _Tahap.posisikan;
           _progress = 0;
+          _mataTertutup = false;
         });
         return;
       }
+
       final f = faces.first;
       final kiri = f.leftEyeOpenProbability ?? 1;
       final kanan = f.rightEyeOpenProbability ?? 1;
-      if (_tahap == _Tahap.cariWajah) {
+      if (_tahap == _Tahap.posisikan) {
         setState(() {
+          _peringatan = null;
           _tahap = _Tahap.kedip;
           _progress = 0.4;
         });
@@ -127,8 +166,19 @@ class _FaceCaptureState extends State<FaceCapture> {
     }
   }
 
+  String? _cekPosisi(List<Face> faces, InputImageMetadata meta) {
+    final f = faces.length == 1 ? faces.first : null;
+    return cekPosisiWajah(
+      jumlahWajah: faces.length,
+      kotak: f?.boundingBox,
+      ukuranMentah: meta.size,
+      diputar: meta.rotation == InputImageRotation.rotation90deg || meta.rotation == InputImageRotation.rotation270deg,
+      eulerY: f?.headEulerAngleY ?? 0,
+      eulerZ: f?.headEulerAngleZ ?? 0,
+    );
+  }
+
   Future<void> _ambilFoto() async {
-    _batasWaktu?.cancel();
     final c = _camera!;
     setState(() => _tahap = _Tahap.mengambil);
     await c.stopImageStream();
@@ -167,174 +217,125 @@ class _FaceCaptureState extends State<FaceCapture> {
 
   @override
   void dispose() {
-    _batasWaktu?.cancel();
     _camera?.dispose();
     _detector.close();
     super.dispose();
   }
 
-  String get _petunjuk => switch (_tahap) {
-        _Tahap.memulai => 'Membuka kamera…',
-        _Tahap.cariWajah => 'Posisikan wajah di dalam bingkai',
-        _Tahap.kedip => 'Tetap diam, kedipkan mata satu kali',
-        _Tahap.mengambil => 'Mengambil foto…',
-        _Tahap.memproses => 'Mencocokkan wajah…',
+  String get _petunjuk => switch (widget.hasil) {
+        HasilWajah.cocok => 'Wajah cocok',
+        HasilWajah.tidakCocok => 'Wajah tidak sesuai',
+        HasilWajah.belum => switch (_tahap) {
+            _Tahap.memulai => 'Membuka kamera…',
+            _Tahap.posisikan => 'Posisikan wajah di dalam bingkai',
+            _Tahap.kedip => 'Tetap diam, kedipkan mata satu kali',
+            _Tahap.mengambil => 'Mengambil foto…',
+            _Tahap.memproses => widget.pesanProses ?? 'Mencocokkan wajah…',
+          },
       };
 
   @override
   Widget build(BuildContext context) {
     final c = _camera;
+    final adaHasil = widget.hasil != HasilWajah.belum;
+    final peringatan = !adaHasil && _tahap == _Tahap.posisikan ? _peringatan : null;
+    final warna = switch (widget.hasil) {
+      HasilWajah.cocok => AppColors.ok600,
+      HasilWajah.tidakCocok => AppColors.alpa,
+      HasilWajah.belum => peringatan != null ? AppColors.gold : Colors.white,
+    };
+
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: AspectRatio(
-          aspectRatio: 0.82,
+          aspectRatio: _rasio,
           child: Stack(fit: StackFit.expand, children: [
             Container(color: AppColors.dark),
             if (c != null && c.value.isInitialized)
               FittedBox(fit: BoxFit.cover, child: SizedBox(width: c.value.previewSize!.height, height: c.value.previewSize!.width, child: CameraPreview(c))),
-            CustomPaint(painter: _OvalPainter(color: _progress >= 1 ? AppColors.ok600 : (_tahap == _Tahap.kedip ? AppColors.ok600 : AppColors.brand200))),
+            CustomPaint(painter: _OvalPainter(color: warna, penuh: adaHasil, cy: _ovalCy, r: _ovalR)),
+            if (adaHasil)
+              Align(
+                alignment: const Alignment(0, _ovalCy * 2 - 1),
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(color: warna, shape: BoxShape.circle),
+                  child: Icon(widget.hasil == HasilWajah.cocok ? Icons.check_rounded : Icons.close_rounded, color: Colors.white, size: 38),
+                ),
+              ),
+            if (peringatan != null)
+              Positioned(
+                top: 14,
+                left: 14,
+                right: 14,
+                child: Semantics(
+                  liveRegion: true,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(color: const Color(0xE6FEF3C7), borderRadius: BorderRadius.circular(12)),
+                    child: Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const Icon(Icons.warning_amber_rounded, size: 20, color: Color(0xFF7A5512)),
+                      const SizedBox(width: 8),
+                      Flexible(child: Text(peringatan, style: AppText.label.copyWith(color: const Color(0xFF7A5512)))),
+                    ]),
+                  ),
+                ),
+              ),
             Positioned(
               left: 16,
               right: 16,
               bottom: 20,
               child: Column(children: [
-                if (_tahap.index >= _Tahap.mengambil.index) const Padding(padding: EdgeInsets.only(bottom: 8), child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))),
-                Text(_petunjuk, style: AppText.label.copyWith(color: Colors.white), textAlign: TextAlign.center),
+                if (!adaHasil && _tahap.index >= _Tahap.mengambil.index)
+                  const Padding(padding: EdgeInsets.only(bottom: 8), child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))),
+                Text(_petunjuk, style: AppText.label.copyWith(color: Colors.white, shadows: const [Shadow(blurRadius: 6)]), textAlign: TextAlign.center),
               ]),
             ),
           ]),
         ),
       ),
-      const SizedBox(height: 12),
-      Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.line)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Expanded(child: Text('Verifikasi kehidupan (liveness)', style: AppText.captionBold)),
-            Text('${(_progress * 100).round()}%', style: AppText.captionBold.copyWith(color: AppColors.brand700)),
-          ]),
-          const SizedBox(height: 8),
-          ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: _progress, minHeight: 6, color: AppColors.brand700, backgroundColor: AppColors.line)),
-        ]),
-      ),
-      if (widget.lokasi != null) ...[
+      if (!adaHasil) ...[
         const SizedBox(height: 12),
-        _KartuLokasi(lokasi: widget.lokasi!),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.line)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(child: Text('Verifikasi kehidupan (liveness)', style: AppText.captionBold)),
+              Text('${(_progress * 100).round()}%', style: AppText.captionBold.copyWith(color: AppColors.brand700)),
+            ]),
+            const SizedBox(height: 8),
+            ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: _progress, minHeight: 6, color: AppColors.brand700, backgroundColor: AppColors.line)),
+          ]),
+        ),
       ],
     ]);
   }
 }
 
-class _KartuLokasi extends StatelessWidget {
-  const _KartuLokasi({required this.lokasi});
-  final LokasiStatus lokasi;
-
-  @override
-  Widget build(BuildContext context) {
-    final warna = lokasi.sukses ? AppColors.ok600 : AppColors.alpa;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Verifikasi Lokasi',
-                  style: AppText.captionBold.copyWith(fontSize: 14, color: AppColors.ink),
-                ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.location_on,
-                    size: 16,
-                    color: warna,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    lokasi.sukses ? '✓ Berhasil' : '✕ Gagal',
-                    style: AppText.captionBold.copyWith(
-                      fontSize: 13,
-                      color: warna,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      lokasi.nama,
-                      style: AppText.bodySmall.copyWith(color: AppColors.inkMuted, fontSize: 12),
-                    ),
-                    if (!lokasi.sukses) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        lokasi.pesan ?? 'Lokasi tidak sesuai (Di luar jangkauan)',
-                        style: AppText.caption.copyWith(color: AppColors.alpa, fontSize: 12),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${lokasi.persen}%',
-                style: AppText.captionBold.copyWith(
-                  color: warna,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: (lokasi.persen / 100.0).clamp(0.0, 1.0),
-              minHeight: 6,
-              color: warna,
-              backgroundColor: AppColors.line,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _OvalPainter extends CustomPainter {
-  _OvalPainter({required this.color});
+  _OvalPainter({required this.color, required this.penuh, required this.cy, required this.r});
   final Color color;
+
+  /// Garis utuh dan tebal saat hasil sudah ada; putus-putus saat masih memindai.
+  final bool penuh;
+  final double cy;
+  final double r;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromCenter(center: Offset(size.width / 2, size.height * 0.44), width: size.width * 0.62, height: size.height * 0.62);
+    final rect = Rect.fromCenter(center: Offset(size.width / 2, size.height * cy), width: size.width * r * 2, height: size.height * r * 2);
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4;
+      ..strokeWidth = penuh ? 6 : 4;
     final path = Path()..addOval(rect);
-    // Garis putus-putus.
+    if (penuh) {
+      canvas.drawPath(path, paint);
+      return;
+    }
     for (final m in path.computeMetrics()) {
       for (double d = 0; d < m.length; d += 18) {
         canvas.drawPath(m.extractPath(d, d + 10), paint);
@@ -343,5 +344,5 @@ class _OvalPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_OvalPainter old) => old.color != color;
+  bool shouldRepaint(_OvalPainter old) => old.color != color || old.penuh != penuh;
 }

@@ -170,6 +170,45 @@
                 </ul>
             </div>
         @endif
+        @if(($perangkatMenunggu ?? collect())->isNotEmpty() || ($perangkatAktif ?? collect())->isNotEmpty())
+            <div class="border-t border-gray-100 pt-3">
+                <h3 class="font-bold text-gray-900">Perangkat absen (satu guru satu HP)</h3>
+                <p class="text-xs text-gray-500 mt-0.5">Absen hanya bisa dari HP terdaftar supaya tidak bisa dititipkan. Setujui HP baru hanya bila guru benar mengganti perangkat.</p>
+            </div>
+            @foreach($perangkatMenunggu as $p)
+                <div class="flex flex-wrap items-center gap-3 border-t border-gray-100 pt-3">
+                    <span class="material-symbols-outlined text-amber-500">smartphone</span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-bold text-gray-900">{{ $p->guru?->nama_lengkap ?? $p->guru?->name }}</p>
+                        <p class="text-xs text-gray-500">{{ $p->nama }} · {{ $p->versi_os }} · diajukan {{ $p->created_at?->timezone(config('presensi_guru.timezone'))->translatedFormat('d M Y, H:i') }}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <form method="POST" action="{{ route('presensi-guru.perangkat.setujui', $p) }}">
+                            @csrf
+                            <button type="submit" class="btn btn-success px-4 h-10 rounded-lg text-sm">Setujui</button>
+                        </form>
+                        <form method="POST" action="{{ route('presensi-guru.perangkat.tolak', $p) }}">
+                            @csrf
+                            <button type="submit" class="btn btn-alert px-4 h-10 rounded-lg text-sm">Tolak</button>
+                        </form>
+                    </div>
+                </div>
+            @endforeach
+            @foreach($perangkatAktif as $p)
+                <div class="flex flex-wrap items-center gap-3 border-t border-gray-100 pt-3">
+                    <span class="material-symbols-outlined text-emerald-600">verified_user</span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-bold text-gray-900">{{ $p->guru?->nama_lengkap ?? $p->guru?->name }}</p>
+                        <p class="text-xs text-gray-500">{{ $p->nama }} · terakhir dipakai {{ $p->terakhir_dipakai?->timezone(config('presensi_guru.timezone'))->translatedFormat('d M Y, H:i') ?? '-' }}</p>
+                    </div>
+                    <form method="POST" action="{{ route('presensi-guru.perangkat.cabut', $p) }}" onsubmit="return confirm('Cabut perangkat ini? Guru tidak bisa absen sampai mengajukan HP baru.')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-outline px-4 h-10 rounded-lg text-sm">Cabut</button>
+                    </form>
+                </div>
+            @endforeach
+        @endif
     </div>
 @endif
 

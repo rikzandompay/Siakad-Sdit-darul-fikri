@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PengaturanSekolah;
+use App\Models\PerangkatGuru;
 use App\Models\PresensiGuru;
 use App\Models\User;
 use App\Models\WajahGuru;
@@ -22,7 +23,35 @@ class RekapPresensiGuruController extends Controller
             'fotoPengajuan' => User::whereNotNull('foto_pengajuan')->orderBy('foto_pengajuan_pada')->get(),
             'wajahMirip' => WajahGuru::with(['guru', 'miripGuru'])->whereNotNull('mirip_guru_id')->get()
                 ->filter(fn (WajahGuru $w) => $w->guru_id < $w->mirip_guru_id),
+            'perangkatMenunggu' => PerangkatGuru::with('guru')->where('status', PerangkatGuru::MENUNGGU)->orderBy('created_at')->get(),
+            'perangkatAktif' => PerangkatGuru::with('guru')->where('status', PerangkatGuru::AKTIF)->orderBy('terakhir_dipakai', 'desc')->get(),
         ]);
+    }
+
+    /** Setujui HP baru; perangkat aktif lama otomatis dicabut. */
+    public function setujuiPerangkat(PerangkatGuru $perangkat)
+    {
+        abort_if($perangkat->aktif(), 409, 'Perangkat ini sudah aktif.');
+        $perangkat->setujui(auth()->id());
+
+        return redirect()->back()->with('success', 'Perangkat '.($perangkat->guru?->nama_lengkap ?? '').' disetujui. Guru bisa absen dari HP ini.');
+    }
+
+    public function tolakPerangkat(Request $request, PerangkatGuru $perangkat)
+    {
+        abort_if($perangkat->aktif(), 409, 'Perangkat ini sedang aktif.');
+        $data = $request->validate(['catatan' => 'nullable|string|max:200']);
+        $perangkat->tolak($data['catatan'] ?? null);
+
+        return redirect()->back()->with('success', 'Perangkat ditolak.');
+    }
+
+    /** Cabut perangkat aktif (mis. HP hilang atau dijual). */
+    public function cabutPerangkat(PerangkatGuru $perangkat)
+    {
+        $perangkat->tolak('Dicabut admin');
+
+        return redirect()->back()->with('success', 'Perangkat dicabut. Guru perlu mengajukan HP baru untuk absen.');
     }
 
     /**
