@@ -31,6 +31,18 @@ class NilaiRapotController extends Controller
         }
     }
 
+    /**
+     * Melihat/mengekspor nilai satu mapel: admin, wali kelas kelas itu (merekap rapor), atau
+     * pengampu mapel itu di kelas itu. Guru mapel lain di kelas yang sama tidak boleh.
+     */
+    protected function ensureCanViewNilaiMapel(int $pelajaranId, int $kelasId): void
+    {
+        if (auth()->user()->isAdmin() || Kelas::where('id', $kelasId)->where('wali_kelas_id', Auth::id())->exists()) {
+            return;
+        }
+        $this->ensureTeacherCanAccessPelajaran($pelajaranId, $kelasId);
+    }
+
     protected function ensureTeacherCanAccessPelajaran(int $pelajaranId, int $kelasId): void
     {
         if (auth()->user()->isAdmin()) {
@@ -84,7 +96,7 @@ class NilaiRapotController extends Controller
         $stats = ['rata_rata' => 0, 'nilai_tertinggi' => 0, 'perlu_remedial' => 0, 'tuntas' => 0];
 
         if ($kelasId && $pelajaranId && $tahunAjaranId) {
-            $this->ensureTeacherCanAccessKelas($kelasId);
+            $this->ensureCanViewNilaiMapel((int) $pelajaranId, (int) $kelasId);
             $siswaList = Siswa::where('kelas_id', $kelasId)
                 ->where('status', 'Aktif')
                 ->orderBy('nama_siswa')
@@ -289,7 +301,7 @@ class NilaiRapotController extends Controller
             return redirect()->route('nilai.index')->with('error', 'Pilih filter terlebih dahulu.');
         }
 
-        $this->ensureTeacherCanAccessKelas($kelasId);
+        $this->ensureCanViewNilaiMapel((int) $pelajaranId, (int) $kelasId);
 
         $siswaList = Siswa::where('kelas_id', $kelasId)->where('status', 'Aktif')->orderBy('nama_siswa')->get();
         $nilaiData = NilaiRapot::where('tahun_ajaran_id', $tahunAjaranId)
@@ -394,7 +406,7 @@ class NilaiRapotController extends Controller
             return redirect()->route('nilai.index')->with('error', 'Pilih filter terlebih dahulu.');
         }
 
-        $this->ensureTeacherCanAccessKelas($kelasId);
+        $this->ensureCanViewNilaiMapel((int) $pelajaranId, (int) $kelasId);
 
         $siswaList = Siswa::where('kelas_id', $kelasId)->where('status', 'Aktif')->orderBy('nama_siswa')->get();
         $nilaiData = NilaiRapot::where('tahun_ajaran_id', $tahunAjaranId)

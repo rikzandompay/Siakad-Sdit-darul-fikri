@@ -33,3 +33,6 @@ Thumbs.db
 /figma_manifest.json
 /generate_figma_frames.js
 /database/database.sql
+
+# Laporan audit keamanan internal: jangan masuk repo (repo GitHub publik)
+safety.md

@@ -8,6 +8,7 @@ use App\Models\Kelas;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Models\Wali;
+use App\Support\BatasLoginGuru;
 use App\Support\KunciLogin;
 use App\Support\Sekolah;
 use Illuminate\Http\JsonResponse;
@@ -22,15 +23,12 @@ use Illuminate\Validation\ValidationException;
  * Login aplikasi MyDarfik.
  * - Guru & Staf: username atau NIP + kata sandi (akun web yang sama).
  * - Wali murid : NIS siswa + tanggal lahir siswa YY-MM-DD (akun dibuat otomatis dari data siswa).
- * Guru: salah 5 kali untuk akun yang sama mengunci login akun itu 5 menit (dari HP mana pun).
+ * Guru: salah 5 kali dari IP yang sama mengunci 5 menit untuk IP itu; 30 salah per 15 menit dari
+ *       semua IP mengunci akun (BatasLoginGuru).
  * Wali: kunci bertingkat sampai 24 jam (KunciLogin) dan maksimal 30 salah per IP per jam.
  */
 class AuthController extends Controller
 {
-    private const MAKS_PERCOBAAN = 5;
-
-    private const KUNCI_DETIK = 300;
-
     /** Login wali salah per IP per jam, dijumlah dari semua NIS. */
     private const MAKS_GAGAL_WALI_PER_IP = 30;
 
@@ -63,8 +61,8 @@ class AuthController extends Controller
             if (RateLimiter::tooManyAttempts($kunciIp, self::MAKS_GAGAL_WALI_PER_IP)) {
                 $this->tolakTerkunci(RateLimiter::availableIn($kunciIp));
             }
-        } elseif (RateLimiter::tooManyAttempts($kunci, self::MAKS_PERCOBAAN)) {
-            $this->tolakTerkunci(RateLimiter::availableIn($kunci));
+        } elseif ($detik = BatasLoginGuru::sisa($data['username'], $request->ip())) {
+            $this->tolakTerkunci($detik);
         }
 
         $akun = $wali
@@ -78,7 +76,7 @@ class AuthController extends Controller
                     $this->tolakTerkunci($lama, 'NIS atau tanggal lahir (YY-MM-DD) tidak cocok. ');
                 }
             } else {
-                RateLimiter::hit($kunci, self::KUNCI_DETIK);
+                BatasLoginGuru::gagal($data['username'], $request->ip());
             }
             throw ValidationException::withMessages([
                 'username' => $wali
@@ -87,7 +85,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $wali ? KunciLogin::bersihkan($kunci) : RateLimiter::clear($kunci);
+        $wali ? KunciLogin::bersihkan($kunci) : BatasLoginGuru::berhasil($data['username'], $request->ip());
         if ($akun instanceof Wali) {
             $akun->forceFill(['terakhir_login_pada' => now()])->save();
         }
@@ -150,9 +148,10 @@ class AuthController extends Controller
 
     private function cekGuru(string $username, string $password): ?User
     {
-        $user = User::where('status', 'Aktif')
-            ->where(fn ($q) => $q->where('username', $username)->orWhere('nip', $username))
-            ->first();
+        // Username persis lebih dulu, baru NIP, agar NIP yang kebetulan sama dengan username
+        // guru lain tidak membuat login salah akun.
+        $user = User::where('status', 'Aktif')->where('username', $username)->first()
+            ?? User::where('status', 'Aktif')->where('nip', $username)->first();
 
         return $user && Hash::check($password, $user->password) ? $user : null;
     }

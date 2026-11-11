@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\BatasLoginGuru;
+use App\Support\KunciLogin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -22,18 +24,17 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $throttleKey = strtolower($credentials['username']).'|'.$request->ip();
-        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($throttleKey, 5)) {
-            return back()->withErrors(['username' => 'Terlalu banyak percobaan login. Silakan coba lagi dalam 1 menit.'])->onlyInput('username');
+        if ($detik = BatasLoginGuru::sisa($credentials['username'], $request->ip())) {
+            return back()->withErrors(['username' => 'Terlalu banyak percobaan login. Silakan coba lagi dalam '.KunciLogin::teks($detik).'.'])->onlyInput('username');
         }
 
         if (Auth::attempt(['username' => $credentials['username'], 'password' => $credentials['password'], 'status' => 'Aktif'], $request->boolean('remember'))) {
-            \Illuminate\Support\Facades\RateLimiter::clear($throttleKey);
+            BatasLoginGuru::berhasil($credentials['username'], $request->ip());
             $request->session()->regenerate();
             return redirect()->intended(route('dashboard'));
         }
 
-        \Illuminate\Support\Facades\RateLimiter::hit($throttleKey, 60);
+        BatasLoginGuru::gagal($credentials['username'], $request->ip());
 
         return back()->withErrors([
             'username' => 'Username atau password salah.',

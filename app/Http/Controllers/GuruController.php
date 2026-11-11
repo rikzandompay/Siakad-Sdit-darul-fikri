@@ -43,10 +43,11 @@ class GuruController extends Controller
         $request->merge(['username' => strtolower(trim((string) $request->input('username')))]);
 
         $validated = $request->validate([
-            'nip' => 'nullable|string|max:30|unique:users,nip',
+            // NIP juga dipakai untuk login aplikasi: tidak boleh sama dengan NIP atau username akun lain.
+            'nip' => ['nullable', 'string', 'max:30', 'unique:users,nip', 'unique:users,username'],
             'nama_lengkap' => 'required|string|max:100',
             'jenis_kelamin' => 'required|in:L,P',
-            'username' => ['required', 'string', 'max:50', 'unique:users,username', Rule::notIn(array_map('strtolower', config('admin.usernames', ['admin'])))],
+            'username' => ['required', 'string', 'max:50', 'unique:users,username', 'unique:users,nip', Rule::notIn(array_map('strtolower', config('admin.usernames', ['admin'])))],
             'email' => 'required|email|max:255|unique:users,email',
             'no_hp' => 'nullable|string|max:20',
             'status' => 'required|in:Aktif,Pensiun,Pindah',
@@ -69,12 +70,13 @@ class GuruController extends Controller
         $adminUsernames = array_map('strtolower', config('admin.usernames', ['admin']));
 
         $validated = $request->validate([
-            'nip' => ['nullable', 'string', 'max:30', Rule::unique('users', 'nip')->ignore($guru->id)],
+            'nip' => ['nullable', 'string', 'max:30', Rule::unique('users', 'nip')->ignore($guru->id), Rule::unique('users', 'username')->ignore($guru->id)],
             'nama_lengkap' => 'required|string|max:100',
             'jenis_kelamin' => 'required|in:L,P',
             'username' => array_filter([
                 'required', 'string', 'max:50',
                 Rule::unique('users', 'username')->ignore($guru->id),
+                Rule::unique('users', 'nip')->ignore($guru->id),
                 $guru->isAdmin() ? Rule::in([strtolower($guru->username)]) : Rule::notIn($adminUsernames),
             ]),
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($guru->id)],

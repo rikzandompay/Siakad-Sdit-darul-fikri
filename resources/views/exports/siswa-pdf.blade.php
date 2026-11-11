@@ -162,7 +162,9 @@
                 <th style="width: 8%">NIS</th>
                 <th style="width: 10%">NISN</th>
                 <th style="width: 15%">Nama Siswa</th>
+                @if ($tampilTanggalLahir)
                 <th style="width: 10%">Tgl Lahir</th>
+                @endif
                 <th style="width: 15%">Alamat</th>
                 <th style="width: 3%">L/P</th>
                 <th style="width: 5%">Kelas</th>
@@ -178,7 +180,9 @@
                     <td>{{ $s->nis }}</td>
                     <td>{{ $s->nisn }}</td>
                     <td class="text-left"><strong>{{ $s->nama_siswa }}</strong></td>
+                    @if ($tampilTanggalLahir)
                     <td>{{ $s->tanggal_lahir }}</td>
+                    @endif
                     <td class="text-left">{{ $s->alamat ?? '-' }}</td>
                     <td>{{ $s->jenis_kelamin }}</td>
                     <td>{{ $s->kelas->nama_kelas ?? '-' }}</td>
@@ -188,7 +192,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="11">Tidak ada data siswa.</td>
+                    <td colspan="{{ $tampilTanggalLahir ? 11 : 10 }}">Tidak ada data siswa.</td>
                 </tr>
             @endforelse
         </tbody>

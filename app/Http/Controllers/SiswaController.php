@@ -172,7 +172,10 @@ class SiswaController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function () use ($data) {
+        // Tanggal lahir adalah kata sandi aplikasi wali: hanya admin/kepala sekolah yang mengekspornya.
+        $tampilTanggalLahir = auth()->user()->isAdmin();
+
+        $callback = function () use ($data, $tampilTanggalLahir) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
             
@@ -184,7 +187,7 @@ class SiswaController extends Controller
             fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
             fputcsv($file, []);
 
-            fputcsv($file, ['No', 'NIS', 'NISN', 'Nama Siswa', 'Tanggal Lahir', 'Alamat', 'Jenis Kelamin', 'Kelas', 'Nama Wali', 'No HP Wali', 'Status']);
+            fputcsv($file, array_values(array_filter(['No', 'NIS', 'NISN', 'Nama Siswa', $tampilTanggalLahir ? 'Tanggal Lahir' : null, 'Alamat', 'Jenis Kelamin', 'Kelas', 'Nama Wali', 'No HP Wali', 'Status'])));
             $no = 1;
             foreach ($data as $s) {
                 $this->putSafeCsv($file, [
@@ -192,7 +195,7 @@ class SiswaController extends Controller
                     $s->nis,
                     $s->nisn,
                     $s->nama_siswa,
-                    $s->tanggal_lahir,
+                    ...($tampilTanggalLahir ? [$s->tanggal_lahir] : []),
                     $s->alamat ?? '-',
                     $s->jenis_kelamin == 'L' ? 'Laki-laki' : 'Perempuan',
                     $s->kelas->nama_kelas ?? '-',
@@ -236,7 +239,10 @@ class SiswaController extends Controller
 
         $data = $query->orderBy('nama_siswa')->get();
 
-        return view('exports.siswa-pdf', compact('data'));
+        // Tanggal lahir adalah kata sandi aplikasi wali: hanya admin/kepala sekolah yang melihatnya.
+        $tampilTanggalLahir = auth()->user()->isAdmin();
+
+        return view('exports.siswa-pdf', compact('data', 'tampilTanggalLahir'));
     }
 
     private function clearSiswaCache($kelasId, $oldKelasId = null)

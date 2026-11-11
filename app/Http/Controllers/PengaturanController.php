@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class PengaturanController extends Controller
 {
@@ -28,8 +29,11 @@ class PengaturanController extends Controller
         $validated = $request->validate([
             'nama_lengkap' => 'required|string|max:100',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
-            'nip' => 'nullable|string|max:30',
+            // NIP juga dipakai untuk login aplikasi, jadi tidak boleh sama dengan NIP atau username akun lain.
+            'nip' => ['nullable', 'string', 'max:30', Rule::unique('users', 'nip')->ignore($user->id), Rule::unique('users', 'username')->ignore($user->id)],
             'no_hp' => 'nullable|string|max:20',
+        ], [
+            'nip.unique' => 'NIP sudah dipakai sebagai NIP atau username akun lain.',
         ]);
 
         $user->update($validated);
