@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Siswa;
 use App\Models\Wali;
+use App\Support\KunciLogin;
 use Illuminate\Http\Request;
 
 /**
@@ -32,7 +33,20 @@ class WaliController extends Controller
             ->with('kelas')
             ->get();
 
-        return view('wali.index', compact('waliList', 'search', 'siswaTanpaNamaWali'));
+        // Akun yang sedang terkunci karena salah tanggal lahir berkali-kali: [wali_id => detik tersisa].
+        $terkunci = $waliList->getCollection()
+            ->mapWithKeys(fn (Wali $w) => [$w->id => KunciLogin::sisa(KunciLogin::wali($w->username))])
+            ->filter();
+
+        return view('wali.index', compact('waliList', 'search', 'siswaTanpaNamaWali', 'terkunci'));
+    }
+
+    /** Wali yang terkunci (salah tanggal lahir berkali-kali) bisa login lagi setelah dicek Tata Usaha. */
+    public function bukaKunci(Wali $wali)
+    {
+        KunciLogin::bersihkan(KunciLogin::wali($wali->username));
+
+        return redirect()->back()->with('success', "Kunci login akun NIS {$wali->username} dibuka.");
     }
 
     /** Untuk data siswa lama yang dibuat sebelum akun otomatis ada. */

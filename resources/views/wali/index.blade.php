@@ -60,6 +60,13 @@
                         <td class="px-4 md:px-6 py-3 text-gray-500 hidden md:table-cell">{{ $w->terakhir_login_pada?->diffForHumans() ?? 'Belum pernah' }}</td>
                         <td class="px-4 md:px-6 py-3 text-center">
                             <span class="text-[11px] font-bold px-2 py-0.5 rounded {{ $w->isAktif() ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">{{ $w->status }}</span>
+                            @if($terkunci->has($w->id))
+                                <form method="POST" action="{{ route('wali.buka-kunci', $w) }}" class="mt-1.5" onsubmit="return confirm('Buka kunci login untuk NIS {{ $w->username }}? Pastikan yang meminta memang wali siswa ini.')">
+                                    @csrf
+                                    <p class="text-[11px] text-red-700 font-semibold">Terkunci {{ \App\Support\KunciLogin::teks($terkunci[$w->id]) }}</p>
+                                    <button type="submit" class="btn btn-warning mt-1 px-2.5 py-1 rounded-md text-xs">Buka kunci</button>
+                                </form>
+                            @endif
                         </td>
                     </tr>
                 @empty

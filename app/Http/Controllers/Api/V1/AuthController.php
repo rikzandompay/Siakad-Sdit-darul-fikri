@@ -8,6 +8,7 @@ use App\Models\Kelas;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Models\Wali;
+use App\Support\KunciLogin;
 use App\Support\Sekolah;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,13 +22,24 @@ use Illuminate\Validation\ValidationException;
  * Login aplikasi MyDarfik.
  * - Guru & Staf: username atau NIP + kata sandi (akun web yang sama).
  * - Wali murid : NIS siswa + tanggal lahir siswa YY-MM-DD (akun dibuat otomatis dari data siswa).
- * Salah 5 kali untuk akun yang sama mengunci login akun itu 5 menit (dari HP mana pun).
+ * Guru: salah 5 kali untuk akun yang sama mengunci login akun itu 5 menit (dari HP mana pun).
+ * Wali: kunci bertingkat sampai 24 jam (KunciLogin) dan maksimal 30 salah per IP per jam.
  */
 class AuthController extends Controller
 {
     private const MAKS_PERCOBAAN = 5;
 
     private const KUNCI_DETIK = 300;
+
+    /** Login wali salah per IP per jam, dijumlah dari semua NIS. */
+    private const MAKS_GAGAL_WALI_PER_IP = 30;
+
+    private function tolakTerkunci(int $detik, string $awalan = ''): never
+    {
+        throw ValidationException::withMessages([
+            'username' => $awalan.'Terlalu banyak percobaan. Coba lagi dalam '.KunciLogin::teks($detik).'.',
+        ])->status(429);
+    }
 
     public function login(Request $request): JsonResponse
     {
@@ -38,28 +50,44 @@ class AuthController extends Controller
             'device_name' => 'nullable|string|max:100',
         ]);
 
+        $wali = $data['peran'] === 'wali';
         $kunci = 'api-login:'.$data['peran'].':'.mb_strtolower(trim($data['username']));
-        if (RateLimiter::tooManyAttempts($kunci, self::MAKS_PERCOBAAN)) {
-            $detik = RateLimiter::availableIn($kunci);
-            throw ValidationException::withMessages([
-                'username' => 'Terlalu banyak percobaan. Coba lagi dalam '.ceil($detik / 60).' menit.',
-            ])->status(429);
+        $kunciIp = 'api-login-wali-ip:'.$request->ip();
+
+        if ($wali) {
+            // Tanggal lahir mudah ditebak: kunci akun bertingkat (lihat KunciLogin) dan batasi
+            // jumlah salah per IP agar satu orang tidak bisa menyisir banyak NIS sekaligus.
+            if ($detik = KunciLogin::sisa($kunci)) {
+                $this->tolakTerkunci($detik);
+            }
+            if (RateLimiter::tooManyAttempts($kunciIp, self::MAKS_GAGAL_WALI_PER_IP)) {
+                $this->tolakTerkunci(RateLimiter::availableIn($kunciIp));
+            }
+        } elseif (RateLimiter::tooManyAttempts($kunci, self::MAKS_PERCOBAAN)) {
+            $this->tolakTerkunci(RateLimiter::availableIn($kunci));
         }
 
-        $akun = $data['peran'] === 'guru'
-            ? $this->cekGuru($data['username'], $data['password'])
-            : $this->cekWali($data['username'], $data['password']);
+        $akun = $wali
+            ? $this->cekWali($data['username'], $data['password'])
+            : $this->cekGuru($data['username'], $data['password']);
 
         if (! $akun) {
-            RateLimiter::hit($kunci, self::KUNCI_DETIK);
+            if ($wali) {
+                RateLimiter::hit($kunciIp, 3600);
+                if ($lama = KunciLogin::gagal($kunci)) {
+                    $this->tolakTerkunci($lama, 'NIS atau tanggal lahir (YY-MM-DD) tidak cocok. ');
+                }
+            } else {
+                RateLimiter::hit($kunci, self::KUNCI_DETIK);
+            }
             throw ValidationException::withMessages([
-                'username' => $data['peran'] === 'guru'
-                    ? 'Username/NIP atau kata sandi salah.'
-                    : 'NIS atau tanggal lahir (YY-MM-DD) tidak cocok.',
+                'username' => $wali
+                    ? 'NIS atau tanggal lahir (YY-MM-DD) tidak cocok.'
+                    : 'Username/NIP atau kata sandi salah.',
             ]);
         }
 
-        RateLimiter::clear($kunci);
+        $wali ? KunciLogin::bersihkan($kunci) : RateLimiter::clear($kunci);
         if ($akun instanceof Wali) {
             $akun->forceFill(['terakhir_login_pada' => now()])->save();
         }

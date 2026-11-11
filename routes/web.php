@@ -169,6 +169,7 @@ Route::middleware('auth')->group(function () {
         // Akun wali murid: otomatis dari data siswa (NIS + nama wali); halaman ini hanya daftar & sinkron
         Route::get('/wali', [WaliController::class, 'index'])->name('wali.index');
         Route::post('/wali/sinkron', [WaliController::class, 'sinkron'])->middleware('throttle:10,1')->name('wali.sinkron');
+        Route::post('/wali/{wali}/buka-kunci', [WaliController::class, 'bukaKunci'])->middleware('throttle:30,1')->name('wali.buka-kunci');
     });
 
     // Izin siswa: wali kelas / admin meninjau
