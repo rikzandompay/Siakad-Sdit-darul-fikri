@@ -131,7 +131,7 @@
         @if($fotoPengajuan->isNotEmpty())
             <div>
                 <h3 class="font-bold text-gray-900">Pengajuan foto profil</h3>
-                <p class="text-xs text-gray-500 mt-0.5">Foto ini menjadi acuan pendaftaran wajah. Setujui hanya bila benar wajah guru yang bersangkutan. Setelah disetujui, guru harus mendaftarkan wajah lagi.</p>
+                <p class="text-xs text-gray-500 mt-0.5">Foto ini menjadi acuan wajah saat absen. Setujui hanya bila benar wajah guru yang bersangkutan.</p>
             </div>
             @foreach($fotoPengajuan as $g)
                 <div class="flex flex-wrap items-center gap-4 border-t border-gray-100 pt-3">
@@ -216,13 +216,13 @@
             @if($wajah)
                 <p class="text-sm text-green-700 font-semibold mt-2 flex items-center gap-1"><span class="material-symbols-outlined text-base">verified_user</span> Terdaftar</p>
                 <p class="text-xs text-gray-500 mt-1">Sejak {{ $wajah->didaftarkan_pada->translatedFormat('d M Y, H:i') }}. Template disimpan terenkripsi dan tidak bisa dilihat di web.</p>
-                <form method="POST" action="{{ route('presensi-guru.wajah.reset', $selectedGuru) }}" class="mt-4" onsubmit="return confirm('Hapus data wajah? Guru harus mendaftarkan wajah lagi di aplikasi sebelum bisa absen.')">
+                <form method="POST" action="{{ route('presensi-guru.wajah.reset', $selectedGuru) }}" class="mt-4" onsubmit="return confirm('Hapus data wajah? Acuan wajah dibuat ulang dari foto profil saat guru membuka Presensi Guru.')">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-warning px-4 h-10 rounded-lg text-sm">Reset data wajah</button>
                 </form>
             @else
                 <p class="text-sm text-amber-700 font-semibold mt-2 flex items-center gap-1"><span class="material-symbols-outlined text-base">face_retouching_off</span> Belum terdaftar</p>
-                <p class="text-xs text-gray-500 mt-1">Guru mendaftarkan wajah sekali dari aplikasi MyDarfik sebelum bisa absen.</p>
+                <p class="text-xs text-gray-500 mt-1">Acuan wajah dibuat otomatis dari foto profil yang disetujui saat guru membuka Presensi Guru di aplikasi.</p>
             @endif
         </div>
     </div>

@@ -496,7 +496,7 @@ class _KoreksiGuruScreenState extends State<KoreksiGuruScreen> {
   }
 
   Future<void> _resetWajah() async {
-    if (!await konfirmasi(context, 'Reset data wajah?', 'Guru harus mendaftarkan wajah lagi sebelum bisa absen.', ya: 'Reset')) return;
+    if (!await konfirmasi(context, 'Reset data wajah?', 'Acuan wajah dibuat ulang dari foto profil saat guru membuka Presensi Guru.', ya: 'Reset')) return;
     if (!mounted) return;
     try {
       final r = await context.read<ApiClient>().delete('/admin/guru/${widget.guruId}/wajah');

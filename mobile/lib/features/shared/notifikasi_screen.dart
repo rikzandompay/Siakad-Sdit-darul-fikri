@@ -99,6 +99,7 @@ class _ItemNotifikasi extends StatelessWidget {
     'izin': (Icons.assignment_outlined, AppColors.sakit, AppColors.sakitTint),
     'tugas': (Icons.menu_book_outlined, AppColors.ok700, AppColors.ok100),
     'foto': (Icons.account_circle_outlined, AppColors.brand700, AppColors.brand100),
+    'lokasi': (Icons.wrong_location_outlined, AppColors.alpa, AppColors.alpaTint),
   };
 
   @override

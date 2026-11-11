@@ -61,7 +61,7 @@ class RekapPresensiGuruController extends Controller
     {
         $guru->hapusWajah();
 
-        return redirect()->back()->with('success', 'Data wajah '.($guru->nama_lengkap ?? $guru->name).' dihapus. Guru perlu mendaftarkan wajah lagi di aplikasi.');
+        return redirect()->back()->with('success', 'Data wajah '.($guru->nama_lengkap ?? $guru->name).' dihapus. Acuan wajah dibuat ulang dari foto profil saat guru membuka Presensi Guru.');
     }
 
     public function setujuiFoto(User $guru)
@@ -69,7 +69,7 @@ class RekapPresensiGuruController extends Controller
         abort_unless($guru->foto_pengajuan, 409, 'Tidak ada foto yang menunggu persetujuan.');
         $guru->setujuiFotoPengajuan();
 
-        return redirect()->back()->with('success', 'Foto '.($guru->nama_lengkap ?? $guru->name).' disetujui. Guru perlu mendaftarkan wajah lagi di aplikasi.');
+        return redirect()->back()->with('success', 'Foto '.($guru->nama_lengkap ?? $guru->name).' disetujui dan menjadi acuan wajah saat absen.');
     }
 
     public function tolakFoto(Request $request, User $guru)

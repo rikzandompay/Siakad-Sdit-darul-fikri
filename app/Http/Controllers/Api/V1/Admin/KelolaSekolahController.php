@@ -179,7 +179,7 @@ class KelolaSekolahController extends Controller
         $this->pastikanGuru($guru);
         $guru->hapusWajah();
 
-        return response()->json(['message' => 'Data wajah dihapus. Guru perlu mendaftarkan wajah lagi di aplikasi.']);
+        return response()->json(['message' => 'Data wajah dihapus. Acuan wajah dibuat ulang dari foto profil saat guru membuka Presensi Guru.']);
     }
 
     /** Foto profil yang menunggu persetujuan dan pasangan guru yang wajahnya sangat mirip. */
@@ -209,7 +209,7 @@ class KelolaSekolahController extends Controller
         abort_unless($guru->foto_pengajuan, 409, 'Tidak ada foto yang menunggu persetujuan.');
         $guru->setujuiFotoPengajuan();
 
-        return response()->json(['message' => 'Foto disetujui. Guru perlu mendaftarkan wajah lagi di aplikasi.']);
+        return response()->json(['message' => 'Foto disetujui dan menjadi acuan wajah saat absen.']);
     }
 
     public function tolakFoto(Request $request, User $guru): JsonResponse

@@ -45,9 +45,10 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen> {
         throw ApiException('Izin lokasi ditolak. Aktifkan izin lokasi untuk MyDarfik di pengaturan HP.');
       }
       final pos = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.best, timeLimit: Duration(seconds: 20)));
-      if (pos.isMocked) throw ApiException('Terdeteksi aplikasi lokasi palsu. Matikan aplikasi tersebut untuk melakukan presensi.');
       if (!mounted) return;
-      final res = await context.read<ApiClient>().post('/guru/absen/cek-lokasi', {'latitude': pos.latitude, 'longitude': pos.longitude, 'akurasi': pos.accuracy});
+      // Lokasi palsu tetap dikirim: server menolaknya dan memberi peringatan ke kepala sekolah.
+      final res = await context.read<ApiClient>().post('/guru/absen/cek-lokasi', {'latitude': pos.latitude, 'longitude': pos.longitude, 'akurasi': pos.accuracy, 'mock': pos.isMocked});
+      if (pos.isMocked) throw ApiException('Terdeteksi aplikasi lokasi palsu. Matikan aplikasi tersebut untuk melakukan presensi.');
       setState(() {
         _posisi = pos;
         _hasil = res;

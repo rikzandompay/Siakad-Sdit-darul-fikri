@@ -22,7 +22,7 @@ class FotoProfilDitinjau extends NotifikasiAplikasi
     protected function isi(object $notifiable): string
     {
         if ($this->disetujui) {
-            return 'Foto profil baru sudah aktif. Daftarkan wajah Anda lagi sebelum absen.';
+            return 'Foto profil baru sudah aktif dan menjadi acuan wajah saat absen.';
         }
 
         return 'Ajukan foto lain yang jelas menampilkan wajah Anda.'.($this->catatan ? ' Catatan: '.static::ringkas($this->catatan, 80) : '');

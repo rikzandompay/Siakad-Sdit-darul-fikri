@@ -7,10 +7,14 @@ use App\Models\PengaturanSekolah;
 use App\Models\PresensiGuru;
 use App\Models\User;
 use App\Models\WajahGuru;
+use App\Notifications\LokasiPalsuTerdeteksi;
 use App\Support\Sekolah;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -47,13 +51,19 @@ class AbsenController extends Controller
     /** Cek jarak ke sekolah (langkah 1). Tidak menyimpan apa pun. */
     public function cekLokasi(Request $request): JsonResponse
     {
-        $data = $request->validate($this->aturanLokasi());
+        $data = $request->validate($this->aturanLokasi() + ['mock' => 'nullable|boolean']);
+        if ($request->boolean('mock')) {
+            return $this->laporLokasiPalsu($request, 'absen');
+        }
 
         return response()->json($this->hitungLokasi($data));
     }
 
     public function masuk(Request $request): JsonResponse
     {
+        if ($request->boolean('mock')) {
+            return $this->laporLokasiPalsu($request, 'absen masuk');
+        }
         $guru = $request->user();
         $data = $request->validate($this->aturanWajah() + $this->aturanLokasi());
         $now = Sekolah::now();
@@ -86,6 +96,9 @@ class AbsenController extends Controller
 
     public function pulang(Request $request): JsonResponse
     {
+        if ($request->boolean('mock')) {
+            return $this->laporLokasiPalsu($request, 'absen pulang');
+        }
         $guru = $request->user();
         $data = $request->validate($this->aturanWajah() + $this->aturanLokasi());
         $now = Sekolah::now();
@@ -247,6 +260,31 @@ class AbsenController extends Controller
         ];
     }
 
+    /**
+     * HP melaporkan lokasi palsu (fake GPS). Absen ditolak dan kepala sekolah diberi peringatan
+     * lewat notifikasi aplikasi (riwayat + push). Satu peringatan per guru per 30 menit agar
+     * percobaan berulang tidak membanjiri HP kepala sekolah.
+     */
+    private function laporLokasiPalsu(Request $request, string $tahap): JsonResponse
+    {
+        $guru = $request->user();
+        $lat = $request->input('latitude');
+        $lng = $request->input('longitude');
+        $sekolah = PengaturanSekolah::lokasi();
+        $jarak = $sekolah && is_numeric($lat) && is_numeric($lng) && abs((float) $lat) <= 90 && abs((float) $lng) <= 180
+            ? (int) round(Sekolah::jarakMeter((float) $lat, (float) $lng, $sekolah['latitude'], $sekolah['longitude']))
+            : null;
+
+        Log::warning('Lokasi palsu terdeteksi saat absen guru', ['guru_id' => $guru->id, 'tahap' => $tahap, 'jarak_meter' => $jarak, 'ip' => $request->ip()]);
+
+        if (Cache::add('lokasi-palsu:'.$guru->id, true, now()->addMinutes(30))) {
+            $penerima = User::where('status', 'Aktif')->whereKeyNot($guru->id)->get()->filter->isAdmin();
+            Notification::send($penerima, new LokasiPalsuTerdeteksi($guru, $tahap, Sekolah::now()->format('H:i'), $jarak));
+        }
+
+        return $this->gagal('lokasi_palsu', 'Terdeteksi aplikasi lokasi palsu. Absen ditolak dan kepala sekolah sudah diberi tahu. Matikan aplikasi tersebut lalu coba lagi.');
+    }
+
     private function hitungLokasi(array $data): array
     {
         $sekolah = PengaturanSekolah::lokasi();
@@ -293,7 +331,7 @@ class AbsenController extends Controller
             }
         }
         if (! $wajah) {
-            return [$lokasi, null, $this->gagal('wajah_belum_terdaftar', 'Wajah belum terdaftar. Daftarkan wajah atau foto profil terlebih dahulu.')];
+            return [$lokasi, null, $this->gagal('wajah_belum_terdaftar', 'Acuan wajah belum ada. Buka menu Presensi Guru; acuan dibuat dari foto profil yang disetujui kepala sekolah.')];
         }
 
         $template = $wajah->vektor();

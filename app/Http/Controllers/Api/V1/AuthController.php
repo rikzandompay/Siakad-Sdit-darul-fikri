@@ -142,7 +142,7 @@ class AuthController extends Controller
         $aktif = $user->unggahFoto($request->file('foto'));
 
         return response()->json([
-            'message' => $aktif ? 'Foto profil berhasil diperbarui. Daftarkan wajah Anda lagi sebelum absen.' : 'Foto terkirim dan menunggu persetujuan kepala sekolah.',
+            'message' => $aktif ? 'Foto profil berhasil diperbarui dan menjadi acuan wajah saat absen.' : 'Foto terkirim dan menunggu persetujuan kepala sekolah.',
             'foto_url' => $user->fotoUrl(),
             'menunggu' => ! $aktif,
         ]);

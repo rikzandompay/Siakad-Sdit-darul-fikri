@@ -9,7 +9,7 @@ Desain mengikuti Figma "Mobile-app-sisforsinta".
 - Guru: beranda (kartu guru, kehadiran hari ini, menu, jadwal), profil + ubah kata sandi
 - Presensi kelas: pilih kelas → pilih mata pelajaran → H/I/S/A → tersimpan
 - Presensi sholat: pilih kelas → Dzuhur/Ashar → scan QR Kartu Pelajar (langsung Hadir) / koreksi manual
-- Absen guru: daftar wajah (sekali) → verifikasi lokasi (GPS) → verifikasi wajah (kedip + cocokkan) → hasil; rekap absen per bulan
+- Absen guru: verifikasi lokasi (GPS) → verifikasi wajah (kedip + cocokkan dengan foto profil) → hasil; rekap absen per bulan
 - Wali: beranda sementara (kartu pelajar). Fitur wali lengkap di tahap 2.
 
 ## Menjalankan
@@ -57,9 +57,9 @@ Tanpa langkah 2–3 aplikasi tetap jalan; notifikasi hanya tampil di riwayat lon
   Model dari [FaceRecognitionAuth](https://github.com/MCarlomagno/FaceRecognitionAuth) (lisensi BSD-3-Clause).
 - Foto kamera tidak dikirim ke server. Server menyimpan template (embedding) terenkripsi, lalu
   mencocokkannya saat absen dan memeriksa ulang jarak, skor minimal, jam, dan hari sekolah.
-- Foto profil adalah acuan identitas: foto guru berlaku setelah disetujui kepala sekolah, dan saat
-  daftar wajah, wajah di kamera harus cocok dengan foto itu (`GURU_MIN_SKOR_FOTO`, default 60).
-  Foto yang diganti mewajibkan daftar wajah ulang.
+- Foto profil adalah acuan wajah: foto guru berlaku setelah disetujui kepala sekolah, lalu acuan
+  dibuat otomatis dari foto itu saat guru membuka Presensi Guru. Tidak ada langkah daftar wajah
+  terpisah. Foto yang diganti membuat acuan baru.
 - Saat absen wajah dibandingkan dengan semua guru: ditolak bila lebih mirip guru lain. Pasangan yang
   sangat mirip (mis. kembar) ditandai untuk admin. Wajah saja tidak bisa membedakan kembar identik.
 - Ambang kecocokan: `GURU_MIN_SKOR_WAJAH` di `.env` server (default 85).
@@ -67,7 +67,9 @@ Tanpa langkah 2–3 aplikasi tetap jalan; notifikasi hanya tampil di riwayat lon
   **perlu dikalibrasi dengan uji coba di HP guru** sebelum dipakai resmi.
 
 Keterbatasan: wajah dihitung di HP, jadi aplikasi yang dimodifikasi bisa mengirim data wajah atau
-hasil kedip palsu. Server tetap memvalidasi lokasi dan menolak GPS palsu yang terdeteksi Android.
+hasil kedip palsu. Server tetap memvalidasi lokasi dan menolak GPS palsu yang terdeteksi Android;
+setiap percobaan dengan lokasi palsu dikirim sebagai peringatan ke kepala sekolah (maksimal satu per
+guru per 30 menit).
 
 ## Struktur
 

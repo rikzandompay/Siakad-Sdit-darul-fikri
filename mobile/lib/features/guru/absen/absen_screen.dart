@@ -21,6 +21,12 @@ class _AbsenScreenState extends State<AbsenScreen> {
   Map<String, dynamic>? _d;
   String? _error;
 
+  /// Kenapa acuan wajah dari foto profil belum bisa dibuat (null = tidak ada masalah).
+  String? _masalahWajah;
+
+  /// Masalahnya ada di foto profil itu sendiri (perlu ganti foto), bukan koneksi.
+  bool _perluGantiFoto = false;
+
   @override
   void initState() {
     super.initState();
@@ -32,65 +38,64 @@ class _AbsenScreenState extends State<AbsenScreen> {
     try {
       final d = await context.read<ApiClient>().get('/guru/absen');
       if (mounted) setState(() => _d = d);
-
-      if (d['wajah_terdaftar'] != true) {
-        if (!mounted) return;
-        final akun = context.read<Session>().akun;
-        final fotoUrl = akun['foto_url'] as String?;
-        if (fotoUrl != null) {
-          try {
-            final api = context.read<ApiClient>();
-            final svc = FaceService.instance;
-            final fotoBytes = await api.bytes(fotoUrl);
-            final fotoEmbedding = await svc.embeddingDariFotoProfil(fotoBytes);
-            await api.post('/guru/wajah', {
-              'foto_embedding': fotoEmbedding,
-              'dari_foto_profil': true,
-            });
-            if (mounted) {
-              setState(() {
-                _d?['wajah_terdaftar'] = true;
-              });
-            }
-          } catch (_) {}
-        }
-      }
+      if (d['wajah_terdaftar'] != true && d['foto_acuan'] == true) await _acuanDariFotoProfil();
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     }
   }
 
+  /// Acuan wajah presensi = foto profil yang sudah disetujui kepala sekolah. Dibuat otomatis,
+  /// tanpa langkah daftar wajah terpisah.
+  Future<bool> _acuanDariFotoProfil() async {
+    final api = context.read<ApiClient>();
+    final session = context.read<Session>();
+    String? masalah;
+    var gantiFoto = false;
+    try {
+      // Foto bisa baru disetujui setelah login: ambil alamat foto terbaru dari server.
+      await session.refreshMe();
+      final fotoUrl = session.akun['foto_url'] as String?;
+      if (fotoUrl == null) throw FaceException('Foto profil belum tersedia.');
+      final fotoEmbedding = await FaceService.instance.embeddingDariFotoProfil(await api.bytes(fotoUrl));
+      await api.post('/guru/wajah', {'foto_embedding': fotoEmbedding, 'dari_foto_profil': true});
+    } on FaceException catch (e) {
+      masalah = e.message;
+      gantiFoto = true;
+    } on ApiException catch (e) {
+      masalah = e.message;
+    } catch (_) {
+      masalah = 'Foto profil belum bisa diproses. Periksa koneksi internet lalu coba lagi.';
+    }
+    if (!mounted) return false;
+    setState(() {
+      _masalahWajah = masalah;
+      _perluGantiFoto = gantiFoto;
+      if (masalah == null) _d?['wajah_terdaftar'] = true;
+    });
+    return masalah == null;
+  }
+
   Future<void> _mulai(String aksi) async {
     final d = _d!;
     if (d['wajah_terdaftar'] != true) {
-      final akun = context.read<Session>().akun;
-      final fotoUrl = akun['foto_url'] as String?;
-      var terdaftarOtomatis = false;
-      if (fotoUrl != null) {
-        try {
-          final api = context.read<ApiClient>();
-          final svc = FaceService.instance;
-          final fotoBytes = await api.bytes(fotoUrl);
-          final fotoEmbedding = await svc.embeddingDariFotoProfil(fotoBytes);
-          await api.post('/guru/wajah', {
-            'foto_embedding': fotoEmbedding,
-            'dari_foto_profil': true,
-          });
-          terdaftarOtomatis = true;
-          await _load();
-        } catch (_) {}
-      }
-
-      if (!terdaftarOtomatis) {
-        if (!mounted) return;
-        final ok = await context.push<bool>('/guru/absen/daftar-wajah');
-        await _load();
-        if (ok != true || !mounted) return;
+      final siap = d['foto_acuan'] == true && await _acuanDariFotoProfil();
+      if (!siap) {
+        if (mounted) showMessage(context, _pesanWajah(d), error: true);
+        return;
       }
     }
     if (!mounted) return;
     await context.push('/guru/absen/lokasi', extra: aksi);
     if (mounted) _load();
+  }
+
+  String _pesanWajah(Map<String, dynamic> d) {
+    if (d['foto_acuan'] != true) {
+      return d['foto_menunggu'] == true
+          ? 'Foto profil Anda menunggu persetujuan kepala sekolah. Presensi bisa dilakukan setelah disetujui.'
+          : 'Unggah foto profil yang jelas menampilkan wajah Anda, lalu tunggu persetujuan kepala sekolah.';
+    }
+    return _masalahWajah ?? 'Foto profil sedang diproses.';
   }
 
   @override
@@ -144,21 +149,27 @@ class _AbsenScreenState extends State<AbsenScreen> {
             _Syarat(
               icon: Icons.face_retouching_natural,
               langkah: '2 · Wajah',
-              teks: 'Cocok dengan wajah terdaftar',
+              teks: 'Cocok dengan foto profil yang disetujui kepala sekolah',
               chip: d['wajah_terdaftar'] == true
-                  ? const StatusChip('Terdaftar', tone: ChipTone.ok)
-                  : StatusChip(d['foto_acuan'] == true ? 'Belum daftar' : (d['foto_menunggu'] == true ? 'Foto menunggu' : 'Perlu foto'), tone: ChipTone.gold),
+                  ? const StatusChip('Siap', tone: ChipTone.ok)
+                  : StatusChip(d['foto_acuan'] == true ? 'Belum terbaca' : (d['foto_menunggu'] == true ? 'Foto menunggu' : 'Perlu foto'), tone: ChipTone.gold),
             ),
-            if (d['wajah_terdaftar'] != true) ...[
+            if (d['wajah_terdaftar'] != true && (d['foto_acuan'] != true || _masalahWajah != null)) ...[
               const SizedBox(height: 12),
-              SecondaryButton(
-                icon: Icons.camera_front_rounded,
-                label: 'Daftarkan Wajah Sekarang',
-                onPressed: () async {
-                  final ok = await context.push<bool>('/guru/absen/daftar-wajah');
-                  if (ok == true && mounted) _load();
-                },
-              ),
+              Text(_pesanWajah(d), style: AppText.bodySmall),
+              if (d['foto_menunggu'] != true) ...[
+                const SizedBox(height: 10),
+                d['foto_acuan'] != true || _perluGantiFoto
+                    ? SecondaryButton(
+                        icon: Icons.account_circle_outlined,
+                        label: d['foto_acuan'] == true ? 'Ganti Foto Profil' : 'Unggah Foto Profil',
+                        onPressed: () async {
+                          await context.push('/guru/profil');
+                          if (mounted) _load();
+                        },
+                      )
+                    : SecondaryButton(icon: Icons.refresh_rounded, label: 'Coba Lagi', onPressed: _load),
+              ],
             ],
           ]),
         ),
@@ -167,7 +178,7 @@ class _AbsenScreenState extends State<AbsenScreen> {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(color: kendala == null ? AppColors.brand50 : AppColors.goldTint, borderRadius: BorderRadius.circular(12), border: Border.all(color: kendala == null ? AppColors.brand200 : const Color(0xFFF2D58A))),
           child: Text(
-            kendala ?? 'Terlambat jika absen masuk setelah ${d['jam_masuk']}. Tombol Absen Pulang aktif setelah absen masuk.${d['wajah_terdaftar'] == true ? '' : ' Wajah perlu didaftarkan sekali sebelum absen pertama.'}',
+            kendala ?? 'Terlambat jika absen masuk setelah ${d['jam_masuk']}. Tombol Absen Pulang aktif setelah absen masuk.',
             style: AppText.bodySmall.copyWith(color: kendala == null ? AppColors.brand800 : const Color(0xFF7A5512)),
           ),
         ),

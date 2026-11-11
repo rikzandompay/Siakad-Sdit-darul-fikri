@@ -21,7 +21,7 @@ class _FotoPengajuanScreenState extends State<FotoPengajuanScreen> {
     final ok = await konfirmasi(
       context,
       setujui ? 'Setujui foto ${g['nama']}?' : 'Tolak foto ${g['nama']}?',
-      setujui ? 'Pastikan ini benar wajah yang bersangkutan. Guru harus mendaftarkan wajah lagi sebelum absen.' : 'Foto ini dibuang dan guru diminta mengajukan foto lain.',
+      setujui ? 'Pastikan ini benar wajah yang bersangkutan. Foto ini menjadi acuan wajah saat absen.' : 'Foto ini dibuang dan guru diminta mengajukan foto lain.',
       ya: setujui ? 'Setujui' : 'Tolak',
     );
     if (!ok || !mounted) return;
