@@ -297,8 +297,7 @@ class GuruApiTest extends TestCase
         $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', ['embedding' => $this->wajahDari(0)] + $this->lokasi())->assertStatus(422)
             ->assertJsonPath('kode', 'wajah_tidak_cocok');
         $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', ['liveness' => false] + $this->lokasi())->assertJsonValidationErrors('liveness');
-        // Lokasi palsu: ditolak dan dilaporkan ke kepala sekolah (lihat LokasiPalsuTest).
-        $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', ['mock' => true] + $this->lokasi())->assertStatus(422)->assertJsonPath('kode', 'lokasi_palsu');
+        // Lokasi palsu (mock = true) diuji terpisah di LokasiPalsuTest: setelah itu absen hari itu diblokir.
         $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', ['akurasi' => 300] + $this->lokasi())->assertJsonValidationErrors('akurasi');
         $tanpa = $this->lokasi();
         unset($tanpa['akurasi'], $tanpa['mock']);

@@ -24,6 +24,7 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen> {
   Position? _posisi;
   String? _error;
   bool _memuat = true;
+  bool _pernahPalsu = false;
 
   @override
   void initState() {
@@ -45,10 +46,15 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen> {
         throw ApiException('Izin lokasi ditolak. Aktifkan izin lokasi untuk MyDarfik di pengaturan HP.');
       }
       final pos = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.best, timeLimit: Duration(seconds: 20)));
+      // Tanda lokasi palsu hanya menempel pada sebagian pembacaan GPS: periksa juga posisi terakhir
+      // yang tersimpan, dan ingat temuan sebelumnya di layar ini.
+      final terakhir = await Geolocator.getLastKnownPosition();
+      _pernahPalsu = _pernahPalsu || pos.isMocked || (terakhir?.isMocked ?? false);
       if (!mounted) return;
-      // Lokasi palsu tetap dikirim: server menolaknya dan memberi peringatan ke kepala sekolah.
-      final res = await context.read<ApiClient>().post('/guru/absen/cek-lokasi', {'latitude': pos.latitude, 'longitude': pos.longitude, 'akurasi': pos.accuracy, 'mock': pos.isMocked});
-      if (pos.isMocked) throw ApiException('Terdeteksi aplikasi lokasi palsu. Matikan aplikasi tersebut untuk melakukan presensi.');
+      // Lokasi palsu tetap dikirim: server menolaknya, memblokir absen aplikasi guru ini sampai
+      // akhir hari, dan memberi peringatan ke kepala sekolah.
+      final res = await context.read<ApiClient>().post('/guru/absen/cek-lokasi', {'latitude': pos.latitude, 'longitude': pos.longitude, 'akurasi': pos.accuracy, 'mock': _pernahPalsu});
+      if (_pernahPalsu) throw ApiException('Terdeteksi aplikasi lokasi palsu. Matikan aplikasi tersebut untuk melakukan presensi.');
       setState(() {
         _posisi = pos;
         _hasil = res;

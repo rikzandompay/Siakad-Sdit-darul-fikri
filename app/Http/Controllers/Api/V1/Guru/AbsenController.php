@@ -55,6 +55,9 @@ class AbsenController extends Controller
         if ($request->boolean('mock')) {
             return $this->laporLokasiPalsu($request, 'absen');
         }
+        if ($err = $this->cekBlokirLokasiPalsu($request)) {
+            return $err;
+        }
 
         return response()->json($this->hitungLokasi($data));
     }
@@ -63,6 +66,9 @@ class AbsenController extends Controller
     {
         if ($request->boolean('mock')) {
             return $this->laporLokasiPalsu($request, 'absen masuk');
+        }
+        if ($err = $this->cekBlokirLokasiPalsu($request)) {
+            return $err;
         }
         $guru = $request->user();
         $data = $request->validate($this->aturanWajah() + $this->aturanLokasi());
@@ -98,6 +104,9 @@ class AbsenController extends Controller
     {
         if ($request->boolean('mock')) {
             return $this->laporLokasiPalsu($request, 'absen pulang');
+        }
+        if ($err = $this->cekBlokirLokasiPalsu($request)) {
+            return $err;
         }
         $guru = $request->user();
         $data = $request->validate($this->aturanWajah() + $this->aturanLokasi());
@@ -261,9 +270,13 @@ class AbsenController extends Controller
     }
 
     /**
-     * HP melaporkan lokasi palsu (fake GPS). Absen ditolak dan kepala sekolah diberi peringatan
-     * lewat notifikasi aplikasi (riwayat + push). Satu peringatan per guru per 30 menit agar
-     * percobaan berulang tidak membanjiri HP kepala sekolah.
+     * HP melaporkan lokasi palsu (fake GPS). Absen ditolak, absen lewat aplikasi untuk guru ini
+     * diblokir sampai akhir hari, dan kepala sekolah diberi peringatan lewat notifikasi aplikasi
+     * (riwayat + push). Satu peringatan per guru per 30 menit agar percobaan berulang tidak
+     * membanjiri HP kepala sekolah.
+     *
+     * Blokir wajib: tanda lokasi palsu dari Android hanya menempel pada satu pembacaan GPS, jadi
+     * percobaan berikutnya bisa lolos tanpa tanda itu walau aplikasi lokasi palsu masih aktif.
      */
     private function laporLokasiPalsu(Request $request, string $tahap): JsonResponse
     {
@@ -277,12 +290,28 @@ class AbsenController extends Controller
 
         Log::warning('Lokasi palsu terdeteksi saat absen guru', ['guru_id' => $guru->id, 'tahap' => $tahap, 'jarak_meter' => $jarak, 'ip' => $request->ip()]);
 
+        $now = Sekolah::now();
+        Cache::add(self::kunciBlokir($guru->id), $now->format('H:i'), $now->copy()->endOfDay());
+
         if (Cache::add('lokasi-palsu:'.$guru->id, true, now()->addMinutes(30))) {
             $penerima = User::where('status', 'Aktif')->whereKeyNot($guru->id)->get()->filter->isAdmin();
             Notification::send($penerima, new LokasiPalsuTerdeteksi($guru, $tahap, Sekolah::now()->format('H:i'), $jarak));
         }
 
-        return $this->gagal('lokasi_palsu', 'Terdeteksi aplikasi lokasi palsu. Absen ditolak dan kepala sekolah sudah diberi tahu. Matikan aplikasi tersebut lalu coba lagi.');
+        return $this->gagal('lokasi_palsu', 'Terdeteksi aplikasi lokasi palsu. Absen ditolak dan kepala sekolah sudah diberi tahu. Absen lewat aplikasi diblokir sampai akhir hari ini; hubungi kepala sekolah untuk koreksi.', 423);
+    }
+
+    /** Guru yang hari ini tertangkap memakai lokasi palsu tidak bisa absen lewat aplikasi sampai besok. */
+    private function cekBlokirLokasiPalsu(Request $request): ?JsonResponse
+    {
+        $jam = Cache::get(self::kunciBlokir($request->user()->id));
+
+        return $jam === null ? null : $this->gagal('lokasi_palsu_diblokir', "Absen lewat aplikasi diblokir hari ini karena terdeteksi lokasi palsu pukul {$jam}. Hubungi kepala sekolah untuk koreksi.", 423);
+    }
+
+    private static function kunciBlokir(int $guruId): string
+    {
+        return 'lokasi-palsu-blokir:'.$guruId.':'.Sekolah::now()->toDateString();
     }
 
     private function hitungLokasi(array $data): array

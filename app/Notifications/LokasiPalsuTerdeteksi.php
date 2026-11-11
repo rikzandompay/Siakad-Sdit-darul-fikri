@@ -27,7 +27,7 @@ class LokasiPalsuTerdeteksi extends NotifikasiAplikasi
         $nama = $this->guru->nama_lengkap ?? $this->guru->name;
         $jarak = $this->jarakMeter === null ? '' : ' Lokasi yang dikirim berjarak '.number_format($this->jarakMeter, 0, ',', '.').' m dari sekolah.';
 
-        return "{$nama} mencoba {$this->tahap} pukul {$this->jam} memakai aplikasi lokasi palsu. Absen ditolak.{$jarak}";
+        return "{$nama} mencoba {$this->tahap} pukul {$this->jam} memakai aplikasi lokasi palsu. Absen ditolak dan absen lewat aplikasi diblokir sampai akhir hari.{$jarak} Bila perlu, koreksi absennya secara manual.";
     }
 
     protected function rute(object $notifiable): string

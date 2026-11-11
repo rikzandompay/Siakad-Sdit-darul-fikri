@@ -97,8 +97,13 @@ jobs:
             echo "===> Migrasi database..."
             sudo -u www-data php artisan migrate --force
 
-            echo "===> Menyegarkan cache aplikasi..."
-            sudo -u www-data php artisan optimize:clear
+            echo "===> Menyegarkan cache config/route/view..."
+            # Bukan optimize:clear: itu ikut menghapus cache aplikasi, termasuk kunci login wali
+            # dan blokir absen lokasi palsu, sehingga setiap deploy membuka semua blokir.
+            sudo -u www-data php artisan config:clear
+            sudo -u www-data php artisan route:clear
+            sudo -u www-data php artisan view:clear
+            sudo -u www-data php artisan event:clear
             sudo -u www-data php artisan optimize
 
             echo "===> Izin penyimpanan..."

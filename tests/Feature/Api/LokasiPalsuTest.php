@@ -61,7 +61,7 @@ class LokasiPalsuTest extends TestCase
     public function test_cek_lokasi_palsu_ditolak_dan_kepala_sekolah_diberi_tahu(): void
     {
         $this->withHeaders($this->headers())->postJson('/api/v1/guru/absen/cek-lokasi', $this->palsu())
-            ->assertStatus(422)->assertJsonPath('kode', 'lokasi_palsu');
+            ->assertStatus(423)->assertJsonPath('kode', 'lokasi_palsu');
 
         Notification::assertSentTo($this->kepsek, LokasiPalsuTerdeteksi::class, function (LokasiPalsuTerdeteksi $n) {
             $data = $n->toArray($this->kepsek);
@@ -79,9 +79,9 @@ class LokasiPalsuTest extends TestCase
     {
         $h = $this->headers();
         $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', $this->palsu() + ['embedding' => [0.1], 'liveness' => true])
-            ->assertStatus(422)->assertJsonPath('kode', 'lokasi_palsu');
+            ->assertStatus(423)->assertJsonPath('kode', 'lokasi_palsu');
         $this->withHeaders($h)->postJson('/api/v1/guru/absen/pulang', $this->palsu())
-            ->assertStatus(422)->assertJsonPath('kode', 'lokasi_palsu');
+            ->assertStatus(423)->assertJsonPath('kode', 'lokasi_palsu');
 
         $this->assertSame(0, PresensiGuru::count());
         Notification::assertSentTo($this->kepsek, LokasiPalsuTerdeteksi::class);
@@ -91,17 +91,42 @@ class LokasiPalsuTest extends TestCase
     {
         $h = $this->headers();
         for ($i = 0; $i < 3; $i++) {
-            $this->withHeaders($h)->postJson('/api/v1/guru/absen/cek-lokasi', $this->palsu())->assertStatus(422);
+            $this->withHeaders($h)->postJson('/api/v1/guru/absen/cek-lokasi', $this->palsu())->assertStatus(423);
         }
         Notification::assertSentToTimes($this->kepsek, LokasiPalsuTerdeteksi::class, 1);
 
         // Guru lain tetap memicu peringatannya sendiri.
-        $this->withHeaders($this->headers($this->guruLain))->postJson('/api/v1/guru/absen/cek-lokasi', $this->palsu())->assertStatus(422);
+        $this->withHeaders($this->headers($this->guruLain))->postJson('/api/v1/guru/absen/cek-lokasi', $this->palsu())->assertStatus(423);
         Notification::assertSentToTimes($this->kepsek, LokasiPalsuTerdeteksi::class, 2);
 
         Carbon::setTestNow(now()->addMinutes(31));
-        $this->withHeaders($this->headers())->postJson('/api/v1/guru/absen/cek-lokasi', $this->palsu())->assertStatus(422);
+        $this->withHeaders($this->headers())->postJson('/api/v1/guru/absen/cek-lokasi', $this->palsu())->assertStatus(423);
         Notification::assertSentToTimes($this->kepsek, LokasiPalsuTerdeteksi::class, 3);
+    }
+
+    /** Tanda lokasi palsu Android tidak muncul di setiap pembacaan; "Coba Lagi" tanpa tanda tetap ditolak. */
+    public function test_setelah_ketahuan_absen_aplikasi_diblokir_sampai_akhir_hari(): void
+    {
+        $h = $this->headers();
+        $asli = ['latitude' => self::LAT + 0.0003, 'longitude' => self::LNG, 'akurasi' => 8, 'mock' => false];
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/cek-lokasi', $this->palsu())->assertStatus(423);
+
+        Carbon::setTestNow(Carbon::parse('2026-11-09 07:06:00', 'Asia/Pontianak'));
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/cek-lokasi', $asli)
+            ->assertStatus(423)->assertJsonPath('kode', 'lokasi_palsu_diblokir')
+            ->assertJsonPath('message', 'Absen lewat aplikasi diblokir hari ini karena terdeteksi lokasi palsu pukul 07:05. Hubungi kepala sekolah untuk koreksi.');
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/masuk', $asli + ['embedding' => [0.1], 'liveness' => true])
+            ->assertStatus(423)->assertJsonPath('kode', 'lokasi_palsu_diblokir');
+        Carbon::setTestNow(Carbon::parse('2026-11-09 23:30:00', 'Asia/Pontianak'));
+        $this->withHeaders($h)->postJson('/api/v1/guru/absen/cek-lokasi', $asli)->assertStatus(423);
+        $this->assertSame(0, PresensiGuru::count());
+
+        // Guru lain tidak ikut terblokir.
+        $this->withHeaders($this->headers($this->guruLain))->postJson('/api/v1/guru/absen/cek-lokasi', $asli)->assertOk();
+
+        // Besoknya kembali normal.
+        Carbon::setTestNow(Carbon::parse('2026-11-10 07:00:00', 'Asia/Pontianak'));
+        $this->withHeaders($this->headers())->postJson('/api/v1/guru/absen/cek-lokasi', $asli)->assertOk()->assertJsonPath('di_dalam_area', true);
     }
 
     public function test_lokasi_asli_tidak_memicu_peringatan(): void
