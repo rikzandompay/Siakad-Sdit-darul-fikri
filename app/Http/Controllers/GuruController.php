@@ -18,8 +18,8 @@ class GuruController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nama_lengkap', 'like', "%{$search}%")
-                  ->orWhere('nip', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%");
+                    ->orWhere('nip', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%");
             });
         }
 
@@ -59,7 +59,7 @@ class GuruController extends Controller
         $validated['name'] = explode(' ', $validated['nama_lengkap'])[0] ?? $validated['nama_lengkap'];
         $validated['password'] = Hash::make($validated['password']);
 
-        User::create($validated);
+        User::create($validated)->forceFill(['wajib_ganti_sandi' => true])->save();
 
         return redirect()->route('guru.index')->with('success', 'Data guru berhasil ditambahkan!');
     }
@@ -89,8 +89,10 @@ class GuruController extends Controller
 
         $validated['name'] = explode(' ', $validated['nama_lengkap'])[0] ?? $validated['nama_lengkap'];
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
+            // Sandi direset admin: guru wajib menggantinya lagi.
+            $guru->wajib_ganti_sandi = true;
         } else {
             unset($validated['password']);
         }
@@ -113,6 +115,7 @@ class GuruController extends Controller
         }
 
         $guru->delete();
+
         return redirect()->route('guru.index')->with('success', 'Data guru berhasil dihapus!');
     }
 
@@ -127,8 +130,8 @@ class GuruController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nama_lengkap', 'like', "%{$search}%")
-                  ->orWhere('nip', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%");
+                    ->orWhere('nip', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%");
             });
         }
 
@@ -140,7 +143,7 @@ class GuruController extends Controller
         }
 
         $data = $query->orderBy('nama_lengkap')->get();
-        $filename = 'data_guru_' . now()->format('Ymd_His') . '.csv';
+        $filename = 'data_guru_'.now()->format('Ymd_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -149,7 +152,7 @@ class GuruController extends Controller
 
         $callback = function () use ($data) {
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // Header Section
             fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
@@ -190,8 +193,8 @@ class GuruController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nama_lengkap', 'like', "%{$search}%")
-                  ->orWhere('nip', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%");
+                    ->orWhere('nip', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%");
             });
         }
 

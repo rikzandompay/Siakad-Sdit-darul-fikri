@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\TahunAjaran;
 use App\Models\MataPelajaran;
+use App\Models\TahunAjaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -15,8 +15,8 @@ class PengaturanController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $tahunAjaranList = Cache::remember('tahun_ajaran_list', 300, fn() => TahunAjaran::orderByDesc('id')->get());
-        $mapelList = Cache::remember('mapel_list_all', 300, fn() => MataPelajaran::orderBy('nama_pelajaran')->get());
+        $tahunAjaranList = Cache::remember('tahun_ajaran_list', 300, fn () => TahunAjaran::orderByDesc('id')->get());
+        $mapelList = Cache::remember('mapel_list_all', 300, fn () => MataPelajaran::orderBy('nama_pelajaran')->get());
 
         return view('pengaturan', compact('user', 'tahunAjaranList', 'mapelList'));
     }
@@ -28,7 +28,7 @@ class PengaturanController extends Controller
 
         $validated = $request->validate([
             'nama_lengkap' => 'required|string|max:100',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
             // NIP juga dipakai untuk login aplikasi, jadi tidak boleh sama dengan NIP atau username akun lain.
             'nip' => ['nullable', 'string', 'max:30', Rule::unique('users', 'nip')->ignore($user->id), Rule::unique('users', 'username')->ignore($user->id)],
             'no_hp' => 'nullable|string|max:20',
@@ -88,11 +88,11 @@ class PengaturanController extends Controller
 
         $user = Auth::user();
 
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (! Hash::check($request->current_password, $user->password)) {
             return back()->withErrors(['current_password' => 'Password lama tidak sesuai.']);
         }
 
-        $user->update(['password' => Hash::make($request->password)]);
+        $user->forceFill(['password' => Hash::make($request->password), 'wajib_ganti_sandi' => false])->save();
 
         return redirect()->route('pengaturan.index')->with('success', 'Password berhasil diperbarui!');
     }
@@ -106,11 +106,11 @@ class PengaturanController extends Controller
             'status_aktif' => 'required|in:Y,N',
         ]);
 
-        $namaSemester = $request->tahun . ' - ' . $request->semester;
+        $namaSemester = $request->tahun.' - '.$request->semester;
 
         $ta = TahunAjaran::create([
             'nama_semester' => $namaSemester,
-            'status_aktif' => $request->status_aktif
+            'status_aktif' => $request->status_aktif,
         ]);
 
         if ($request->status_aktif == 'Y') {
@@ -130,11 +130,11 @@ class PengaturanController extends Controller
             'status_aktif' => 'required|in:Y,N',
         ]);
 
-        $namaSemester = $request->tahun . ' - ' . $request->semester;
+        $namaSemester = $request->tahun.' - '.$request->semester;
 
         $tahunAjaran->update([
             'nama_semester' => $namaSemester,
-            'status_aktif' => $request->status_aktif
+            'status_aktif' => $request->status_aktif,
         ]);
 
         if ($request->status_aktif == 'Y') {
@@ -150,6 +150,7 @@ class PengaturanController extends Controller
     {
         $tahunAjaran->setSemesterAktif();
         $this->clearTahunAjaranCache();
+
         return redirect()->route('pengaturan.index')->with('success', 'Tahun ajaran aktif berhasil diubah!');
     }
 
@@ -157,6 +158,7 @@ class PengaturanController extends Controller
     {
         $tahunAjaran->delete();
         $this->clearTahunAjaranCache();
+
         return redirect()->route('pengaturan.index')->with('success', 'Tahun ajaran berhasil dihapus!');
     }
 
@@ -177,7 +179,7 @@ class PengaturanController extends Controller
     public function updateMapel(Request $request, MataPelajaran $mapel)
     {
         $validated = $request->validate([
-            'kode_pelajaran' => 'required|string|max:20|unique:mata_pelajaran,kode_pelajaran,' . $mapel->id,
+            'kode_pelajaran' => 'required|string|max:20|unique:mata_pelajaran,kode_pelajaran,'.$mapel->id,
             'nama_pelajaran' => 'required|string|max:100',
         ]);
 
@@ -191,6 +193,7 @@ class PengaturanController extends Controller
     {
         $mapel->delete();
         $this->clearMapelCache();
+
         return redirect()->route('pengaturan.index')->with('success', 'Mata pelajaran berhasil dihapus!');
     }
 

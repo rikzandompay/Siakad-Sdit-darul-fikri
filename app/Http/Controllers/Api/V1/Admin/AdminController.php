@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Api\V1\Guru\PresensiKelasController;
 use App\Http\Controllers\Controller;
+use App\Models\InsidenLokasiPalsu;
 use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
@@ -50,10 +51,22 @@ class AdminController extends Controller
     }
 
     /** Pilihan filter: kelas, mapel, tahun ajaran. */
-    public function opsi(): JsonResponse
+    public function opsi(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $kelasSemua = Kelas::orderBy('nama_kelas')->get(['id', 'nama_kelas']);
+        $diampuIds = $user->kelasDiampuIds();
+        $waliIds = $user->kelasDiampuIds(hanyaWali: true);
+        $formatKelas = fn (Kelas $k) => ['id' => $k->id, 'nama' => $k->nama_kelas];
+
         return response()->json([
-            'kelas' => Kelas::orderBy('nama_kelas')->get(['id', 'nama_kelas'])->map(fn ($k) => ['id' => $k->id, 'nama' => $k->nama_kelas]),
+            'kelas' => $kelasSemua->map($formatKelas),
+            'kelas_diampu' => $kelasSemua->whereIn('id', $diampuIds)->values()->map($formatKelas),
+            'kelas_wali' => $kelasSemua->whereIn('id', $waliIds)->values()->map(fn (Kelas $k) => [
+                'id' => $k->id,
+                'nama' => $k->nama_kelas,
+                'ikut_dzuhur' => $k->ikutSholat('Dzuhur'),
+            ]),
             'mapel' => MataPelajaran::orderBy('nama_pelajaran')->get(['id', 'nama_pelajaran'])->map(fn ($m) => ['id' => $m->id, 'nama' => $m->nama_pelajaran]),
             'tahun_ajaran' => TahunAjaran::orderByDesc('id')->get()->map(fn ($t) => ['id' => $t->id, 'nama' => $t->nama_semester, 'aktif' => $t->status_aktif === 'Y']),
         ]);
@@ -71,7 +84,7 @@ class AdminController extends Controller
             ->whereNotIn('username', config('presensi_guru.kecualikan_username', []))
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($sub) use ($q) {
-                    $sub->whereRaw('LOWER(nama_lengkap) LIKE ?', ['%' . mb_strtolower($q) . '%'])
+                    $sub->whereRaw('LOWER(nama_lengkap) LIKE ?', ['%'.mb_strtolower($q).'%'])
                         ->orWhere('nip', 'like', "%{$q}%");
                 });
             })
@@ -156,6 +169,8 @@ class AdminController extends Controller
     public function rekapAbsensi(Request $request): JsonResponse
     {
         [$kelas, $rentang, $label] = $this->filterRekap($request);
+        // Rekap presensi kelas hanya untuk wali kelasnya (termasuk kepala sekolah bila ia wali kelas).
+        abort_unless($request->user()->mengampuKelas($kelas->id, hanyaWali: true), 403, 'Rekap presensi hanya untuk wali kelas ini.');
         $request->validate(['pelajaran_id' => 'nullable|exists:mata_pelajaran,id']);
         $jadwalIds = JadwalPelajaran::where('kelas_id', $kelas->id)
             ->when($request->filled('pelajaran_id'), fn ($q) => $q->where('pelajaran_id', $request->input('pelajaran_id')))->pluck('id');
@@ -170,11 +185,15 @@ class AdminController extends Controller
     public function rekapSholat(Request $request): JsonResponse
     {
         [$kelas, $rentang, $label] = $this->filterRekap($request);
+        abort_unless($request->user()->mengampuKelas($kelas->id, hanyaWali: true), 403, 'Anda tidak mengampu kelas ini.');
         $jenis = PresensiSholat::normalizeJenis($request->input('jenis'));
         $hitung = PresensiSholat::where('kelas_id', $kelas->id)->where('jenis_sholat', $jenis)->whereBetween('tanggal', $rentang)
             ->selectRaw('siswa_id, status_kehadiran, COUNT(*) as jumlah')->groupBy('siswa_id', 'status_kehadiran')->get()->groupBy('siswa_id');
 
-        return response()->json(['jenis' => $jenis] + $this->hasilRekap($kelas, $label, fn ($s) => [
+        return response()->json([
+            'jenis' => $jenis,
+            'catatan' => $kelas->ikutSholat($jenis) ? null : "Sholat Dzuhur khusus kelas 3 sampai 6. {$kelas->nama_kelas} hanya mengikuti Sholat Dhuha.",
+        ] + $this->hasilRekap($kelas, $label, fn ($s) => [
             'hadir' => (int) optional($hitung->get($s->id)?->firstWhere('status_kehadiran', PresensiSholat::HADIR))->jumlah,
             'tidak_hadir' => (int) optional($hitung->get($s->id)?->firstWhere('status_kehadiran', PresensiSholat::TIDAK_HADIR))->jumlah,
         ]));
@@ -184,6 +203,7 @@ class AdminController extends Controller
     {
         $data = $request->validate(['kelas_id' => 'required|exists:kelas,id', 'tahun_ajaran_id' => 'nullable|exists:tahun_ajaran,id']);
         $kelas = Kelas::findOrFail($data['kelas_id']);
+        abort_unless($request->user()->mengampuKelas($kelas->id, hanyaWali: true), 403, 'Anda tidak mengampu kelas ini.');
         $ta = isset($data['tahun_ajaran_id']) ? TahunAjaran::find($data['tahun_ajaran_id']) : TahunAjaran::getAktif();
         $siswa = $kelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
         $nilai = $ta ? NilaiRapot::with('mataPelajaran')->where('tahun_ajaran_id', $ta->id)->whereIn('siswa_id', $siswa->pluck('id'))->get()->groupBy('siswa_id') : collect();
@@ -220,8 +240,12 @@ class AdminController extends Controller
                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as tidak',
                 [PresensiGuru::HADIR, PresensiGuru::HADIR, $jamMasuk, PresensiGuru::TIDAK_HADIR])
             ->groupBy('guru_id')->get()->keyBy('guru_id');
+        [$mulai, $selesai] = [$range['start']->toDateString(), $range['end']->toDateString()];
+        $insiden = InsidenLokasiPalsu::petaPerHari($guru->pluck('id')->all(), $mulai, $selesai);
+        $mandiri = PresensiGuru::whereBetween('tanggal', [$mulai, $selesai])->where('koreksi_mandiri', true)
+            ->selectRaw('guru_id, COUNT(*) as n')->groupBy('guru_id')->pluck('n', 'guru_id');
 
-        $data = $guru->map(function ($g) use ($hitung) {
+        $data = $guru->map(function ($g) use ($hitung, $insiden, $mandiri) {
             $h = $hitung->get($g->id);
             $hadir = (int) ($h->hadir ?? 0);
             $tidak = (int) ($h->tidak ?? 0);
@@ -231,6 +255,9 @@ class AdminController extends Controller
                 'keterangan' => collect([$g->jadwalPelajaran->pluck('mataPelajaran.nama_pelajaran')->filter()->unique()->join(', '), $g->kelasWali->pluck('nama_kelas')->map(fn ($k) => "Wali $k")->join(', ')])->filter()->join(' · '),
                 'hadir' => $hadir, 'terlambat' => (int) ($h->telat ?? 0), 'tidak_hadir' => $tidak,
                 'persen' => $hadir + $tidak ? (int) round($hadir / ($hadir + $tidak) * 100) : null,
+                // Hari dengan percobaan lokasi palsu dan koreksi atas absen sendiri: bukti yang tidak bisa dihapus.
+                'lokasi_palsu' => $insiden->get($g->id, collect())->count(),
+                'koreksi_mandiri' => (int) ($mandiri[$g->id] ?? 0),
             ];
         })->values();
 
@@ -309,8 +336,13 @@ class AdminController extends Controller
         return response()->json(['message' => 'Mata pelajaran ditambahkan.', 'id' => $m->id], 201);
     }
 
-    public function hapusMapel(MataPelajaran $mapel): JsonResponse
+    public function hapusMapel(int $mapel): JsonResponse
     {
+        // Sudah terhapus (mis. tombol ditekan dua kali): anggap berhasil agar daftar cukup dimuat ulang.
+        $mapel = MataPelajaran::find($mapel);
+        if (! $mapel) {
+            return response()->json(['message' => 'Mata pelajaran sudah dihapus.']);
+        }
         abort_if(JadwalPelajaran::where('pelajaran_id', $mapel->id)->exists(), 422, 'Mata pelajaran masih dipakai di jadwal.');
         $mapel->delete();
         $this->bersihkanCache();

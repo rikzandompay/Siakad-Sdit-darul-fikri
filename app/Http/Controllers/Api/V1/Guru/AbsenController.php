@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\BuatAcuanWajah;
+use App\Models\InsidenLokasiPalsu;
 use App\Models\PengaturanSekolah;
 use App\Models\PerangkatGuru;
 use App\Models\PresensiGuru;
@@ -14,6 +15,7 @@ use App\Support\Sekolah;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -174,8 +176,10 @@ class AbsenController extends Controller
         $request->validate(['bulan' => 'nullable|date_format:Y-m']);
         $bulan = $request->filled('bulan') ? Carbon::createFromFormat('Y-m', $request->input('bulan'), Sekolah::timezone())->startOfMonth() : Sekolah::now()->startOfMonth();
 
+        $mulai = $bulan->toDateString();
+        $selesai = $bulan->copy()->endOfMonth()->toDateString();
         $rows = PresensiGuru::where('guru_id', $request->user()->id)
-            ->whereBetween('tanggal', [$bulan->toDateString(), $bulan->copy()->endOfMonth()->toDateString()])
+            ->whereBetween('tanggal', [$mulai, $selesai])
             ->orderByDesc('tanggal')->get();
         $hadir = $rows->where('status', PresensiGuru::HADIR)->count();
         $tidak = $rows->where('status', PresensiGuru::TIDAK_HADIR)->count();
@@ -186,15 +190,38 @@ class AbsenController extends Controller
             'tidak_hadir' => $tidak,
             'terlambat' => $rows->filter->terlambat->count(),
             'persen' => $hadir + $tidak > 0 ? round($hadir / ($hadir + $tidak) * 100) : null,
-            'data' => $rows->map(fn ($r) => [
-                'tanggal' => $r->tanggal->toDateString(),
-                'status' => $r->status,
-                'jam_masuk' => $r->jam_masuk ? substr($r->jam_masuk, 0, 5) : null,
-                'jam_pulang' => $r->jam_pulang ? substr($r->jam_pulang, 0, 5) : null,
-                'terlambat' => $r->terlambat,
-                'keterangan' => $r->keterangan,
-            ])->values(),
+            'data' => self::riwayatBertanda($request->user()->id, $rows, $mulai, $selesai),
         ]);
+    }
+
+    /**
+     * Baris riwayat absen dengan tanda lokasi palsu dan koreksi mandiri. Tanggal yang hanya punya
+     * catatan lokasi palsu (belum ada absen) tetap muncul dengan status null.
+     *
+     * @param  Collection<int, PresensiGuru>  $rows
+     */
+    public static function riwayatBertanda(int $guruId, $rows, string $mulai, string $selesai): array
+    {
+        $insiden = InsidenLokasiPalsu::petaPerHari([$guruId], $mulai, $selesai)->get($guruId, collect());
+        $data = $rows->mapWithKeys(fn ($r) => [$r->tanggal->toDateString() => [
+            'tanggal' => $r->tanggal->toDateString(),
+            'status' => $r->status,
+            'jam_masuk' => $r->jam_masuk ? substr($r->jam_masuk, 0, 5) : null,
+            'jam_pulang' => $r->jam_pulang ? substr($r->jam_pulang, 0, 5) : null,
+            'terlambat' => $r->terlambat,
+            'sumber' => $r->sumber,
+            'keterangan' => $r->keterangan,
+            'koreksi_mandiri' => (bool) $r->koreksi_mandiri,
+            'lokasi_palsu' => $insiden->get($r->tanggal->toDateString()),
+        ]]);
+        foreach ($insiden as $tgl => $jam) {
+            if (! $data->has($tgl)) {
+                $data[$tgl] = ['tanggal' => $tgl, 'status' => null, 'jam_masuk' => null, 'jam_pulang' => null, 'terlambat' => false,
+                    'sumber' => null, 'keterangan' => null, 'koreksi_mandiri' => false, 'lokasi_palsu' => $jam];
+            }
+        }
+
+        return $data->sortKeysDesc()->values()->all();
     }
 
     // ── Data wajah ─────────────────────────────────────────────────
@@ -351,12 +378,26 @@ class AbsenController extends Controller
         $now = Sekolah::now();
         Cache::add(self::kunciBlokir($guru->id), $now->format('H:i'), $now->copy()->endOfDay());
 
-        if (Cache::add('lokasi-palsu:'.$guru->id, true, now()->addMinutes(30))) {
-            $penerima = User::where('status', 'Aktif')->whereKeyNot($guru->id)->get()->filter->isAdmin();
-            Notification::send($penerima, new LokasiPalsuTerdeteksi($guru, $tahap, Sekolah::now()->format('H:i'), $jarak));
+        // Bukti permanen (tidak bisa dihapus lewat web/aplikasi). Satu baris per tahap per 5 menit.
+        if (Cache::add('lokasi-palsu-catat:'.$guru->id.':'.$tahap, true, now()->addMinutes(5))) {
+            InsidenLokasiPalsu::create([
+                'guru_id' => $guru->id, 'tanggal' => $now->toDateString(), 'jam' => $now->format('H:i:s'),
+                'tahap' => $tahap, 'jarak_meter' => $jarak, 'ip' => $request->ip(),
+            ]);
         }
 
-        return $this->gagal('lokasi_palsu', 'Terdeteksi aplikasi lokasi palsu. Absen ditolak dan kepala sekolah sudah diberi tahu. Absen lewat aplikasi diblokir sampai akhir hari ini; hubungi kepala sekolah untuk koreksi.', 423);
+        // Admin lain diberi tahu. Bila pelakunya satu-satunya admin (kepala sekolah), tidak ada
+        // penerima: pesan tidak boleh mengaku sudah memberi tahu siapa pun.
+        $penerima = User::where('status', 'Aktif')->whereKeyNot($guru->id)->get()->filter->isAdmin();
+        if ($penerima->isNotEmpty() && Cache::add('lokasi-palsu:'.$guru->id, true, now()->addMinutes(30))) {
+            Notification::send($penerima, new LokasiPalsuTerdeteksi($guru, $tahap, $now->format('H:i'), $jarak));
+        }
+
+        $pesan = $penerima->isNotEmpty()
+            ? 'Terdeteksi aplikasi lokasi palsu. Absen ditolak dan kepala sekolah sudah diberi tahu. Absen lewat aplikasi diblokir sampai akhir hari ini; hubungi kepala sekolah untuk koreksi.'
+            : 'Terdeteksi aplikasi lokasi palsu. Absen ditolak dan kejadian ini dicatat permanen di rekap presensi guru (tidak bisa dihapus). Absen lewat aplikasi diblokir sampai akhir hari ini.';
+
+        return $this->gagal('lokasi_palsu', $pesan, 423);
     }
 
     /** Guru yang hari ini tertangkap memakai lokasi palsu tidak bisa absen lewat aplikasi sampai besok. */

@@ -15,7 +15,7 @@
         <p class="text-gray-500 text-sm">Kelola kehadiran sholat {{ $jenisSholat }} siswa {{ $kelas->nama_kelas }}</p>
     </div>
     <div class="flex items-center gap-2 flex-wrap">
-        @if($siswa->count() > 0)
+        @if(($ikutSholat ?? true) && $siswa->count() > 0)
         <button type="submit" form="form-presensi-sholat"
            class="btn btn-secondary flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold">
             <span class="material-symbols-outlined text-sm">save</span>
@@ -25,6 +25,28 @@
     </div>
 </div>
 
+@if(! ($ikutSholat ?? true))
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-12 flex flex-col items-center justify-center text-center">
+    <div class="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+        <span class="material-symbols-outlined text-3xl text-blue-600" style="font-variation-settings: 'FILL' 1;">info</span>
+    </div>
+    <h3 class="text-lg font-bold text-gray-900 mb-2">Tidak Ada Absensi Sholat {{ $jenisSholat }} untuk {{ $kelas->nama_kelas }}</h3>
+    <p class="text-sm text-gray-600 max-w-md mb-6">
+        Pembiasaan sholat Dzuhur berjamaah diperuntukkan bagi kelas 3 hingga kelas 6. {{ $kelas->nama_kelas }} hanya mengikuti presensi sholat Dhuha.
+    </p>
+    <div class="flex flex-wrap justify-center gap-3">
+        <a href="{{ route('presensi-sholat.show', ['kelas' => $kelas->id, 'jenis' => \App\Models\PresensiSholat::DHUHA, 'tanggal' => $tanggal]) }}"
+           class="btn btn-primary px-5 py-2.5 rounded-lg text-sm font-bold inline-flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">wb_sunny</span>
+            Buka Sholat Dhuha {{ $kelas->nama_kelas }}
+        </a>
+        <a href="{{ route('presensi-sholat.index', ['jenis' => $jenisSholat]) }}"
+           class="px-5 py-2.5 rounded-lg text-sm font-bold border border-gray-300 text-gray-700 hover:bg-gray-50">
+            Kembali
+        </a>
+    </div>
+</div>
+@else
 <!-- Summary Cards -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
@@ -167,9 +189,10 @@
     </div>
 </form>
 @else
-<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center text-gray-400">
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center text-gray-500">
     <span class="material-symbols-outlined text-5xl mb-3">person_off</span>
     <p class="font-medium">Tidak ada siswa aktif di kelas ini</p>
 </div>
+@endif
 @endif
 @endsection

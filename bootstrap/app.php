@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureApiRole;
+use App\Http\Middleware\EnsureWaliKelas;
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
@@ -26,7 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'ability' => CheckForAnyAbility::class,
             'abilities' => CheckAbilities::class,
             'peran' => EnsureApiRole::class,
-            'wali.kelas' => \App\Http\Middleware\EnsureWaliKelas::class,
+            'wali.kelas' => EnsureWaliKelas::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

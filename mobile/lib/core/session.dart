@@ -29,11 +29,16 @@ class Session extends ChangeNotifier {
 
   /// Wali: anak yang sedang dipantau (bila punya lebih dari satu).
   int? _anakId;
-  List<Map<String, dynamic>> get daftarAnak => ((akun['anak'] as List?) ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  List<Map<String, dynamic>> get daftarAnak => ((akun['anak'] as List?) ?? [])
+      .map((e) => Map<String, dynamic>.from(e as Map))
+      .toList();
   Map<String, dynamic>? get anak {
     final semua = daftarAnak;
     if (semua.isEmpty) return null;
-    return semua.firstWhere((a) => a['id'] == _anakId, orElse: () => semua.first);
+    return semua.firstWhere(
+      (a) => a['id'] == _anakId,
+      orElse: () => semua.first,
+    );
   }
 
   void pilihAnak(int id) {
@@ -58,7 +63,10 @@ class Session extends ChangeNotifier {
 
       if (_token != null) {
         try {
-          final me = await api.get('/auth/me', batas: const Duration(seconds: 6));
+          final me = await api.get(
+            '/auth/me',
+            batas: const Duration(seconds: 6),
+          );
           akun = Map<String, dynamic>.from(me['akun'] as Map);
           await _storage.write(key: 'akun', value: jsonEncode(akun));
         } on ApiException catch (e) {
@@ -88,7 +96,12 @@ class Session extends ChangeNotifier {
     }
   }
 
-  Future<void> login({required Peran peran, required String username, required String password, required bool ingat}) async {
+  Future<void> login({
+    required Peran peran,
+    required String username,
+    required String password,
+    required bool ingat,
+  }) async {
     final res = await api.post('/auth/login', {
       'peran': peran.name,
       'username': username.trim(),

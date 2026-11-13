@@ -20,17 +20,25 @@ class PilihKelasScreen extends StatelessWidget {
         load: () => api.get('/guru/presensi/kelas'),
         builder: (context, d, _) {
           final kelas = (d['data'] as List).cast<Map>();
-          return ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
-            const SectionLabel('Kelas yang Anda walikan'),
-            if (kelas.isEmpty) const EmptyPanel(icon: Icons.class_outlined, message: 'Presensi kelas hanya diisi oleh wali kelas. Anda belum terdaftar sebagai wali kelas mana pun.'),
-            for (final k in kelas)
-              ListRowCard(
-                badge: BadgeBox(top: k['singkatan']),
-                title: k['nama'],
-                subtitle: '${k['jumlah_siswa']} siswa${k['wali_kelas'] == true ? ' · Wali Kelas' : ''}',
-                onTap: () => context.push('/guru/presensi/kelas/${k['id']}'),
-              ),
-          ]);
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            children: [
+              const SectionLabel('Kelas yang Anda walikan'),
+              if (kelas.isEmpty)
+                const EmptyPanel(
+                  icon: Icons.class_outlined,
+                  message: 'Presensi kelas hanya diisi oleh wali kelas. Anda belum terdaftar sebagai wali kelas mana pun.',
+                ),
+              for (final k in kelas)
+                ListRowCard(
+                  badge: BadgeBox(top: k['singkatan']),
+                  title: k['nama'],
+                  subtitle:
+                      '${k['jumlah_siswa']} siswa${k['wali_kelas'] == true ? ' · Wali Kelas' : ''}',
+                  onTap: () => context.push('/guru/presensi/kelas/${k['id']}'),
+                ),
+            ],
+          );
         },
       ),
     );

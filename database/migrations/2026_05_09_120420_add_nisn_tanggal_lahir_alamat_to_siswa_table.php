@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('siswa', function (Blueprint $table) {
-            if (!Schema::hasColumn('siswa', 'nisn')) {
+            if (! Schema::hasColumn('siswa', 'nisn')) {
                 $table->string('nisn', 20)->nullable()->unique()->after('nis');
             }
-            if (!Schema::hasColumn('siswa', 'tanggal_lahir')) {
+            if (! Schema::hasColumn('siswa', 'tanggal_lahir')) {
                 $table->date('tanggal_lahir')->nullable()->after('nama_siswa');
             }
-            if (!Schema::hasColumn('siswa', 'alamat')) {
+            if (! Schema::hasColumn('siswa', 'alamat')) {
                 $table->string('alamat', 100)->nullable()->after('tanggal_lahir');
             }
         });

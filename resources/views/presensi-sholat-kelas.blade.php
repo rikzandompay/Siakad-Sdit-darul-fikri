@@ -6,7 +6,11 @@
 <div class="mb-2">
     <h2 class="font-bold text-2xl text-blue-600">Presensi Sholat {{ $jenisSholat }}</h2>
     <p class="text-gray-500 text-sm mt-1">
-        Sholat {{ $jenisSholat }} berjamaah pukul {{ $waktuSholat }} untuk kelas 1 hingga 6. Siswa tercatat Hadir saat QR Kartu Pelajar di-scan lewat aplikasi MyDarfik.
+        @if($jenisSholat === \App\Models\PresensiSholat::DZUHUR)
+            Sholat Dzuhur berjamaah pukul {{ $waktuSholat }} diperuntukkan bagi kelas 3 hingga 6 (kelas 1 dan 2 tidak mengikuti absensi sholat Dzuhur). Siswa tercatat Hadir saat QR Kartu Pelajar di-scan lewat aplikasi MyDarfik.
+        @else
+            Sholat Dhuha berjamaah pukul {{ $waktuSholat }} untuk kelas 1 hingga 6. Siswa tercatat Hadir saat QR Kartu Pelajar di-scan lewat aplikasi MyDarfik.
+        @endif
         @if($batasTidakHadir)
             Siswa yang belum tercatat sampai pukul {{ $batasTidakHadir }} otomatis Tidak Hadir.
         @endif
@@ -102,14 +106,26 @@
                 </div>
             </div>
         @empty
-            <div class="col-span-3 py-20 flex flex-col items-center justify-center text-center">
+            <div class="col-span-3 bg-white rounded-xl border border-gray-200 shadow-sm py-16 px-6 flex flex-col items-center justify-center text-center">
                 <div class="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center mb-5">
                     <span class="material-symbols-outlined text-4xl text-blue-600" style="font-variation-settings: 'FILL' 1;">mosque</span>
                 </div>
-                <h4 class="text-lg font-bold text-gray-800 mb-2">Belum Ada Kelas yang Tersedia</h4>
-                <p class="text-gray-400 text-sm max-w-sm leading-relaxed">
-                    Presensi sholat dikelola oleh wali kelas. Anda belum terdaftar sebagai wali kelas mana pun.
-                </p>
+                @if($jenisSholat === \App\Models\PresensiSholat::DZUHUR && ($punyaKelasWali ?? false))
+                    <h4 class="text-lg font-bold text-gray-800 mb-2">Tidak Ada Absensi Sholat Dzuhur</h4>
+                    <p class="text-gray-600 text-sm max-w-md leading-relaxed mb-5">
+                        Pembiasaan sholat Dzuhur berjamaah di sekolah diperuntukkan bagi kelas 3 hingga kelas 6. Kelas 1 dan kelas 2 yang Anda ampu tidak mengikuti absensi sholat Dzuhur.
+                    </p>
+                    <a href="{{ route('presensi-sholat.index', ['jenis' => \App\Models\PresensiSholat::DHUHA]) }}"
+                       class="btn btn-primary px-5 py-2.5 rounded-lg text-sm font-bold inline-flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm">wb_sunny</span>
+                        Buka Presensi Sholat Dhuha
+                    </a>
+                @else
+                    <h4 class="text-lg font-bold text-gray-800 mb-2">Belum Ada Kelas yang Tersedia</h4>
+                    <p class="text-gray-600 text-sm max-w-sm leading-relaxed">
+                        Presensi sholat dikelola oleh wali kelas. Anda belum terdaftar sebagai wali kelas mana pun.
+                    </p>
+                @endif
             </div>
         @endforelse
     </div>

@@ -36,8 +36,17 @@ class AppColors {
 
 /// Gaya teks dari Figma (Inter).
 class AppText {
-  static TextStyle _inter(double size, FontWeight w, double height, [Color c = AppColors.ink]) =>
-      GoogleFonts.inter(fontSize: size, fontWeight: w, height: height / size, color: c);
+  static TextStyle _inter(
+    double size,
+    FontWeight w,
+    double height, [
+    Color c = AppColors.ink,
+  ]) => GoogleFonts.inter(
+    fontSize: size,
+    fontWeight: w,
+    height: height / size,
+    color: c,
+  );
 
   static final title = _inter(20, FontWeight.w700, 26);
   static final heading = _inter(16, FontWeight.w700, 22);
@@ -46,14 +55,23 @@ class AppText {
   static final bodySmall = _inter(13, FontWeight.w400, 18, AppColors.inkMuted);
   static final caption = _inter(12, FontWeight.w500, 16, AppColors.inkMuted);
   static final captionBold = _inter(12, FontWeight.w600, 16);
-  static final overline = GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: AppColors.inkMuted);
+  static final overline = GoogleFonts.inter(
+    fontSize: 11,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.8,
+    color: AppColors.inkMuted,
+  );
   static final number = _inter(40, FontWeight.w800, 44, AppColors.ok700);
 }
 
 ThemeData buildTheme() {
   final base = ThemeData(
     useMaterial3: true,
-    colorScheme: ColorScheme.fromSeed(seedColor: AppColors.brand700, primary: AppColors.brand700, surface: AppColors.surface),
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.brand700,
+      primary: AppColors.brand700,
+      surface: AppColors.surface,
+    ),
     scaffoldBackgroundColor: Colors.transparent,
     fontFamily: GoogleFonts.inter().fontFamily,
   );
@@ -63,9 +81,18 @@ ThemeData buildTheme() {
       filled: true,
       fillColor: AppColors.field,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.line)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.line)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.brand700, width: 1.5)),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.line),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.line),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.brand700, width: 1.5),
+      ),
       hintStyle: AppText.body.copyWith(color: AppColors.inkFaint),
     ),
   );

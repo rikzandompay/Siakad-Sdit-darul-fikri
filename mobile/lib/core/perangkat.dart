@@ -8,7 +8,12 @@ import 'package:device_info_plus/device_info_plus.dart';
 /// (ANDROID_ID / identifierForVendor), bukan dibuat acak, supaya tidak berubah
 /// setiap kali aplikasi dipasang ulang dan tidak bisa dipalsukan dengan mudah.
 class Perangkat {
-  const Perangkat({required this.id, required this.nama, required this.platform, required this.versiOs});
+  const Perangkat({
+    required this.id,
+    required this.nama,
+    required this.platform,
+    required this.versiOs,
+  });
 
   final String id;
   final String nama;
@@ -47,8 +52,18 @@ class Perangkat {
     // Platform lain (mis. desktop saat pengembangan): pakai gabungan nama mesin.
     final d = await info.deviceInfo;
     final data = d.data;
-    final id = (data['identifierForVendor'] ?? data['id'] ?? data['machine'] ?? 'perangkat-tidak-dikenal').toString();
-    return _cache = Perangkat(id: id, nama: (data['model'] ?? 'Perangkat').toString(), platform: Platform.operatingSystem, versiOs: (data['version'] ?? '').toString());
+    final id =
+        (data['identifierForVendor'] ??
+                data['id'] ??
+                data['machine'] ??
+                'perangkat-tidak-dikenal')
+            .toString();
+    return _cache = Perangkat(
+      id: id,
+      nama: (data['model'] ?? 'Perangkat').toString(),
+      platform: Platform.operatingSystem,
+      versiOs: (data['version'] ?? '').toString(),
+    );
   }
 
   /// Payload tambahan untuk request absen.

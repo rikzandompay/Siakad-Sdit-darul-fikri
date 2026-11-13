@@ -252,6 +252,25 @@ class GuruApiTest extends TestCase
             ->assertOk()->assertJsonPath('rekap.hadir', 1)->assertJsonPath('rekap.tidak_hadir', 1);
     }
 
+    public function test_sholat_kelas_1_dan_2_hanya_dhuha_tanpa_dzuhur(): void
+    {
+        $kelas1 = Kelas::create(['nama_kelas' => 'Kelas 1', 'wali_kelas_id' => $this->guru->id]);
+        $murid1 = $this->siswa('3001', 'Zidan', $kelas1, 'Wali Zidan');
+        $h = $this->tokenGuru();
+        $url = '/api/v1/guru/sholat/kelas/'.$kelas1->id;
+
+        $this->withHeaders($h)->getJson($url)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.jenis', 'Dhuha')
+            ->assertJsonPath('catatan', 'Kelas 1 dan 2 tidak mengikuti absensi sholat Dzuhur (khusus kelas 3 hingga 6).');
+
+        $this->withHeaders($h)->getJson($url.'/siswa?jenis=Dzuhur')->assertJsonValidationErrors('jenis');
+        $this->withHeaders($h)->postJson($url.'/scan', ['jenis' => 'Dzuhur', 'qr' => $murid1->qr_payload])->assertJsonValidationErrors('jenis');
+        $this->withHeaders($h)->postJson($url, ['jenis' => 'Dzuhur', 'presensi' => [['siswa_id' => $murid1->id, 'status' => 'Hadir']]])
+            ->assertJsonValidationErrors('jenis');
+    }
+
     // ── Absen guru ────────────────────────────────────────────────────
 
     public function test_absen_masuk_dan_pulang_dengan_lokasi_dan_wajah(): void

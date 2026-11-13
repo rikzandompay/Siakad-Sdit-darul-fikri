@@ -37,8 +37,8 @@ class PresensiSholatTest extends TestCase
         $this->guruLain = $this->makeUser('guruB');
         $this->admin = $this->makeUser('kepsek');
 
-        // Kelas 1 sekarang ikut Dzuhur (aturan lama hanya kelas 3-6).
-        $this->kelas = Kelas::create(['nama_kelas' => 'Kelas 1A', 'wali_kelas_id' => $this->wali->id]);
+        // Kelas 3-6 mengikuti Dhuha & Dzuhur; kelas 1 dan 2 hanya mengikuti Dhuha.
+        $this->kelas = Kelas::create(['nama_kelas' => 'Kelas 3A', 'wali_kelas_id' => $this->wali->id]);
         $this->andi = $this->makeSiswa('1001', 'Andi');
         $this->budi = $this->makeSiswa('1002', 'Budi');
         $this->citra = $this->makeSiswa('1003', 'Citra');
@@ -118,9 +118,20 @@ class PresensiSholatTest extends TestCase
         ])->assertStatus(403);
 
         $this->actingAs($this->guruLain)->get('/presensi-sholat/'.$this->kelas->id)->assertStatus(403);
-        // Admin tidak mengisi presensi sholat, tetapi boleh melihat rekapnya.
+        // Admin yang tidak mengampu kelas ini juga ditolak untuk isi maupun rekap/ekspor kelas lain.
         $this->actingAs($this->admin)->get('/presensi-sholat/'.$this->kelas->id.'?jenis=Ashar')->assertStatus(403);
-        $this->actingAs($this->admin)->get('/presensi-sholat/rekap?jenis=Dzuhur&kelas_id='.$this->kelas->id)->assertOk();
+        $this->actingAs($this->admin)->get('/presensi-sholat/rekap?jenis=Dzuhur&kelas_id='.$this->kelas->id)->assertStatus(403);
+        $this->actingAs($this->admin)->get('/presensi-sholat/rekap/export/csv?jenis=Dzuhur&kelas_id='.$this->kelas->id)->assertStatus(403);
+        $this->actingAs($this->admin)->get('/presensi-sholat/rekap/export/pdf?jenis=Dzuhur&kelas_id='.$this->kelas->id)->assertStatus(403);
+
+        // Jika admin mengampu kelas sendiri sebagai wali kelas, hanya kelas tersebut yang tampil dan boleh diakses.
+        $kelasAdmin = Kelas::create(['nama_kelas' => 'Kelas 4A', 'wali_kelas_id' => $this->admin->id]);
+        \Illuminate\Support\Facades\Cache::forget('sholat:kelas:guru:'.$this->admin->id);
+        $this->actingAs($this->admin)->get('/presensi-sholat/rekap?jenis=Dzuhur')
+            ->assertOk()
+            ->assertSee('Kelas 4A')
+            ->assertDontSee('Kelas 3A');
+        $this->actingAs($this->admin)->get('/presensi-sholat/rekap?jenis=Dzuhur&kelas_id='.$kelasAdmin->id)->assertOk();
     }
 
     public function test_halaman_kelas_menerima_jenis_lama_zuhur(): void
@@ -128,7 +139,56 @@ class PresensiSholatTest extends TestCase
         $this->actingAs($this->wali)->get('/presensi-sholat?jenis=Zuhur')
             ->assertOk()
             ->assertSee('Presensi Sholat Dzuhur')
-            ->assertSee('Kelas 1A');
+            ->assertSee('Kelas 3A');
+    }
+
+    public function test_kelas_1_dan_2_tidak_ikut_dzuhur_dan_tampil_info(): void
+    {
+        $waliRendah = $this->makeUser('waliRendah');
+        $kelas1 = Kelas::create(['nama_kelas' => 'Kelas 1', 'wali_kelas_id' => $waliRendah->id]);
+        $kelas2 = Kelas::create(['nama_kelas' => 'Kelas 2', 'wali_kelas_id' => $waliRendah->id]);
+        $siswa1 = Siswa::create([
+            'nis' => '2001', 'nisn' => '92001', 'nama_siswa' => 'Zidan', 'tanggal_lahir' => '2019-01-01',
+            'jenis_kelamin' => 'L', 'kelas_id' => $kelas1->id, 'status' => 'Aktif',
+        ]);
+        Siswa::create([
+            'nis' => '2002', 'nisn' => '92002', 'nama_siswa' => 'Nayla', 'tanggal_lahir' => '2018-01-01',
+            'jenis_kelamin' => 'P', 'kelas_id' => $kelas2->id, 'status' => 'Aktif',
+        ]);
+
+        // Halaman Dzuhur hanya menampilkan info bahwa kelas 1-2 tidak mengikuti absensi Dzuhur.
+        $this->actingAs($waliRendah)->get('/presensi-sholat?jenis=Dzuhur')
+            ->assertOk()
+            ->assertSee('Tidak Ada Absensi Sholat Dzuhur')
+            ->assertSee('diperuntukkan bagi kelas 3 hingga kelas 6')
+            ->assertDontSee('Mulai Presensi');
+
+        // Halaman Dhuha tetap menampilkan Kelas 1 dan Kelas 2.
+        $this->actingAs($waliRendah)->get('/presensi-sholat?jenis=Dhuha')
+            ->assertOk()
+            ->assertSee('Kelas 1')
+            ->assertSee('Kelas 2')
+            ->assertSee('Mulai Presensi');
+
+        // Akses form dan simpan Dzuhur untuk kelas 1 ditolak / tampil info.
+        $this->actingAs($waliRendah)->get('/presensi-sholat/'.$kelas1->id.'?jenis=Dzuhur')
+            ->assertOk()
+            ->assertSee('Tidak Ada Absensi Sholat Dzuhur untuk Kelas 1');
+
+        $this->actingAs($waliRendah)->post('/presensi-sholat', [
+            'kelas_id' => $kelas1->id,
+            'jenis_sholat' => 'Dzuhur',
+            'tanggal' => '2026-11-02',
+            'presensi' => [['siswa_id' => $siswa1->id, 'status' => 'Hadir']],
+        ])->assertSessionHasErrors('jenis_sholat');
+
+        // Command otomatis Dzuhur melewati siswa kelas 1 dan 2, tetapi tetap mencatat Dhuha.
+        $this->artisan('sholat:tandai-tidak-hadir', ['jenis' => 'Dzuhur', '--tanggal' => '2026-11-02'])->assertSuccessful();
+        $this->assertNull($this->statusSholat($siswa1, 'Dzuhur', '2026-11-02'));
+        $this->assertSame('Tidak Hadir', $this->statusSholat($this->andi, 'Dzuhur', '2026-11-02'));
+
+        $this->artisan('sholat:tandai-tidak-hadir', ['jenis' => 'Dhuha', '--tanggal' => '2026-11-02'])->assertSuccessful();
+        $this->assertSame('Tidak Hadir', $this->statusSholat($siswa1, 'Dhuha', '2026-11-02'));
     }
 
     public function test_command_mencatat_tidak_hadir_hanya_untuk_yang_belum_tercatat(): void
@@ -225,8 +285,9 @@ class PresensiSholatTest extends TestCase
 
         $this->actingAs($this->admin)->get('/siswa/'.$this->andi->id.'/kartu')
             ->assertOk()
-            ->assertSee('<svg', false)
-            ->assertSee('QR SHOLAT');
+            ->assertSee('data:image/svg+xml;base64,', false)
+            ->assertSee('QR SHOLAT')
+            ->assertSee('TATA TERTIB');
 
         $lama = $this->andi->qr_token;
         $this->actingAs($this->admin)->post('/siswa/'.$this->andi->id.'/qr')

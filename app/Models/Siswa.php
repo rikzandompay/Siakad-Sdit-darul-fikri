@@ -2,8 +2,15 @@
 
 namespace App\Models;
 
+use App\Support\FotoPrivat;
+use App\Support\Sekolah;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 
 /**
@@ -122,12 +129,56 @@ class Siswa extends Model
     /** URL foto siswa (rute terlindungi login), null bila belum ada. */
     public function fotoUrl(): ?string
     {
-        return $this->foto ? route('foto.siswa', ['siswa' => $this->id, 'v' => \App\Support\FotoPrivat::versi($this->foto)]) : null;
+        return $this->foto ? route('foto.siswa', ['siswa' => $this->id, 'v' => FotoPrivat::versi($this->foto)]) : null;
     }
 
-    public function simpanFoto(\Illuminate\Http\UploadedFile $file): string
+    /** Foto siswa sebagai data-URI (untuk PDF; berkasnya privat sehingga tidak bisa dimuat lewat URL). */
+    public function fotoDataUri(): ?string
     {
-        $path = \App\Support\FotoPrivat::simpan($file, 'foto_siswa', $this->foto);
+        return FotoPrivat::dataUri($this->foto);
+    }
+
+    /** QR presensi sholat sebagai SVG (tanpa deklarasi XML); token dibuat bila belum ada. */
+    public function qrSvg(int $ukuran = 240): string
+    {
+        if (! $this->qr_token) {
+            $this->regenerateQrToken();
+        }
+        $writer = new Writer(new ImageRenderer(new RendererStyle($ukuran, 1), new SvgImageBackEnd));
+
+        return preg_replace('/^<\?xml[^>]*>\s*/', '', $writer->writeString($this->qr_payload));
+    }
+
+    /**
+     * Variabel untuk tampilan kartu pelajar (halaman web atau PDF).
+     * PDF memakai berkas lokal / data-URI karena dompdf tidak membawa sesi login.
+     */
+    /** Gambar kartu identitas (lambang, hiasan, ikon, tanda tangan): jalur berkas untuk PDF, URL untuk web. */
+    public static function asetKartu(bool $pdf = false): array
+    {
+        return collect(['logo' => 'Lgo.png', 'swoosh_tr' => 'images/kartu/kartu_swoosh_tr.png', 'swoosh_bl' => 'images/kartu/kartu_swoosh_bl.png',
+            'watermark' => 'images/kartu/kartu_watermark.png', 'ttd' => 'images/kartu/kartu_ttd.png', 'ikon_nis' => 'images/kartu/kartu_ikon_nis.png',
+            'ikon_kelas' => 'images/kartu/kartu_ikon_kelas.png', 'ikon_alamat' => 'images/kartu/kartu_ikon_alamat.png'])
+            ->map(fn ($jalur) => $pdf ? public_path($jalur) : asset($jalur))->all();
+    }
+
+    public function dataKartu(bool $pdf = false): array
+    {
+        $this->loadMissing('kelas');
+
+        return [
+            'siswa' => $this,
+            'aset' => static::asetKartu($pdf),
+            'kepalaSekolah' => Sekolah::kepalaSekolah(),
+            'foto' => $pdf ? $this->fotoDataUri() : $this->fotoUrl(),
+            'qrSrc' => 'data:image/svg+xml;base64,'.base64_encode($this->qrSvg()),
+            'tahunAjaran' => TahunAjaran::where('status_aktif', 'Y')->value('nama_semester'),
+        ];
+    }
+
+    public function simpanFoto(UploadedFile $file): string
+    {
+        $path = FotoPrivat::simpan($file, 'foto_siswa', $this->foto);
         $this->update(['foto' => $path]);
 
         return $path;

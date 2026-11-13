@@ -65,7 +65,7 @@
                         <td>{{ $row->terlambat ? 'Ya' : '-' }}</td>
                         <td>{{ $row->masuk_jarak_meter !== null ? $row->masuk_jarak_meter.' m' : '-' }}</td>
                         <td>{{ $row->masuk_skor_wajah !== null ? $row->masuk_skor_wajah.'%' : '-' }}</td>
-                        <td class="l">{{ $row->keterangan ?? '-' }}</td>
+                        <td class="l">@if($insidenPerHari->has($row->tanggal->toDateString()))<b>[Lokasi palsu {{ $insidenPerHari->get($row->tanggal->toDateString()) }}]</b> @endif{{ $row->keterangan ?? '-' }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="9">Belum ada data absen pada periode ini.</td></tr>
@@ -80,7 +80,7 @@
                     <tr>
                         <td>{{ $loop->iteration }}</td>
                         <td class="l">{{ $row['guru']->nip ?? '-' }}</td>
-                        <td class="l">{{ $row['guru']->nama_lengkap ?? $row['guru']->name }}</td>
+                        <td class="l">{{ $row['guru']->nama_lengkap ?? $row['guru']->name }}@if($row['lokasi_palsu'] > 0)<br><b>Lokasi palsu: {{ $row['lokasi_palsu'] }} hari</b>@endif @if($row['koreksi_mandiri'] > 0)<br><b>Koreksi mandiri: {{ $row['koreksi_mandiri'] }}×</b>@endif</td>
                         <td>{{ $row['hadir'] }}</td>
                         <td>{{ $row['terlambat'] }}</td>
                         <td>{{ $row['tidak_hadir'] }}</td>
@@ -92,6 +92,12 @@
             </tbody>
         @endif
     </table>
+
+    @if($selectedGuru && $insidenDetail->isNotEmpty())
+        <p style="margin-top:10px;font-size:10px;"><b>Catatan lokasi palsu (permanen):</b>
+            @foreach($insidenDetail as $ins){{ $ins->tanggal->format('d/m/Y') }} {{ substr($ins->jam, 0, 5) }} ({{ $ins->tahap }}{{ $ins->jarak_meter !== null ? ', ±'.$ins->jarak_meter.' m' : '' }})@if(! $loop->last); @endif @endforeach
+        </p>
+    @endif
 
     <table class="sign">
         <tr>

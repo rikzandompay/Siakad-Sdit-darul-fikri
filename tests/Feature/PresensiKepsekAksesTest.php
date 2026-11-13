@@ -6,6 +6,7 @@ use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,12 +18,19 @@ class PresensiKepsekAksesTest extends TestCase
     use RefreshDatabase;
 
     private User $kepsek;
+
     private User $guruLain;
+
     private Kelas $kelasKepsek;
+
     private Kelas $kelasLain;
+
     private JadwalPelajaran $jadwalKepsek;
+
     private JadwalPelajaran $jadwalLain;
+
     private Siswa $siswaKepsek;
+
     private Siswa $siswaLain;
 
     protected function setUp(): void
@@ -118,10 +126,10 @@ class PresensiKepsekAksesTest extends TestCase
     public function test_kepala_sekolah_dilarang_membuka_form_presensi_kelas_lain(): void
     {
         // Kelas 1 (milik sendiri) boleh
-        $this->actingAs($this->kepsek)->get('/presensi/' . $this->kelasKepsek->id)->assertOk();
+        $this->actingAs($this->kepsek)->get('/presensi/'.$this->kelasKepsek->id)->assertOk();
 
         // Kelas 3 (bukan yang diampu) dilarang 403
-        $this->actingAs($this->kepsek)->get('/presensi/' . $this->kelasLain->id)->assertStatus(403);
+        $this->actingAs($this->kepsek)->get('/presensi/'.$this->kelasLain->id)->assertStatus(403);
     }
 
     public function test_kepala_sekolah_dilarang_simpan_presensi_kelas_lain(): void
@@ -148,5 +156,32 @@ class PresensiKepsekAksesTest extends TestCase
 
         $this->actingAs($this->kepsek)->post('/presensi', $payloadSendiri)->assertRedirect();
     }
-}
 
+    public function test_kepala_sekolah_hanya_melihat_dan_mengekspor_rekap_presensi_kelas_yang_diampu(): void
+    {
+        $this->actingAs($this->kepsek)->get('/presensi/rekap')
+            ->assertOk()
+            ->assertSee('Kelas 1')
+            ->assertDontSee('Kelas 3');
+
+        $this->actingAs($this->kepsek)->get('/presensi/rekap?kelas_id='.$this->kelasKepsek->id)->assertOk();
+        $this->actingAs($this->kepsek)->get('/presensi/rekap?kelas_id='.$this->kelasLain->id)->assertStatus(403);
+        $this->actingAs($this->kepsek)->get('/presensi/rekap/export/csv?kelas_id='.$this->kelasLain->id)->assertStatus(403);
+        $this->actingAs($this->kepsek)->get('/presensi/rekap/export/pdf?kelas_id='.$this->kelasLain->id)->assertStatus(403);
+    }
+
+    public function test_kepala_sekolah_hanya_melihat_dan_mengekspor_rekap_nilai_kelas_yang_diampu(): void
+    {
+        $ta = TahunAjaran::create(['nama_semester' => '2026/2027 Ganjil', 'status_aktif' => 'Y']);
+
+        $this->actingAs($this->kepsek)->get('/nilai/rekap')
+            ->assertOk()
+            ->assertSee('Kelas 1')
+            ->assertDontSee('Kelas 3');
+
+        $this->actingAs($this->kepsek)->get('/nilai/rekap?kelas_id='.$this->kelasKepsek->id.'&tahun_ajaran_id='.$ta->id)->assertOk();
+        $this->actingAs($this->kepsek)->get('/nilai/rekap?kelas_id='.$this->kelasLain->id.'&tahun_ajaran_id='.$ta->id)->assertStatus(403);
+        $this->actingAs($this->kepsek)->get('/nilai/rekap/export/csv?kelas_id='.$this->kelasLain->id.'&tahun_ajaran_id='.$ta->id)->assertStatus(403);
+        $this->actingAs($this->kepsek)->get('/nilai/rekap/export/pdf?kelas_id='.$this->kelasLain->id.'&tahun_ajaran_id='.$ta->id)->assertStatus(403);
+    }
+}

@@ -7,13 +7,27 @@ import '../../widgets/common.dart';
 import '../../widgets/pilihan.dart';
 import '../shared/pengumuman_screen.dart';
 
-Future<bool> konfirmasi(BuildContext context, String judul, String isi, {String ya = 'Hapus'}) async =>
+Future<bool> konfirmasi(
+  BuildContext context,
+  String judul,
+  String isi, {
+  String ya = 'Hapus',
+}) async =>
     await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         title: Text(judul),
         content: Text(isi),
-        actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Batal')), TextButton(onPressed: () => Navigator.pop(c, true), child: Text(ya, style: const TextStyle(color: AppColors.alpa)))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(ya, style: const TextStyle(color: AppColors.alpa)),
+          ),
+        ],
       ),
     ) ??
     false;
@@ -28,7 +42,13 @@ class _PengumumanAdminScreenState extends State<PengumumanAdminScreen> {
   Key _key = UniqueKey();
 
   Future<void> _form([Map<String, dynamic>? p]) async {
-    final ok = await showModalBottomSheet<bool>(context: context, isScrollControlled: true, showDragHandle: true, backgroundColor: AppColors.surface, builder: (_) => _FormPengumuman(p: p));
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: AppColors.surface,
+      builder: (_) => _FormPengumuman(p: p),
+    );
     if (ok == true) setState(() => _key = UniqueKey());
   }
 
@@ -44,24 +64,38 @@ class _PengumumanAdminScreenState extends State<PengumumanAdminScreen> {
       child: AsyncBody<Map<String, dynamic>>(
         key: _key,
         load: () => api.get('/admin/pengumuman'),
-        builder: (context, d, reload) => ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
-          if ((d['data'] as List).isEmpty) const EmptyPanel(icon: Icons.campaign_outlined, message: 'Belum ada pengumuman.'),
-          for (final p in (d['data'] as List).cast<Map>())
-            PengumumanCard(
-              p: Map<String, dynamic>.from(p),
-              aksi: PopupMenuButton<String>(
-                tooltip: 'Pilihan',
-                onSelected: (v) async {
-                  if (v == 'ubah') return _form(Map<String, dynamic>.from(p));
-                  if (await konfirmasi(context, 'Hapus pengumuman?', 'Pengumuman juga hilang dari aplikasi wali dan guru.')) {
-                    await api.delete('/admin/pengumuman/${p['id']}');
-                    reload();
-                  }
-                },
-                itemBuilder: (_) => const [PopupMenuItem(value: 'ubah', child: Text('Ubah')), PopupMenuItem(value: 'hapus', child: Text('Hapus'))],
+        builder: (context, d, reload) => ListView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+          children: [
+            if ((d['data'] as List).isEmpty)
+              const EmptyPanel(
+                icon: Icons.campaign_outlined,
+                message: 'Belum ada pengumuman.',
               ),
-            ),
-        ]),
+            for (final p in (d['data'] as List).cast<Map>())
+              PengumumanCard(
+                p: Map<String, dynamic>.from(p),
+                aksi: PopupMenuButton<String>(
+                  tooltip: 'Pilihan',
+                  onSelected: (v) async {
+                    if (v == 'ubah') return _form(Map<String, dynamic>.from(p));
+                    if (await konfirmasi(
+                      context,
+                      'Hapus pengumuman?',
+                      'Pengumuman juga hilang dari aplikasi wali dan guru.',
+                    )) {
+                      await api.delete('/admin/pengumuman/${p['id']}');
+                      reload();
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'ubah', child: Text('Ubah')),
+                    PopupMenuItem(value: 'hapus', child: Text('Hapus')),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -94,10 +128,17 @@ class _FormPengumumanState extends State<_FormPengumuman> {
       _simpan = true;
       _error = null;
     });
-    final body = {'judul': _judul.text.trim(), 'isi': _isi.text.trim(), 'sasaran': _sasaran, 'penting': _penting};
+    final body = {
+      'judul': _judul.text.trim(),
+      'isi': _isi.text.trim(),
+      'sasaran': _sasaran,
+      'penting': _penting,
+    };
     try {
       final api = context.read<ApiClient>();
-      widget.p == null ? await api.post('/admin/pengumuman', body) : await api.put('/admin/pengumuman/${widget.p!['id']}', body);
+      widget.p == null
+          ? await api.post('/admin/pengumuman', body)
+          : await api.put('/admin/pengumuman/${widget.p!['id']}', body);
       if (mounted) Navigator.pop(context, true);
     } on ApiException catch (e) {
       setState(() => _error = e.message);
@@ -109,23 +150,71 @@ class _FormPengumumanState extends State<_FormPengumuman> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        20 + MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: SingleChildScrollView(
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(widget.p == null ? 'Buat Pengumuman' : 'Ubah Pengumuman', style: AppText.title),
-          const SizedBox(height: 12),
-          TextField(controller: _judul, maxLength: 150, decoration: const InputDecoration(labelText: 'Judul')),
-          const SizedBox(height: 8),
-          TextField(controller: _isi, minLines: 4, maxLines: 8, maxLength: 5000, decoration: const InputDecoration(labelText: 'Isi pengumuman')),
-          const SizedBox(height: 8),
-          Text('DITUJUKAN UNTUK', style: AppText.overline.copyWith(fontSize: 10)),
-          const SizedBox(height: 6),
-          PilihanChips<String>(pilihan: const {'Semua': 'Semua', 'Guru': 'Guru', 'Wali Murid': 'Wali Murid'}, nilai: _sasaran, onChanged: (v) => setState(() => _sasaran = v)),
-          SwitchListTile(value: _penting, onChanged: (v) => setState(() => _penting = v), contentPadding: EdgeInsets.zero, title: const Text('Tandai penting'), subtitle: const Text('Tampil paling atas')),
-          if (_error != null) Text(_error!, style: AppText.bodySmall.copyWith(color: AppColors.alpa)),
-          const SizedBox(height: 8),
-          SuccessButton(label: widget.p == null ? 'Terbitkan' : 'Simpan', icon: Icons.send_rounded, loading: _simpan, onPressed: _kirim),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              widget.p == null ? 'Buat Pengumuman' : 'Ubah Pengumuman',
+              style: AppText.title,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _judul,
+              maxLength: 150,
+              decoration: const InputDecoration(labelText: 'Judul'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _isi,
+              minLines: 4,
+              maxLines: 8,
+              maxLength: 5000,
+              decoration: const InputDecoration(labelText: 'Isi pengumuman'),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'DITUJUKAN UNTUK',
+              style: AppText.overline.copyWith(fontSize: 10),
+            ),
+            const SizedBox(height: 6),
+            PilihanChips<String>(
+              pilihan: const {
+                'Semua': 'Semua',
+                'Guru': 'Guru',
+                'Wali Murid': 'Wali Murid',
+              },
+              nilai: _sasaran,
+              onChanged: (v) => setState(() => _sasaran = v),
+            ),
+            SwitchListTile(
+              value: _penting,
+              onChanged: (v) => setState(() => _penting = v),
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Tandai penting'),
+              subtitle: const Text('Tampil paling atas'),
+            ),
+            if (_error != null)
+              Text(
+                _error!,
+                style: AppText.bodySmall.copyWith(color: AppColors.alpa),
+              ),
+            const SizedBox(height: 8),
+            SuccessButton(
+              label: widget.p == null ? 'Terbitkan' : 'Simpan',
+              icon: Icons.send_rounded,
+              loading: _simpan,
+              onPressed: _kirim,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -151,7 +240,9 @@ class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
   }
 
   Future<void> _tambah() async {
-    final tahun = TextEditingController(text: '${DateTime.now().year}/${DateTime.now().year + 1}');
+    final tahun = TextEditingController(
+      text: '${DateTime.now().year}/${DateTime.now().year + 1}',
+    );
     var semester = 'Ganjil';
     var aktif = false;
     final ok = await showModalBottomSheet<bool>(
@@ -161,20 +252,54 @@ class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
       backgroundColor: AppColors.surface,
       builder: (c) => StatefulBuilder(
         builder: (c, set) => Padding(
-          padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.of(c).viewInsets.bottom),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text('Tambah Tahun Ajaran', style: AppText.title),
-            const SizedBox(height: 12),
-            TextField(controller: tahun, decoration: const InputDecoration(labelText: 'Tahun ajaran', hintText: '2026/2027')),
-            const SizedBox(height: 10),
-            PilihanChips<String>(pilihan: const {'Ganjil': 'Ganjil', 'Genap': 'Genap'}, nilai: semester, onChanged: (v) => set(() => semester = v)),
-            SwitchListTile(value: aktif, onChanged: (v) => set(() => aktif = v), contentPadding: EdgeInsets.zero, title: const Text('Jadikan semester aktif')),
-            PrimaryButton(label: 'Simpan', onPressed: () => Navigator.pop(c, true)),
-          ]),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            0,
+            20,
+            20 + MediaQuery.of(c).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Tambah Tahun Ajaran', style: AppText.title),
+              const SizedBox(height: 12),
+              TextField(
+                controller: tahun,
+                decoration: const InputDecoration(
+                  labelText: 'Tahun ajaran',
+                  hintText: '2026/2027',
+                ),
+              ),
+              const SizedBox(height: 10),
+              PilihanChips<String>(
+                pilihan: const {'Ganjil': 'Ganjil', 'Genap': 'Genap'},
+                nilai: semester,
+                onChanged: (v) => set(() => semester = v),
+              ),
+              SwitchListTile(
+                value: aktif,
+                onChanged: (v) => set(() => aktif = v),
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Jadikan semester aktif'),
+              ),
+              PrimaryButton(
+                label: 'Simpan',
+                onPressed: () => Navigator.pop(c, true),
+              ),
+            ],
+          ),
         ),
       ),
     );
-    if (ok == true && mounted) await _aksi(() => context.read<ApiClient>().post('/admin/tahun-ajaran', {'tahun': tahun.text.trim(), 'semester': semester, 'aktif': aktif}));
+    if (ok == true && mounted)
+      await _aksi(
+        () => context.read<ApiClient>().post('/admin/tahun-ajaran', {
+          'tahun': tahun.text.trim(),
+          'semester': semester,
+          'aktif': aktif,
+        }),
+      );
   }
 
   @override
@@ -191,49 +316,107 @@ class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
         load: () => api.get('/admin/tahun-ajaran'),
         builder: (context, d, _) {
           final list = (d['data'] as List).cast<Map>();
-          return ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AppColors.brand50, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.brand200)),
-              child: Text('Hanya satu semester yang aktif. Mengaktifkan semester lain akan menonaktifkan semester yang sedang aktif.', style: AppText.bodySmall.copyWith(color: AppColors.brand800)),
-            ),
-            const SizedBox(height: 12),
-            Row(children: [Expanded(child: Text('Daftar Semester', style: AppText.label)), Text('${list.length} semester', style: AppText.caption)]),
-            const SizedBox(height: 8),
-            for (final t in list)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: AppCard(
-                  child: Row(children: [
-                    Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('${t['tahun']} - ${t['semester']}', style: AppText.heading),
-                        const SizedBox(height: 6),
-                        if (t['aktif'] == true)
-                          Text('Semester berjalan', style: AppText.captionBold.copyWith(color: AppColors.ok700))
-                        else
-                          TextButton(
-                            onPressed: () => _aksi(() => api.post('/admin/tahun-ajaran/${t['id']}/aktif')),
-                            style: TextButton.styleFrom(backgroundColor: AppColors.brand100, padding: const EdgeInsets.symmetric(horizontal: 14)),
-                            child: const Text('Jadikan Aktif'),
-                          ),
-                      ]),
-                    ),
-                    Column(children: [
-                      StatusChip(t['aktif'] == true ? 'Aktif' : 'Tidak Aktif', tone: t['aktif'] == true ? ChipTone.ok : ChipTone.netral),
-                      if (t['bisa_dihapus'] == true)
-                        IconButton(
-                          tooltip: 'Hapus',
-                          icon: const Icon(Icons.delete_outline, color: AppColors.alpa),
-                          onPressed: () async {
-                            if (await konfirmasi(context, 'Hapus ${t['nama']}?', 'Semester tanpa nilai rapor ini akan dihapus.')) _aksi(() => api.delete('/admin/tahun-ajaran/${t['id']}'));
-                          },
-                        ),
-                    ]),
-                  ]),
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.brand50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.brand200),
+                ),
+                child: Text(
+                  'Hanya satu semester yang aktif. Mengaktifkan semester lain akan menonaktifkan semester yang sedang aktif.',
+                  style: AppText.bodySmall.copyWith(color: AppColors.brand800),
                 ),
               ),
-          ]);
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('Daftar Semester', style: AppText.label),
+                  ),
+                  Text('${list.length} semester', style: AppText.caption),
+                ],
+              ),
+              const SizedBox(height: 8),
+              for (final t in list)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: AppCard(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${t['tahun']} - ${t['semester']}',
+                                style: AppText.heading,
+                              ),
+                              const SizedBox(height: 6),
+                              if (t['aktif'] == true)
+                                Text(
+                                  'Semester berjalan',
+                                  style: AppText.captionBold.copyWith(
+                                    color: AppColors.ok700,
+                                  ),
+                                )
+                              else
+                                TextButton(
+                                  onPressed: () => _aksi(
+                                    () => api.post(
+                                      '/admin/tahun-ajaran/${t['id']}/aktif',
+                                    ),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: AppColors.brand100,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                    ),
+                                  ),
+                                  child: const Text('Jadikan Aktif'),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          children: [
+                            StatusChip(
+                              t['aktif'] == true ? 'Aktif' : 'Tidak Aktif',
+                              tone: t['aktif'] == true
+                                  ? ChipTone.ok
+                                  : ChipTone.netral,
+                            ),
+                            if (t['bisa_dihapus'] == true)
+                              IconButton(
+                                tooltip: 'Hapus',
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: AppColors.alpa,
+                                ),
+                                onPressed: () async {
+                                  if (await konfirmasi(
+                                    context,
+                                    'Hapus ${t['nama']}?',
+                                    'Semester tanpa nilai rapor ini akan dihapus.',
+                                  ))
+                                    _aksi(
+                                      () => api.delete(
+                                        '/admin/tahun-ajaran/${t['id']}',
+                                      ),
+                                    );
+                                },
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          );
         },
       ),
     );
@@ -258,23 +441,55 @@ class _MapelScreenState extends State<MapelScreen> {
       showDragHandle: true,
       backgroundColor: AppColors.surface,
       builder: (c) => Padding(
-        padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.of(c).viewInsets.bottom),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text('Tambah Mata Pelajaran', style: AppText.title),
-          const SizedBox(height: 12),
-          TextField(controller: kode, maxLength: 20, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Kode', hintText: 'MTK')),
-          const SizedBox(height: 8),
-          TextField(controller: nama, maxLength: 100, decoration: const InputDecoration(labelText: 'Nama mata pelajaran')),
-          const SizedBox(height: 4),
-          Text('Kode pelajaran harus unik. Mata pelajaran dipakai pada jadwal mengajar.', style: AppText.caption),
-          const SizedBox(height: 12),
-          PrimaryButton(label: 'Simpan', onPressed: () => Navigator.pop(c, true)),
-        ]),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          0,
+          20,
+          20 + MediaQuery.of(c).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Tambah Mata Pelajaran', style: AppText.title),
+            const SizedBox(height: 12),
+            TextField(
+              controller: kode,
+              maxLength: 20,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                labelText: 'Kode',
+                hintText: 'MTK',
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: nama,
+              maxLength: 100,
+              decoration: const InputDecoration(
+                labelText: 'Nama mata pelajaran',
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Kode pelajaran harus unik. Mata pelajaran dipakai pada jadwal mengajar.',
+              style: AppText.caption,
+            ),
+            const SizedBox(height: 12),
+            PrimaryButton(
+              label: 'Simpan',
+              onPressed: () => Navigator.pop(c, true),
+            ),
+          ],
+        ),
       ),
     );
     if (ok != true || !mounted) return;
     try {
-      await context.read<ApiClient>().post('/admin/mapel', {'kode': kode.text.trim(), 'nama': nama.text.trim()});
+      await context.read<ApiClient>().post('/admin/mapel', {
+        'kode': kode.text.trim(),
+        'nama': nama.text.trim(),
+      });
       if (mounted) showMessage(context, 'Mata pelajaran ditambahkan.');
       setState(() => _key = UniqueKey());
     } on ApiException catch (e) {
@@ -294,33 +509,57 @@ class _MapelScreenState extends State<MapelScreen> {
       child: AsyncBody<Map<String, dynamic>>(
         key: _key,
         load: () => api.get('/admin/mapel'),
-        builder: (context, d, reload) => ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
-          for (final m in (d['data'] as List).cast<Map>())
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: AppCard(
-                child: Row(children: [
-                  BadgeBox(top: (m['kode'] as String).length > 4 ? (m['kode'] as String).substring(0, 4) : m['kode']),
-                  const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(m['nama'], style: AppText.label), Text('${m['jadwal']} sesi di jadwal', style: AppText.caption)])),
-                  if (m['jadwal'] == 0)
-                    IconButton(
-                      tooltip: 'Hapus',
-                      icon: const Icon(Icons.delete_outline, color: AppColors.alpa),
-                      onPressed: () async {
-                        if (!await konfirmasi(context, 'Hapus ${m['nama']}?', 'Mata pelajaran ini belum dipakai di jadwal.')) return;
-                        try {
-                          await api.delete('/admin/mapel/${m['id']}');
-                          reload();
-                        } on ApiException catch (e) {
-                          if (context.mounted) showMessage(context, e.message, error: true);
-                        }
-                      },
-                    ),
-                ]),
+        builder: (context, d, reload) => ListView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+          children: [
+            for (final m in (d['data'] as List).cast<Map>())
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: AppCard(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(m['nama'], style: AppText.label),
+                            Text(
+                              '${m['kode']} · ${m['jadwal']} sesi di jadwal',
+                              style: AppText.caption,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (m['jadwal'] == 0)
+                        IconButton(
+                          tooltip: 'Hapus',
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: AppColors.alpa,
+                          ),
+                          onPressed: () async {
+                            if (!await konfirmasi(
+                              context,
+                              'Hapus ${m['nama']}?',
+                              'Mata pelajaran ini belum dipakai di jadwal.',
+                            ))
+                              return;
+                            try {
+                              await api.delete('/admin/mapel/${m['id']}');
+                              reload();
+                            } on ApiException catch (e) {
+                              if (context.mounted)
+                                showMessage(context, e.message, error: true);
+                              reload();
+                            }
+                          },
+                        ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-        ]),
+          ],
+        ),
       ),
     );
   }

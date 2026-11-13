@@ -20,17 +20,25 @@ class PilihKelasSholatScreen extends StatelessWidget {
         load: () => api.get('/guru/sholat/kelas'),
         builder: (context, d, _) {
           final kelas = (d['data'] as List).cast<Map>();
-          return ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
-            const SectionLabel('Kelas binaan Anda'),
-            if (kelas.isEmpty) const EmptyPanel(icon: Icons.mosque_outlined, message: 'Presensi sholat diisi oleh wali kelas. Anda belum terdaftar sebagai wali kelas mana pun.'),
-            for (final k in kelas)
-              ListRowCard(
-                badge: BadgeBox(top: k['singkatan']),
-                title: k['nama'],
-                subtitle: '${k['jumlah_siswa']} siswa${k['wali_kelas'] == true ? ' · Wali Kelas' : ''}',
-                onTap: () => context.push('/guru/sholat/${k['id']}'),
-              ),
-          ]);
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            children: [
+              const SectionLabel('Kelas binaan Anda'),
+              if (kelas.isEmpty)
+                const EmptyPanel(
+                  icon: Icons.mosque_outlined,
+                  message: 'Presensi sholat diisi oleh wali kelas. Anda belum terdaftar sebagai wali kelas mana pun.',
+                ),
+              for (final k in kelas)
+                ListRowCard(
+                  badge: BadgeBox(top: k['singkatan']),
+                  title: k['nama'],
+                  subtitle:
+                      '${k['jumlah_siswa']} siswa${k['wali_kelas'] == true ? ' · Wali Kelas' : ''}',
+                  onTap: () => context.push('/guru/sholat/${k['id']}'),
+                ),
+            ],
+          );
         },
       ),
     );

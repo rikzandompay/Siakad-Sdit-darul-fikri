@@ -14,7 +14,6 @@ return [
     // Kecocokan wajah minimal (persen) yang diterima server dari aplikasi.
     'min_skor_wajah' => (float) env('GURU_MIN_SKOR_WAJAH', 70),
 
-
     // Selisih minimal skor cosine antara diri sendiri dan guru lain yang mirip (pencegahan joki kembar).
     'min_selisih_kembar' => (float) env('GURU_MIN_SELISIH_KEMBAR', 0.03),
 

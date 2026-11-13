@@ -10,6 +10,7 @@ use App\Support\Sekolah;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Konseling wali murid <-> guru pengampu konseling kelas (aturan sama dengan web).
@@ -216,6 +217,6 @@ class KonselingController extends Controller
     {
         abort_unless($pesan->percakapan_id === $percakapan->id && $pesan->foto, 404);
 
-        return \Illuminate\Support\Facades\Storage::disk('local')->response($pesan->foto);
+        return Storage::disk('local')->response($pesan->foto);
     }
 }

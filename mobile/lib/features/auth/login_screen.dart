@@ -38,7 +38,12 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
     try {
-      await context.read<Session>().login(peran: _peran, username: _user.text, password: _pass.text, ingat: _ingat);
+      await context.read<Session>().login(
+        peran: _peran,
+        username: _user.text,
+        password: _pass.text,
+        ingat: _ingat,
+      );
       if (mounted) context.go(_peran == Peran.wali ? '/wali' : '/guru');
     } on ApiException catch (e) {
       setState(() => _error = e.message);
@@ -61,13 +66,29 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 Image.asset('assets/images/logo.png', height: 96),
                 const SizedBox(height: 20),
-                Text('SDIT Darul Fikri', style: AppText.title.copyWith(fontSize: 28)),
+                Text(
+                  'SDIT Darul Fikri',
+                  style: AppText.title.copyWith(fontSize: 28),
+                ),
                 const SizedBox(height: 6),
-                Text('SISTEM INFORMASI AKADEMIK', style: AppText.overline.copyWith(letterSpacing: 2)),
+                Text(
+                  'SISTEM INFORMASI AKADEMIK',
+                  style: AppText.overline.copyWith(letterSpacing: 2),
+                ),
                 const SizedBox(height: 24),
                 Container(
                   padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: AppColors.brand700.withValues(alpha: 0.08), blurRadius: 24, offset: const Offset(0, 8))]),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.brand700.withValues(alpha: 0.08),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
                   child: Form(
                     key: _form,
                     child: Column(
@@ -75,43 +96,77 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         Text('Selamat Datang!', style: AppText.title),
                         const SizedBox(height: 4),
-                        Text('Silakan login untuk mengakses sistem', style: AppText.bodySmall),
+                        Text(
+                          'Silakan login untuk mengakses sistem',
+                          style: AppText.bodySmall,
+                        ),
                         const SizedBox(height: 20),
-                        _PeranTabs(value: _peran, onChanged: (p) => setState(() {
-                              _peran = p;
-                              _error = null;
-                              _pass.clear();
-                            })),
+                        _PeranTabs(
+                          value: _peran,
+                          onChanged: (p) => setState(() {
+                            _peran = p;
+                            _error = null;
+                            _pass.clear();
+                          }),
+                        ),
                         const SizedBox(height: 20),
-                        Text(guru ? 'USERNAME / NIP' : 'NIS SISWA', style: AppText.overline),
+                        Text(
+                          guru ? 'USERNAME / NIP' : 'NIS SISWA',
+                          style: AppText.overline,
+                        ),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _user,
-                          keyboardType: guru ? TextInputType.text : TextInputType.number,
+                          keyboardType: guru
+                              ? TextInputType.text
+                              : TextInputType.number,
                           textInputAction: TextInputAction.next,
                           autofillHints: const [AutofillHints.username],
-                          decoration: InputDecoration(hintText: guru ? 'Masukkan username atau NIP' : 'Masukkan NIS anak', prefixIcon: const Icon(Icons.person_outline)),
-                          validator: (v) => (v ?? '').trim().isEmpty ? (guru ? 'Isi username atau NIP' : 'Isi NIS siswa') : null,
+                          decoration: InputDecoration(
+                            hintText: guru
+                                ? 'Masukkan username atau NIP'
+                                : 'Masukkan NIS anak',
+                            prefixIcon: const Icon(Icons.person_outline),
+                          ),
+                          validator: (v) => (v ?? '').trim().isEmpty
+                              ? (guru
+                                    ? 'Isi username atau NIP'
+                                    : 'Isi NIS siswa')
+                              : null,
                         ),
                         const SizedBox(height: 16),
-                        Text(guru ? 'KATA SANDI' : 'TANGGAL LAHIR SISWA', style: AppText.overline),
+                        Text('KATA SANDI', style: AppText.overline),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _pass,
                           obscureText: !_lihat,
                           keyboardType: TextInputType.text,
-                          autofillHints: guru ? const [AutofillHints.password] : null,
+                          autofillHints: guru
+                              ? const [AutofillHints.password]
+                              : null,
                           onFieldSubmitted: (_) => _masuk(),
                           decoration: InputDecoration(
-                            hintText: guru ? 'Masukkan kata sandi' : 'Format YY-MM-DD, contoh 16-01-25',
-                            prefixIcon: Icon(guru ? Icons.lock_outline : Icons.cake_outlined),
+                            hintText: guru
+                                ? 'Masukkan kata sandi'
+                                : 'Tanggal lahir (YY-MM-DD) atau sandi baru',
+                            prefixIcon: Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
-                              tooltip: _lihat ? 'Sembunyikan kata sandi' : 'Lihat kata sandi',
-                              icon: Icon(_lihat ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                              tooltip: _lihat
+                                  ? 'Sembunyikan kata sandi'
+                                  : 'Lihat kata sandi',
+                              icon: Icon(
+                                _lihat
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                              ),
                               onPressed: () => setState(() => _lihat = !_lihat),
                             ),
                           ),
-                          validator: (v) => (v ?? '').trim().isEmpty ? (guru ? 'Isi kata sandi' : 'Isi tanggal lahir siswa (YY-MM-DD)') : null,
+                          validator: (v) => (v ?? '').trim().isEmpty
+                              ? (guru
+                                    ? 'Isi kata sandi'
+                                    : 'Isi kata sandi atau tanggal lahir siswa')
+                              : null,
                         ),
                         const SizedBox(height: 8),
                         CheckboxListTile(
@@ -125,24 +180,40 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (_error != null) ...[
                           Container(
                             padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: AppColors.alpaTint, borderRadius: BorderRadius.circular(10)),
+                            decoration: BoxDecoration(
+                              color: AppColors.alpaTint,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(_error!, style: AppText.bodySmall.copyWith(color: AppColors.alpa)),
+                                Text(
+                                  _error!,
+                                  style: AppText.bodySmall.copyWith(
+                                    color: AppColors.alpa,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
                           const SizedBox(height: 12),
                         ],
                         const SizedBox(height: 8),
-                        PrimaryButton(label: 'Masuk ke Sistem', loading: _loading, onPressed: _masuk),
+                        PrimaryButton(
+                          label: 'Masuk ke Sistem',
+                          loading: _loading,
+                          onPressed: _masuk,
+                        ),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text('Butuh bantuan login? Hubungi Tata Usaha Sekolah', style: AppText.bodySmall, textAlign: TextAlign.center),
+                Text(
+                  'Butuh bantuan login? Hubungi Tata Usaha Sekolah',
+                  style: AppText.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
               ],
             ),
           ),
@@ -174,9 +245,22 @@ class _PeranTabs extends StatelessWidget {
               decoration: BoxDecoration(
                 color: aktif ? AppColors.surface : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
-                boxShadow: aktif ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 6, offset: const Offset(0, 2))] : null,
+                boxShadow: aktif
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
               ),
-              child: Text(label, style: AppText.label.copyWith(color: aktif ? AppColors.brand700 : AppColors.inkMuted)),
+              child: Text(
+                label,
+                style: AppText.label.copyWith(
+                  color: aktif ? AppColors.brand700 : AppColors.inkMuted,
+                ),
+              ),
             ),
           ),
         ),
@@ -185,8 +269,16 @@ class _PeranTabs extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: AppColors.field, borderRadius: BorderRadius.circular(12)),
-      child: Row(children: [tab(Peran.guru, 'Guru & Staf'), tab(Peran.wali, 'Wali Murid (Ortu)')]),
+      decoration: BoxDecoration(
+        color: AppColors.field,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          tab(Peran.guru, 'Guru & Staf'),
+          tab(Peran.wali, 'Wali Murid (Ortu)'),
+        ],
+      ),
     );
   }
 }

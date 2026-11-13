@@ -15,11 +15,15 @@ use Illuminate\Support\Facades\Cache;
 class CacheService
 {
     // TTL Constants (dalam menit)
-    const TTL_STATIC   = 60;   // Kelas, siswa, mata pelajaran
-    const TTL_JADWAL   = 60;   // Jadwal pelajaran
+    const TTL_STATIC = 60;   // Kelas, siswa, mata pelajaran
+
+    const TTL_JADWAL = 60;   // Jadwal pelajaran
+
     const TTL_PRESENSI = 5;    // Presensi hari ini
-    const TTL_REKAP    = 15;   // Rekap bulanan
-    const TTL_NILAI    = 30;   // Nilai rapot
+
+    const TTL_REKAP = 15;   // Rekap bulanan
+
+    const TTL_NILAI = 30;   // Nilai rapot
 
     // ─── Cache Key Helpers ──────────────────────────────────────────────
 
@@ -60,12 +64,12 @@ class CacheService
 
     public static function keyPresensiHariIni(int $guruId): string
     {
-        return 'presensi:hari_ini:guru:' . $guruId . ':' . now()->format('Y-m-d');
+        return 'presensi:hari_ini:guru:'.$guruId.':'.now()->format('Y-m-d');
     }
 
     public static function keyPresensiSholatHariIni(int $guruId, string $jenis): string
     {
-        return 'presensi_sholat:hari_ini:guru:' . $guruId . ':jenis:' . $jenis . ':' . now()->format('Y-m-d');
+        return 'presensi_sholat:hari_ini:guru:'.$guruId.':jenis:'.$jenis.':'.now()->format('Y-m-d');
     }
 
     public static function keyMataPelajaranAll(): string
@@ -85,7 +89,7 @@ class CacheService
 
     public static function keyDashboard(int $guruId): string
     {
-        return 'dashboard:guru:' . $guruId . ':' . now()->format('Y-m-d');
+        return 'dashboard:guru:'.$guruId.':'.now()->format('Y-m-d');
     }
 
     // ─── Cache Invalidation ──────────────────────────────────────────────

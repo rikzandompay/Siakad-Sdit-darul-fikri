@@ -15,7 +15,7 @@ class IsAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!auth()->check() || !auth()->user()->isAdmin()) {
+        if (! auth()->check() || ! auth()->user()->isAdmin()) {
             // Jika request AJAX/JSON, kembalikan 403 JSON
             if ($request->wantsJson()) {
                 return response()->json(['message' => 'Anda tidak memiliki akses ke fitur ini.'], 403);

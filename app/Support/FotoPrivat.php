@@ -48,6 +48,18 @@ class FotoPrivat
         return null;
     }
 
+    /** Foto sebagai data-URI untuk PDF (berkasnya privat, dompdf tidak membawa sesi login). */
+    public static function dataUri(?string $path): ?string
+    {
+        $disk = static::disk($path);
+        if (! $disk) {
+            return null;
+        }
+        $storage = Storage::disk($disk);
+
+        return 'data:'.($storage->mimeType($path) ?: 'image/jpeg').';base64,'.base64_encode($storage->get($path));
+    }
+
     /** Penanda versi agar gambar lama di cache HP/browser tergantikan setelah foto diganti. */
     public static function versi(string $path): string
     {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Sekolah;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -29,5 +30,5 @@ if ($batasGuru = config('presensi_guru.batas_tidak_hadir')) {
 // Pengingat tugas H-1 tenggat ke wali murid.
 Schedule::command('tugas:ingatkan-tenggat')
     ->dailyAt(config('notifikasi.pengingat_tugas_jam'))
-    ->timezone(\App\Support\Sekolah::timezone())
+    ->timezone(Sekolah::timezone())
     ->withoutOverlapping();

@@ -10,6 +10,7 @@ class MataPelajaranController extends Controller
     public function index()
     {
         $mapelList = MataPelajaran::orderBy('nama_pelajaran')->get();
+
         return view('mapel.index', compact('mapelList'));
     }
 
@@ -28,7 +29,7 @@ class MataPelajaranController extends Controller
     public function update(Request $request, MataPelajaran $mapel)
     {
         $validated = $request->validate([
-            'kode_pelajaran' => 'required|string|max:20|unique:mata_pelajaran,kode_pelajaran,' . $mapel->id,
+            'kode_pelajaran' => 'required|string|max:20|unique:mata_pelajaran,kode_pelajaran,'.$mapel->id,
             'nama_pelajaran' => 'required|string|max:100',
         ]);
 
@@ -40,6 +41,7 @@ class MataPelajaranController extends Controller
     public function destroy(MataPelajaran $mapel)
     {
         $mapel->delete();
+
         return redirect()->route('mapel.index')->with('success', 'Mata pelajaran berhasil dihapus!');
     }
 }

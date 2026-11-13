@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\KonselingPercakapan;
+use App\Models\KonselingPesan;
 use App\Models\MataPelajaran;
 use App\Models\NilaiRapot;
 use App\Models\PengajuanIzin;
@@ -83,6 +84,68 @@ class WaliAdminApiTest extends TestCase
     private function wali(): array
     {
         return $this->as(Wali::firstWhere('username', '2024002'), 'wali');
+    }
+
+    public function test_wali_mengunduh_kartu_pelajar_pdf_anaknya_saja(): void
+    {
+        $h = $this->wali();
+
+        $res = $this->req($h)->get('/api/v1/wali/kartu');
+        $res->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringContainsString('kartu-pelajar-2024002.pdf', $res->headers->get('Content-Disposition'));
+        $this->assertStringStartsWith('%PDF', $res->getContent());
+        $this->assertNotNull($this->zaki->fresh()->qr_token);
+
+        // Anak orang lain ditolak; tanpa token ditolak.
+        $this->req($h)->getJson('/api/v1/wali/kartu?siswa_id='.$this->lain->id)->assertStatus(404);
+        $this->flushHeaders();
+        $this->app['auth']->forgetGuards();
+        $this->getJson('/api/v1/wali/kartu')->assertStatus(401);
+    }
+
+    public function test_rekap_presensi_kelas_hanya_untuk_wali_kelas(): void
+    {
+        // Guru pengajar mapel di kelas 5A tetapi bukan wali kelasnya.
+        $pengajar = User::create(['name' => 'budi', 'nama_lengkap' => 'Budi', 'username' => 'budi', 'email' => 'b@s.id', 'password' => 'Rahasia123', 'status' => 'Aktif']);
+        JadwalPelajaran::create(['kelas_id' => $this->kelas->id, 'pelajaran_id' => $this->mtk->id, 'guru_id' => $pengajar->id, 'hari' => 'Rabu', 'jam_mulai' => '07:30', 'jam_selesai' => '09:00']);
+        $q = '?kelas_id='.$this->kelas->id;
+
+        $this->req($this->as($pengajar, 'guru'))->getJson('/api/v1/guru/rekap/absensi'.$q)->assertStatus(403);
+        $this->req($this->as($pengajar, 'guru'))->get('/api/v1/guru/ekspor/absensi/csv'.$q)->assertStatus(403);
+        $this->req($this->as($pengajar, 'guru'))->getJson('/api/v1/guru/opsi')->assertOk()->assertJsonCount(0, 'kelas_wali');
+
+        $wali = $this->as($this->guru, 'guru');
+        $this->req($wali)->getJson('/api/v1/guru/rekap/absensi'.$q)->assertOk()->assertJsonPath('kelas', 'Kelas 5A');
+        $this->req($wali)->get('/api/v1/guru/ekspor/absensi/csv'.$q)->assertOk();
+        // Jalur ekspor guru hanya untuk rekap absensi.
+        $this->req($wali)->get('/api/v1/guru/ekspor/data-siswa/csv')->assertNotFound();
+    }
+
+    public function test_rekap_absensi_dan_sholat_untuk_wali_kelas_termasuk_kepala_sekolah_yang_mewali(): void
+    {
+        // Kepala sekolah (admin) juga wali kelas 6B; kelas lain bukan walinya.
+        $kelasSinta = Kelas::create(['nama_kelas' => 'Kelas 6B', 'wali_kelas_id' => $this->sinta->id]);
+        $pengajar = User::create(['name' => 'budi', 'nama_lengkap' => 'Budi', 'username' => 'budi', 'email' => 'b@s.id', 'password' => 'Rahasia123', 'status' => 'Aktif']);
+        JadwalPelajaran::create(['kelas_id' => $this->kelas->id, 'pelajaran_id' => $this->mtk->id, 'guru_id' => $pengajar->id, 'hari' => 'Rabu', 'jam_mulai' => '07:30', 'jam_selesai' => '09:00']);
+        $kepsek = $this->as($this->sinta, 'guru');
+
+        // Kepala sekolah: daftar kelas rekap hanya kelas yang ia walikan, lewat jalur admin maupun guru.
+        $this->req($kepsek)->getJson('/api/v1/admin/opsi')->assertOk()->assertJsonCount(1, 'kelas_wali')->assertJsonPath('kelas_wali.0.nama', 'Kelas 6B');
+        $this->req($kepsek)->getJson('/api/v1/guru/opsi')->assertOk()->assertJsonPath('kelas_wali.0.nama', 'Kelas 6B');
+        foreach (['absensi', 'sholat', 'nilai'] as $jenis) {
+            $this->req($kepsek)->getJson("/api/v1/admin/rekap/$jenis?kelas_id=".$kelasSinta->id)->assertOk();
+            $this->req($kepsek)->getJson("/api/v1/guru/rekap/$jenis?kelas_id=".$kelasSinta->id)->assertOk();
+            $this->req($kepsek)->getJson("/api/v1/admin/rekap/$jenis?kelas_id=".$this->kelas->id)->assertStatus(403);
+        }
+
+        // Guru pengajar mapel (bukan wali) ditolak, termasuk ekspor; wali kelas biasa lolos untuk kelasnya.
+        $biasa = $this->as($pengajar, 'guru');
+        foreach (['absensi', 'sholat', 'nilai'] as $jenis) {
+            $this->req($biasa)->getJson("/api/v1/guru/rekap/$jenis?kelas_id=".$this->kelas->id)->assertStatus(403);
+            $this->req($biasa)->get("/api/v1/guru/ekspor/$jenis/csv?kelas_id=".$this->kelas->id)->assertStatus(403);
+            $this->req($this->as($this->guru, 'guru'))->getJson("/api/v1/guru/rekap/$jenis?kelas_id=".$this->kelas->id)->assertOk();
+        }
+        $this->req($this->as($this->guru, 'guru'))->get('/api/v1/guru/ekspor/sholat/csv?kelas_id='.$this->kelas->id)->assertOk();
     }
 
     public function test_wali_dashboard_kehadiran_jadwal_dan_tidak_bisa_melihat_anak_lain(): void
@@ -197,7 +260,7 @@ class WaliAdminApiTest extends TestCase
 
         // Guru mengirim foto tanpa teks.
         $pid = $this->req($g)->post('/api/v1/guru/konseling/'.$id, ['foto' => UploadedFile::fake()->image('a.jpg')], ['Accept' => 'application/json'])->assertCreated()->json('id');
-        $pesan = \App\Models\KonselingPesan::find($pid);
+        $pesan = KonselingPesan::find($pid);
         Storage::disk('local')->assertExists($pesan->foto);
 
         // Foto hanya dibuka pengampu dan wali; kepala sekolah dan wali lain tidak.
@@ -207,16 +270,16 @@ class WaliAdminApiTest extends TestCase
         $this->req($this->as(Wali::firstWhere('username', '2024009'), 'wali'))->get('/api/v1/wali/konseling/'.$id.'/pesan/'.$pid.'/foto')->assertStatus(403);
 
         // Ubah pesan sendiri; pesan pihak lain ditolak.
-        $wid = \App\Models\KonselingPesan::where('pengirim', 'wali')->value('id');
+        $wid = KonselingPesan::where('pengirim', 'wali')->value('id');
         $this->req($this->wali())->putJson('/api/v1/wali/konseling/'.$id.'/pesan/'.$wid, ['isi' => 'Halo, diperbaiki'])->assertOk();
-        $this->assertNotNull(\App\Models\KonselingPesan::find($wid)->diedit_pada);
+        $this->assertNotNull(KonselingPesan::find($wid)->diedit_pada);
         $this->req($this->wali())->deleteJson('/api/v1/wali/konseling/'.$id.'/pesan/'.$pid)->assertStatus(403);
         $this->req($this->as($this->sinta, 'guru'))->putJson('/api/v1/guru/konseling/'.$id.'/pesan/'.$pid, ['isi' => 'x'])->assertStatus(403);
 
         // Hapus pesan foto menghapus berkasnya.
         $this->req($g)->deleteJson('/api/v1/guru/konseling/'.$id.'/pesan/'.$pid)->assertOk();
         Storage::disk('local')->assertMissing($pesan->foto);
-        $this->assertNull(\App\Models\KonselingPesan::find($pid));
+        $this->assertNull(KonselingPesan::find($pid));
     }
 
     public function test_guru_tugas_dan_nilai_lewat_api(): void
@@ -245,11 +308,31 @@ class WaliAdminApiTest extends TestCase
         $a = $this->as($this->sinta, 'guru');
 
         $this->req($a)->getJson('/api/v1/admin/dashboard')->assertOk()->assertJsonPath('siswa.hadir', 1)->assertJsonPath('siswa.total', 2)->assertJsonPath('guru.total', 2);
-        $this->req($a)->getJson('/api/v1/admin/rekap/absensi?kelas_id='.$this->kelas->id)->assertOk()->assertJsonPath('data.0.rekap.H', 1);
-        $this->req($a)->getJson('/api/v1/admin/rekap/sholat?kelas_id='.$this->kelas->id.'&jenis=Dzuhur')->assertOk()->assertJsonPath('data.0.rekap.hadir', 1);
         $this->req($a)->getJson('/api/v1/admin/rekap/guru')->assertOk()->assertJsonCount(2, 'data');
         $this->req($a)->getJson('/api/v1/admin/siswa?q=zaki')->assertOk()->assertJsonPath('total', 1);
         $this->req($a)->getJson('/api/v1/admin/kelas')->assertOk()->assertJsonPath('data.1.nama', 'Kelas 5A')->assertJsonPath('data.1.mapel.0.nama', 'Matematika')->assertJsonPath('data.0.mapel', []);
+
+        // Kelas yang tidak diampu sinta (milik guru lain) ditolak untuk rekap siswa & nilai.
+        $this->req($a)->getJson('/api/v1/admin/rekap/absensi?kelas_id='.$this->kelas->id)->assertStatus(403);
+        $this->req($a)->getJson('/api/v1/admin/rekap/sholat?kelas_id='.$this->kelas->id.'&jenis=Dzuhur')->assertStatus(403);
+        $this->req($a)->getJson('/api/v1/admin/rekap/nilai?kelas_id='.$this->kelas->id)->assertStatus(403);
+
+        // Opsi hanya memuat kelas yang diampu sinta untuk rekap, dan rekap kelas sendiri berhasil.
+        $kelasSinta = Kelas::create(['nama_kelas' => 'Kelas 3A', 'wali_kelas_id' => $this->sinta->id]);
+        $siswaSinta = Siswa::create(['nis' => '2024010', 'nisn' => '10', 'nama_siswa' => 'Siti Aisyah', 'tanggal_lahir' => '2018-02-02', 'jenis_kelamin' => 'P', 'kelas_id' => $kelasSinta->id, 'status' => 'Aktif', 'nama_wali' => 'Budi']);
+        $jadwalSinta = JadwalPelajaran::create(['kelas_id' => $kelasSinta->id, 'pelajaran_id' => $this->mtk->id, 'guru_id' => $this->sinta->id, 'hari' => 'Senin', 'jam_mulai' => '09:30', 'jam_selesai' => '10:30']);
+        Presensi::create(['jadwal_id' => $jadwalSinta->id, 'siswa_id' => $siswaSinta->id, 'tanggal' => '2026-11-09', 'status_kehadiran' => 'H']);
+        PresensiSholat::create(['siswa_id' => $siswaSinta->id, 'kelas_id' => $kelasSinta->id, 'tanggal' => '2026-11-09', 'jenis_sholat' => 'Dzuhur', 'status_kehadiran' => 'Hadir']);
+
+        $this->req($a)->getJson('/api/v1/admin/opsi')->assertOk()
+            ->assertJsonCount(3, 'kelas')
+            ->assertJsonCount(1, 'kelas_diampu')
+            ->assertJsonPath('kelas_diampu.0.id', $kelasSinta->id)
+            ->assertJsonCount(1, 'kelas_wali')
+            ->assertJsonPath('kelas_wali.0.id', $kelasSinta->id);
+        $this->req($a)->getJson('/api/v1/admin/rekap/absensi?kelas_id='.$kelasSinta->id)->assertOk()->assertJsonPath('data.0.rekap.H', 1);
+        $this->req($a)->getJson('/api/v1/admin/rekap/sholat?kelas_id='.$kelasSinta->id.'&jenis=Dzuhur')->assertOk()->assertJsonPath('data.0.rekap.hadir', 1);
+        $this->req($a)->getJson('/api/v1/admin/rekap/nilai?kelas_id='.$kelasSinta->id)->assertOk()->assertJsonPath('data.0.nama', 'Siti Aisyah');
 
         $this->req($a)->postJson('/api/v1/admin/pengumuman', ['judul' => 'Libur', 'isi' => 'Libur semester', 'sasaran' => 'Semua', 'penting' => true])->assertCreated();
         $this->req($a)->postJson('/api/v1/admin/tahun-ajaran', ['tahun' => '2026/2027', 'semester' => 'Ganjil', 'aktif' => true])->assertCreated();
@@ -264,21 +347,25 @@ class WaliAdminApiTest extends TestCase
 
     public function test_admin_mengunduh_ekspor_sebagai_berkas_csv_dan_pdf(): void
     {
-        Presensi::create(['jadwal_id' => $this->jadwal->id, 'siswa_id' => $this->zaki->id, 'tanggal' => '2026-11-09', 'status_kehadiran' => 'H']);
+        $ta = TahunAjaran::create(['nama_semester' => '2026/2027 Ganjil', 'status_aktif' => 'Y']);
+        $kelasSinta = Kelas::create(['nama_kelas' => 'Kelas 3A', 'wali_kelas_id' => $this->sinta->id]);
+        $siswaSinta = Siswa::create(['nis' => '2024010', 'nisn' => '10', 'nama_siswa' => 'Siti Aisyah', 'tanggal_lahir' => '2018-02-02', 'jenis_kelamin' => 'P', 'kelas_id' => $kelasSinta->id, 'status' => 'Aktif', 'nama_wali' => 'Budi']);
+        $jadwalSinta = JadwalPelajaran::create(['kelas_id' => $kelasSinta->id, 'pelajaran_id' => $this->mtk->id, 'guru_id' => $this->sinta->id, 'hari' => 'Senin', 'jam_mulai' => '09:30', 'jam_selesai' => '10:30']);
+        Presensi::create(['jadwal_id' => $jadwalSinta->id, 'siswa_id' => $siswaSinta->id, 'tanggal' => '2026-11-09', 'status_kehadiran' => 'H']);
         $a = $this->as($this->sinta, 'guru');
-        $q = '?kelas_id='.$this->kelas->id.'&rentang=bulan_ini&tanggal=2026-11-09';
+        $q = '?kelas_id='.$kelasSinta->id.'&rentang=bulan_ini&tanggal=2026-11-09';
 
         $csv = $this->req($a)->get('/api/v1/admin/ekspor/absensi/csv'.$q);
         $csv->assertOk()->assertHeader('content-disposition');
         $this->assertStringContainsString('attachment; filename="absensi-', $csv->headers->get('content-disposition'));
-        $this->assertStringContainsString('Zaki', $csv->getContent());
+        $this->assertStringContainsString('Siti Aisyah', $csv->getContent());
 
         $pdf = $this->req($a)->get('/api/v1/admin/ekspor/absensi/pdf'.$q);
         $pdf->assertOk();
         $this->assertSame('application/pdf', $pdf->headers->get('content-type'));
         $this->assertStringStartsWith('%PDF', $pdf->getContent());
 
-        $kid = '?kelas_id='.$this->kelas->id.'&jenis=Dzuhur&rentang=bulan_ini&tanggal=2026-11-09';
+        $kid = '?kelas_id='.$kelasSinta->id.'&tahun_ajaran_id='.$ta->id.'&jenis=Dzuhur&rentang=bulan_ini&tanggal=2026-11-09';
         foreach (['sholat', 'nilai', 'guru-presensi', 'data-guru', 'data-siswa'] as $jenis) {
             foreach (['csv', 'pdf'] as $fmt) {
                 $r = $this->req($a)->get("/api/v1/admin/ekspor/{$jenis}/{$fmt}".$kid);
@@ -287,6 +374,13 @@ class WaliAdminApiTest extends TestCase
                     $this->assertStringStartsWith('%PDF', $r->getContent(), $jenis);
                 }
             }
+        }
+
+        // Ekspor kelas milik guru lain ditolak.
+        $qLain = '?kelas_id='.$this->kelas->id.'&tahun_ajaran_id='.$ta->id.'&jenis=Dzuhur&rentang=bulan_ini&tanggal=2026-11-09';
+        foreach (['absensi', 'sholat', 'nilai'] as $jenis) {
+            $this->req($a)->get("/api/v1/admin/ekspor/{$jenis}/csv".$qLain)->assertStatus(403);
+            $this->req($a)->get("/api/v1/admin/ekspor/{$jenis}/pdf".$qLain)->assertStatus(403);
         }
 
         $this->req($a)->get('/api/v1/admin/ekspor/rahasia/pdf')->assertStatus(404);
@@ -325,15 +419,15 @@ class WaliAdminApiTest extends TestCase
 
     public function test_upload_foto_siswa(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('public');
-        \Illuminate\Support\Facades\Storage::fake('local');
+        Storage::fake('public');
+        Storage::fake('local');
         $h = $this->wali();
-        $file = \Illuminate\Http\UploadedFile::fake()->image('siswa.jpg', 200, 200);
+        $file = UploadedFile::fake()->image('siswa.jpg', 200, 200);
 
         $res = $this->req($h)->post('/api/v1/wali/profil/foto', ['foto' => $file]);
         $res->assertOk()->assertJsonStructure(['message', 'foto_url']);
         $this->assertNotNull($this->zaki->fresh()->foto);
-        \Illuminate\Support\Facades\Storage::disk('local')->assertExists($this->zaki->fresh()->foto);
+        Storage::disk('local')->assertExists($this->zaki->fresh()->foto);
 
         // Wali sendiri dan guru boleh melihat; wali lain tidak.
         $url = parse_url($res->json('foto_url'), PHP_URL_PATH);

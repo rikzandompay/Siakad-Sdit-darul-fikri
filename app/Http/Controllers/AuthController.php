@@ -14,6 +14,7 @@ class AuthController extends Controller
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
+
         return view('auth.login');
     }
 
@@ -31,6 +32,7 @@ class AuthController extends Controller
         if (Auth::attempt(['username' => $credentials['username'], 'password' => $credentials['password'], 'status' => 'Aktif'], $request->boolean('remember'))) {
             BatasLoginGuru::berhasil($credentials['username'], $request->ip());
             $request->session()->regenerate();
+
             return redirect()->intended(route('dashboard'));
         }
 
@@ -46,6 +48,7 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('login');
     }
 }

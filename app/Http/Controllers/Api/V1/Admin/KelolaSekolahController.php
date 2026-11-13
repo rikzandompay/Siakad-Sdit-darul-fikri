@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Guru\AbsenController;
 use App\Http\Controllers\Controller;
 use App\Models\HariLibur;
 use App\Models\Kelas;
@@ -132,16 +133,9 @@ class KelolaSekolahController extends Controller
     {
         $this->pastikanGuru($guru);
         $mulai = Sekolah::now()->subDays(29)->toDateString();
-        $data = PresensiGuru::where('guru_id', $guru->id)->where('tanggal', '>=', $mulai)->orderByDesc('tanggal')->get()
-            ->map(fn ($p) => [
-                'tanggal' => Carbon::parse($p->tanggal)->toDateString(),
-                'status' => $p->status,
-                'jam_masuk' => $p->jam_masuk ? substr($p->jam_masuk, 0, 5) : null,
-                'jam_pulang' => $p->jam_pulang ? substr($p->jam_pulang, 0, 5) : null,
-                'terlambat' => $p->terlambat,
-                'sumber' => $p->sumber,
-                'keterangan' => $p->keterangan,
-            ]);
+        $hariIni = Sekolah::now()->toDateString();
+        $rows = PresensiGuru::where('guru_id', $guru->id)->whereBetween('tanggal', [$mulai, $hariIni])->orderByDesc('tanggal')->get();
+        $data = AbsenController::riwayatBertanda($guru->id, $rows, $mulai, $hariIni);
 
         return response()->json([
             'guru' => ['id' => $guru->id, 'nama' => $guru->nama_lengkap ?? $guru->name, 'wajah_terdaftar' => $guru->wajah()->exists()],
@@ -167,9 +161,7 @@ class KelolaSekolahController extends Controller
                 'status' => $data['status'],
                 'jam_masuk' => $hadir ? $data['jam_masuk'].':00' : null,
                 'jam_pulang' => $hadir && ! empty($data['jam_pulang']) ? $data['jam_pulang'].':00' : null,
-                'sumber' => 'admin',
-                'keterangan' => $data['keterangan'].' (diubah oleh '.($request->user()->nama_lengkap ?? $request->user()->name).')',
-            ]
+            ] + PresensiGuru::dataKoreksi((int) $data['guru_id'], $request->user(), $data['keterangan'])
         );
 
         return response()->json(['message' => 'Absen guru dikoreksi.']);

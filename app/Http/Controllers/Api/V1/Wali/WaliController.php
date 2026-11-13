@@ -17,10 +17,11 @@ use App\Models\Tugas;
 use App\Models\User;
 use App\Support\Rapor;
 use App\Support\Sekolah;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 
 /**
@@ -54,12 +55,14 @@ class WaliController extends Controller
             ->orderByRaw('tenggat IS NULL')->orderBy('tenggat')->first() : null;
         $pengumuman = Pengumuman::whereIn('sasaran', [Pengumuman::SEMUA, Pengumuman::WALI])->orderByDesc('penting')->latest()->first();
 
+        $jenisSholat = $siswa->kelas ? $siswa->kelas->jenisSholat() : PresensiSholat::JENIS;
+
         return response()->json([
             'tanggal' => $hariIni,
             'anak' => self::dataAnak($siswa),
             'aktivitas' => [
                 'kehadiran' => $statusKelas->isEmpty() ? null : self::statusHari($statusKelas->all()),
-                'sholat' => collect(PresensiSholat::JENIS)->map(fn ($j) => [
+                'sholat' => collect($jenisSholat)->map(fn ($j) => [
                     'jenis' => $j,
                     'status' => $sholat[$j] ?? null,
                     'sudah_masuk_waktu' => $now->format('H:i') >= config("sholat.waktu.{$j}"),
@@ -326,8 +329,21 @@ class WaliController extends Controller
             'wali_kelas' => $s->kelas?->waliKelas?->nama_lengkap, 'tanggal_lahir' => $s->tanggal_lahir ? Carbon::parse($s->tanggal_lahir)->toDateString() : null,
             'jenis_kelamin' => $s->jenis_kelamin, 'alamat' => $s->alamat, 'nama_wali' => $s->nama_wali, 'no_hp_wali' => $s->no_hp_wali,
             'foto_url' => $s->fotoUrl(),
-            'inisial' => Sekolah::inisial($s->nama_siswa), 'qr' => $s->qr_payload,
+            'inisial' => Sekolah::inisial($s->nama_siswa), 'qr' => $s->qr_payload, 'kepala_sekolah' => Sekolah::kepalaSekolah(),
         ];
+    }
+
+    /** Kartu pelajar anak (depan & belakang, ukuran asli) sebagai PDF A4 siap cetak. */
+    public function kartu(Request $request): Response
+    {
+        $siswa = $this->anak($request);
+        $isi = Pdf::loadView('exports.kartu-pelajar-pdf', $siswa->dataKartu(pdf: true))
+            ->setPaper('a4', 'portrait')->output();
+
+        return response($isi, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="kartu-pelajar-'.$siswa->nis.'.pdf"',
+        ]);
     }
 
     public function uploadFotoSiswa(Request $request): JsonResponse

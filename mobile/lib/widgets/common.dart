@@ -7,7 +7,16 @@ import '../core/theme.dart';
 
 /// Kerangka halaman: latar gradien, area aman, header opsional, tombol bawah opsional.
 class AppPage extends StatelessWidget {
-  const AppPage({super.key, this.title, this.subtitle, required this.child, this.bottom, this.scroll = true, this.padding = const EdgeInsets.fromLTRB(16, 8, 16, 24), this.onBack});
+  const AppPage({
+    super.key,
+    this.title,
+    this.subtitle,
+    required this.child,
+    this.bottom,
+    this.scroll = true,
+    this.padding = const EdgeInsets.fromLTRB(16, 8, 16, 24),
+    this.onBack,
+  });
 
   final String? title;
   final String? subtitle;
@@ -31,14 +40,22 @@ class AppPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (title != null) PageHeader(title: title!, subtitle: subtitle, onBack: onBack),
-              Expanded(child: scroll ? SingleChildScrollView(child: body) : body),
+              if (title != null)
+                PageHeader(title: title!, subtitle: subtitle, onBack: onBack),
+              Expanded(
+                child: scroll ? SingleChildScrollView(child: body) : body,
+              ),
               if (bottom != null)
                 Builder(
                   builder: (context) => Container(
                     color: AppColors.surface,
                     // Di dalam body, padding bawah sistem otomatis nol saat keyboard terbuka.
-                    padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      12,
+                      16,
+                      12 + MediaQuery.of(context).padding.bottom,
+                    ),
                     child: bottom,
                   ),
                 ),
@@ -51,7 +68,12 @@ class AppPage extends StatelessWidget {
 }
 
 class PageHeader extends StatelessWidget {
-  const PageHeader({super.key, required this.title, this.subtitle, this.onBack});
+  const PageHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.onBack,
+  });
 
   final String title;
   final String? subtitle;
@@ -67,12 +89,18 @@ class PageHeader extends StatelessWidget {
             button: true,
             label: 'Kembali',
             child: InkWell(
-              onTap: onBack ?? () => context.canPop() ? context.pop() : context.go('/'),
+              onTap:
+                  onBack ??
+                  () => context.canPop() ? context.pop() : context.go('/'),
               borderRadius: BorderRadius.circular(12),
               child: Container(
                 width: 44,
                 height: 44,
-                decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.line)),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.line),
+                ),
                 child: const Icon(Icons.chevron_left, color: AppColors.ink),
               ),
             ),
@@ -82,8 +110,19 @@ class PageHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppText.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                if (subtitle != null) Text(subtitle!, style: AppText.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  title,
+                  style: AppText.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (subtitle != null)
+                  Text(
+                    subtitle!,
+                    style: AppText.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
               ],
             ),
           ),
@@ -94,7 +133,14 @@ class PageHeader extends StatelessWidget {
 }
 
 class AppCard extends StatelessWidget {
-  const AppCard({super.key, required this.child, this.padding = const EdgeInsets.all(16), this.onTap, this.borderColor, this.color});
+  const AppCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+    this.onTap,
+    this.borderColor,
+    this.color,
+  });
 
   final Widget child;
   final EdgeInsets padding;
@@ -112,7 +158,10 @@ class AppCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: padding,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor ?? AppColors.line)),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor ?? AppColors.line),
+          ),
           child: child,
         ),
       ),
@@ -413,12 +462,12 @@ class StatusChip extends StatelessWidget {
   final ChipTone tone;
 
   static ChipTone toneFor(String? status) => switch (status) {
-        'Hadir' || 'H' => ChipTone.ok,
-        'Izin' || 'I' => ChipTone.gold,
-        'Sakit' || 'S' => ChipTone.sakit,
-        'Tidak Hadir' || 'Alpa' || 'A' => ChipTone.alpa,
-        _ => ChipTone.netral,
-      };
+    'Hadir' || 'H' => ChipTone.ok,
+    'Izin' || 'I' => ChipTone.gold,
+    'Sakit' || 'S' => ChipTone.sakit,
+    'Tidak Hadir' || 'Alpa' || 'A' => ChipTone.alpa,
+    _ => ChipTone.netral,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -432,7 +481,10 @@ class StatusChip extends StatelessWidget {
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
       child: Text(label, style: AppText.captionBold.copyWith(color: fg)),
     );
   }
@@ -443,8 +495,10 @@ class SectionLabel extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) =>
-      Padding(padding: const EdgeInsets.only(bottom: 8, top: 4), child: Text(text.toUpperCase(), style: AppText.overline));
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, top: 4),
+    child: Text(text.toUpperCase(), style: AppText.overline),
+  );
 }
 
 /// Kotak biru muda berisi teks pendek (5A, 07:30, dll).
@@ -460,13 +514,26 @@ class BadgeBox extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(color: AppColors.brand100, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: AppColors.brand100,
+        borderRadius: BorderRadius.circular(12),
+      ),
       alignment: Alignment.center,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(top, style: AppText.label.copyWith(color: AppColors.brand700, fontSize: bottom == null ? 16 : 14)),
-          if (bottom != null) Text(bottom!, style: AppText.caption.copyWith(color: AppColors.brand700)),
+          Text(
+            top,
+            style: AppText.label.copyWith(
+              color: AppColors.brand700,
+              fontSize: bottom == null ? 16 : 14,
+            ),
+          ),
+          if (bottom != null)
+            Text(
+              bottom!,
+              style: AppText.caption.copyWith(color: AppColors.brand700),
+            ),
         ],
       ),
     );
@@ -475,7 +542,14 @@ class BadgeBox extends StatelessWidget {
 
 /// Baris daftar: badge, judul, subjudul, chip opsional, panah.
 class ListRowCard extends StatelessWidget {
-  const ListRowCard({super.key, required this.badge, required this.title, this.subtitle, this.chip, this.onTap});
+  const ListRowCard({
+    super.key,
+    required this.badge,
+    required this.title,
+    this.subtitle,
+    this.chip,
+    this.onTap,
+  });
 
   final Widget badge;
   final String title;
@@ -499,12 +573,16 @@ class ListRowCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: AppText.heading),
-                  if (subtitle != null) ...[const SizedBox(height: 2), Text(subtitle!, style: AppText.bodySmall)],
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(subtitle!, style: AppText.bodySmall),
+                  ],
                   if (chip != null) ...[const SizedBox(height: 6), chip!],
                 ],
               ),
             ),
-            if (onTap != null) const Icon(Icons.chevron_right, color: AppColors.inkMuted),
+            if (onTap != null)
+              const Icon(Icons.chevron_right, color: AppColors.inkMuted),
           ],
         ),
       ),
@@ -519,17 +597,31 @@ class InisialAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        decoration: const BoxDecoration(color: AppColors.brand100, shape: BoxShape.circle),
-        alignment: Alignment.center,
-        child: Text(inisial, style: AppText.heading.copyWith(color: AppColors.brand700, fontSize: size * 0.32)),
-      );
+    width: size,
+    height: size,
+    decoration: const BoxDecoration(
+      color: AppColors.brand100,
+      shape: BoxShape.circle,
+    ),
+    alignment: Alignment.center,
+    child: Text(
+      inisial,
+      style: AppText.heading.copyWith(
+        color: AppColors.brand700,
+        fontSize: size * 0.32,
+      ),
+    ),
+  );
 }
 
 /// Foto profil bulat; bila belum ada (atau gagal dimuat) tampil inisial.
 class FotoAvatar extends StatelessWidget {
-  const FotoAvatar({super.key, required this.fotoUrl, required this.inisial, this.size = 52});
+  const FotoAvatar({
+    super.key,
+    required this.fotoUrl,
+    required this.inisial,
+    this.size = 52,
+  });
   final String? fotoUrl;
   final String inisial;
   final double size;
@@ -547,7 +639,8 @@ class FotoAvatar extends StatelessWidget {
         fit: BoxFit.cover,
         cacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).round(),
         errorBuilder: (_, _, _) => InisialAvatar(inisial, size: size),
-        loadingBuilder: (_, child, p) => p == null ? child : InisialAvatar(inisial, size: size),
+        loadingBuilder: (_, child, p) =>
+            p == null ? child : InisialAvatar(inisial, size: size),
       ),
     );
   }
@@ -555,7 +648,13 @@ class FotoAvatar extends StatelessWidget {
 
 /// Satu butir menu: ikon, judul, keterangan singkat, lencana angka opsional.
 class MenuItemData {
-  const MenuItemData(this.judul, this.ikon, this.path, {this.ket, this.lencana = 0});
+  const MenuItemData(
+    this.judul,
+    this.ikon,
+    this.path, {
+    this.ket,
+    this.lencana = 0,
+  });
   final String judul;
   final String ikon;
   final String path;
@@ -565,61 +664,107 @@ class MenuItemData {
 
 /// Kelompok menu sebagai daftar bersekat: tiap baris minimal 56 dp, panah di kanan.
 class MenuGroup extends StatelessWidget {
-  const MenuGroup({super.key, required this.judul, required this.items, required this.onBuka});
+  const MenuGroup({
+    super.key,
+    required this.judul,
+    required this.items,
+    required this.onBuka,
+  });
   final String judul;
   final List<MenuItemData> items;
   final void Function(String path) onBuka;
 
   @override
   Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Padding(padding: const EdgeInsets.only(top: 20, bottom: 8, left: 4), child: Text(judul.toUpperCase(), style: AppText.overline)),
-      Container(
-        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.line)),
-        clipBehavior: Clip.antiAlias,
-        child: Column(children: [
-          for (var i = 0; i < items.length; i++) ...[
-            if (i > 0) const Divider(height: 1, indent: 64, color: AppColors.line),
-            InkWell(
-              onTap: () => onBuka(items[i].path),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 56),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  child: Row(children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(color: AppColors.brand50, borderRadius: BorderRadius.circular(10)),
-                      alignment: Alignment.center,
-                      child: Image.asset('assets/icons/${items[i].ikon}.png', width: 22, height: 22),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 20, bottom: 8, left: 4),
+          child: Text(judul.toUpperCase(), style: AppText.overline),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.line),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var i = 0; i < items.length; i++) ...[
+                if (i > 0)
+                  const Divider(height: 1, indent: 64, color: AppColors.line),
+                InkWell(
+                  onTap: () => onBuka(items[i].path),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 56),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: AppColors.brand50,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            alignment: Alignment.center,
+                            child: Image.asset(
+                              'assets/icons/${items[i].ikon}.png',
+                              width: 22,
+                              height: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(items[i].judul, style: AppText.label),
+                                if (items[i].ket != null)
+                                  Text(items[i].ket!, style: AppText.caption),
+                              ],
+                            ),
+                          ),
+                          if (items[i].lencana > 0) ...[
+                            StatusChip(
+                              '${items[i].lencana} baru',
+                              tone: ChipTone.gold,
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          const Icon(
+                            Icons.chevron_right,
+                            color: AppColors.inkFaint,
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(items[i].judul, style: AppText.label),
-                        if (items[i].ket != null) Text(items[i].ket!, style: AppText.caption),
-                      ]),
-                    ),
-                    if (items[i].lencana > 0) ...[
-                      StatusChip('${items[i].lencana} baru', tone: ChipTone.gold),
-                      const SizedBox(width: 6),
-                    ],
-                    const Icon(Icons.chevron_right, color: AppColors.inkFaint),
-                  ]),
+                  ),
                 ),
-              ),
-            ),
-          ],
-        ]),
-      ),
-    ]);
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 
 /// Halaman hasil (berhasil/gagal) dengan ikon besar di lingkaran.
 class ResultHero extends StatelessWidget {
-  const ResultHero({super.key, required this.icon, required this.title, this.subtitle, this.success = true});
+  const ResultHero({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.success = true,
+  });
 
   final IconData icon;
   final String title;
@@ -647,7 +792,14 @@ class ResultHero extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Text(title, style: AppText.title, textAlign: TextAlign.center),
-        if (subtitle != null) ...[const SizedBox(height: 6), Text(subtitle!, style: AppText.bodySmall, textAlign: TextAlign.center)],
+        if (subtitle != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            subtitle!,
+            style: AppText.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+        ],
         const SizedBox(height: 20),
       ],
     );
@@ -668,8 +820,17 @@ class InfoTable extends StatelessWidget {
           for (var i = 0; i < rows.length; i++)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(border: i == rows.length - 1 ? null : const Border(bottom: BorderSide(color: AppColors.line))),
-              child: Row(children: [Expanded(child: Text(rows[i].$1, style: AppText.bodySmall)), rows[i].$2]),
+              decoration: BoxDecoration(
+                border: i == rows.length - 1
+                    ? null
+                    : const Border(bottom: BorderSide(color: AppColors.line)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(child: Text(rows[i].$1, style: AppText.bodySmall)),
+                  rows[i].$2,
+                ],
+              ),
             ),
         ],
       ),
@@ -682,7 +843,12 @@ class AsyncBody<T> extends StatefulWidget {
   const AsyncBody({super.key, required this.load, required this.builder});
 
   final Future<T> Function() load;
-  final Widget Function(BuildContext context, T data, Future<void> Function() reload) builder;
+  final Widget Function(
+    BuildContext context,
+    T data,
+    Future<void> Function() reload,
+  )
+  builder;
 
   @override
   State<AsyncBody<T>> createState() => _AsyncBodyState<T>();
@@ -703,12 +869,23 @@ class _AsyncBodyState<T> extends State<AsyncBody<T>> {
       future: _future,
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          return const Padding(padding: EdgeInsets.only(top: 80), child: Center(child: CircularProgressIndicator()));
+          return const Padding(
+            padding: EdgeInsets.only(top: 80),
+            child: Center(child: CircularProgressIndicator()),
+          );
         }
         if (snap.hasError) {
-          return ErrorPanel(message: snap.error is ApiException ? snap.error.toString() : 'Terjadi kesalahan. Coba lagi.', onRetry: _reload);
+          return ErrorPanel(
+            message: snap.error is ApiException
+                ? snap.error.toString()
+                : 'Terjadi kesalahan. Coba lagi.',
+            onRetry: _reload,
+          );
         }
-        return RefreshIndicator(onRefresh: _reload, child: widget.builder(context, snap.data as T, _reload));
+        return RefreshIndicator(
+          onRefresh: _reload,
+          child: widget.builder(context, snap.data as T, _reload),
+        );
       },
     );
   }
@@ -725,10 +902,20 @@ class ErrorPanel extends StatelessWidget {
       padding: const EdgeInsets.only(top: 60),
       child: Column(
         children: [
-          const Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.inkFaint),
+          const Icon(
+            Icons.cloud_off_rounded,
+            size: 48,
+            color: AppColors.inkFaint,
+          ),
           const SizedBox(height: 12),
           Text(message, style: AppText.body, textAlign: TextAlign.center),
-          if (onRetry != null) ...[const SizedBox(height: 16), SizedBox(width: 160, child: SecondaryButton(label: 'Coba lagi', onPressed: onRetry))],
+          if (onRetry != null) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: 160,
+              child: SecondaryButton(label: 'Coba lagi', onPressed: onRetry),
+            ),
+          ],
         ],
       ),
     );
@@ -742,17 +929,123 @@ class EmptyPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
-        child: Column(children: [
-          Icon(icon, size: 48, color: AppColors.inkFaint),
-          const SizedBox(height: 12),
-          Text(message, style: AppText.bodySmall, textAlign: TextAlign.center),
-        ]),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
+    child: Column(
+      children: [
+        Icon(icon, size: 48, color: AppColors.inkFaint),
+        const SizedBox(height: 12),
+        Text(message, style: AppText.bodySmall, textAlign: TextAlign.center),
+      ],
+    ),
+  );
 }
 
 void showMessage(BuildContext context, String message, {bool error = false}) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message), backgroundColor: error ? AppColors.alpa : AppColors.ink));
+    ..showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: error ? AppColors.alpa : AppColors.ink,
+      ),
+    );
+}
+
+/// Baris menu profil: ikon dalam kotak biru muda, label, dan panah.
+class MenuRow extends StatelessWidget {
+  const MenuRow({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final String icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    onTap: onTap,
+    leading: Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: AppColors.brand50,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      alignment: Alignment.center,
+      child: Image.asset('assets/icons/$icon.png', width: 28),
+    ),
+    title: Text(label, style: AppText.label),
+    trailing: const Icon(Icons.chevron_right, color: AppColors.inkMuted),
+  );
+}
+
+/// Ikon menu berwarna dalam badge lingkaran putih (tile dashboard guru, kepala sekolah, wali).
+/// Berkas PNG 128 px memuat ikon 96 px + ruang tepi untuk bayangan, jadi ikon digambar sedikit lebih besar dari lingkaran dalamnya.
+class IkonMenu extends StatelessWidget {
+  const IkonMenu(this.nama, {super.key, this.ukuran = 42});
+  final String nama;
+  final double ukuran;
+
+  @override
+  Widget build(BuildContext context) {
+    final gambar = ukuran * 0.76;
+    return Container(
+      width: ukuran,
+      height: ukuran,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.line),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F14284B),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Image.asset(
+        'assets/icons/$nama.png',
+        width: gambar,
+        height: gambar,
+        filterQuality: FilterQuality.medium,
+      ),
+    );
+  }
+}
+
+/// Tanda bukti di riwayat dan rekap absen guru: lokasi palsu (merah) dan koreksi atas absen
+/// sendiri (kuning). Keduanya tercatat permanen di server dan tidak bisa dihapus dari aplikasi.
+class TandaAbsen extends StatelessWidget {
+  const TandaAbsen({super.key, this.lokasiPalsu, this.koreksiMandiri});
+
+  /// Teks pelengkap, mis. jam "07:05" atau "2 hari"; null = tidak ada tanda.
+  final String? lokasiPalsu;
+  final String? koreksiMandiri;
+
+  @override
+  Widget build(BuildContext context) {
+    if (lokasiPalsu == null && koreksiMandiri == null) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        children: [
+          if (lokasiPalsu != null)
+            StatusChip('Lokasi palsu $lokasiPalsu'.trim(), tone: ChipTone.alpa),
+          if (koreksiMandiri != null)
+            StatusChip(
+              'Koreksi mandiri $koreksiMandiri'.trim(),
+              tone: ChipTone.gold,
+            ),
+        ],
+      ),
+    );
+  }
 }

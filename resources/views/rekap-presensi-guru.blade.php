@@ -53,6 +53,16 @@
     </div>
 
     <div class="overflow-x-auto">
+        @if($selectedGuru && $insidenDetail->isNotEmpty())
+            <div class="mx-4 md:mx-6 my-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                <div class="font-bold">Tercatat memakai lokasi palsu ({{ $insidenDetail->count() }}×) — catatan permanen, tidak bisa dihapus</div>
+                <ul class="mt-1 list-disc pl-5">
+                    @foreach($insidenDetail as $ins)
+                        <li>{{ $ins->tanggal->translatedFormat('D, d M Y') }} pukul {{ substr($ins->jam, 0, 5) }} · {{ $ins->tahap }}{{ $ins->jarak_meter !== null ? ' · ±'.number_format($ins->jarak_meter, 0, ',', '.').' m dari sekolah' : '' }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         @if($selectedGuru)
             <table class="w-full text-left text-sm whitespace-nowrap">
                 <thead class="bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wider font-bold">
@@ -74,6 +84,12 @@
                                 <span class="text-[11px] font-bold px-2 py-0.5 rounded {{ $row->status === 'Hadir' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700' }}">{{ $row->status }}</span>
                                 @if($row->terlambat)
                                     <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 ml-1">Terlambat</span>
+                                @endif
+                                @if($insidenPerHari->has($row->tanggal->toDateString()))
+                                    <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-red-600 text-white ml-1">Lokasi palsu {{ $insidenPerHari->get($row->tanggal->toDateString()) }}</span>
+                                @endif
+                                @if($row->koreksi_mandiri)
+                                    <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-500 text-white ml-1">Koreksi mandiri</span>
                                 @endif
                             </td>
                             <td class="px-4 md:px-6 py-3 text-center">{{ $row->jam_masuk ? substr($row->jam_masuk, 0, 5) : '-' }}</td>
@@ -107,6 +123,12 @@
                             <td class="px-4 md:px-6 py-3">
                                 <div class="font-bold text-gray-900">{{ $row['guru']->nama_lengkap ?? $row['guru']->name }}</div>
                                 <div class="text-xs text-gray-500">{{ $row['guru']->nip ? 'NIP '.$row['guru']->nip : '' }}</div>
+                                @if($row['lokasi_palsu'] > 0)
+                                    <span class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded bg-red-600 text-white">Lokasi palsu {{ $row['lokasi_palsu'] }} hari</span>
+                                @endif
+                                @if($row['koreksi_mandiri'] > 0)
+                                    <span class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded bg-amber-500 text-white">Koreksi mandiri {{ $row['koreksi_mandiri'] }}×</span>
+                                @endif
                             </td>
                             <td class="px-4 md:px-6 py-3 text-center font-bold text-green-700">{{ $row['hadir'] }}</td>
                             <td class="px-4 md:px-6 py-3 text-center font-bold text-amber-600">{{ $row['terlambat'] }}</td>

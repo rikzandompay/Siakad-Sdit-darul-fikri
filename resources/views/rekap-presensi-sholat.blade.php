@@ -63,6 +63,11 @@
         </div>
 
         @if ($selectedKelas)
+            @if (! $selectedKelas->ikutSholat($jenisSholat))
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900">
+                    Pembiasaan sholat Dzuhur berjamaah diperuntukkan bagi kelas 3 hingga kelas 6. {{ $selectedKelas->nama_kelas }} hanya mengikuti absensi sholat Dhuha.
+                </div>
+            @endif
             <!-- Rekap Table -->
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">

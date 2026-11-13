@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InsidenLokasiPalsu;
 use App\Models\PengaturanSekolah;
 use App\Models\PerangkatGuru;
 use App\Models\PresensiGuru;
@@ -76,9 +77,7 @@ class RekapPresensiGuruController extends Controller
                 'status' => $data['status'],
                 'jam_masuk' => $hadir ? $data['jam_masuk'].':00' : null,
                 'jam_pulang' => $hadir && ! empty($data['jam_pulang']) ? $data['jam_pulang'].':00' : null,
-                'sumber' => 'admin',
-                'keterangan' => $data['keterangan'].' (diubah oleh '.($request->user()->nama_lengkap ?? $request->user()->name).')',
-            ]
+            ] + PresensiGuru::dataKoreksi((int) $data['guru_id'], $request->user(), $data['keterangan'])
         );
 
         return redirect()->route('presensi-guru.rekap', $request->only('rentang') + ['guru_id' => $data['guru_id'], 'tanggal' => $data['tanggal']])
@@ -131,7 +130,7 @@ class RekapPresensiGuruController extends Controller
             fputcsv($file, []);
 
             if ($data['selectedGuru']) {
-                fputcsv($file, ['No', 'Tanggal', 'Status', 'Jam Masuk', 'Jam Pulang', 'Terlambat', 'Jarak Masuk (m)', 'Kecocokan Wajah (%)', 'Keterangan']);
+                fputcsv($file, ['No', 'Tanggal', 'Status', 'Jam Masuk', 'Jam Pulang', 'Terlambat', 'Jarak Masuk (m)', 'Kecocokan Wajah (%)', 'Lokasi Palsu', 'Koreksi Mandiri', 'Keterangan']);
                 foreach ($data['detail'] as $i => $row) {
                     $this->putSafeCsv($file, [
                         $i + 1,
@@ -142,11 +141,21 @@ class RekapPresensiGuruController extends Controller
                         $row->terlambat ? 'Ya' : '-',
                         $row->masuk_jarak_meter ?? '-',
                         $row->masuk_skor_wajah ?? '-',
+                        $data['insidenPerHari']->get($row->tanggal->toDateString()) ?? '-',
+                        $row->koreksi_mandiri ? 'Ya' : '-',
                         $row->keterangan ?? '-',
                     ]);
                 }
+                if ($data['insidenDetail']->isNotEmpty()) {
+                    fputcsv($file, []);
+                    fputcsv($file, ['CATATAN LOKASI PALSU (permanen)']);
+                    fputcsv($file, ['Tanggal', 'Jam', 'Tahap', 'Jarak (m)']);
+                    foreach ($data['insidenDetail'] as $ins) {
+                        $this->putSafeCsv($file, [$ins->tanggal->format('Y-m-d'), substr($ins->jam, 0, 5), $ins->tahap, $ins->jarak_meter ?? '-']);
+                    }
+                }
             } else {
-                fputcsv($file, ['No', 'NIP', 'Nama Guru', 'Hadir', 'Terlambat', 'Tidak Hadir', '% Hadir']);
+                fputcsv($file, ['No', 'NIP', 'Nama Guru', 'Hadir', 'Terlambat', 'Tidak Hadir', '% Hadir', 'Lokasi Palsu (hari)', 'Koreksi Mandiri']);
                 foreach ($data['ringkasan'] as $i => $row) {
                     $this->putSafeCsv($file, [
                         $i + 1,
@@ -156,6 +165,8 @@ class RekapPresensiGuruController extends Controller
                         $row['terlambat'],
                         $row['tidak_hadir'],
                         $row['persen'],
+                        $row['lokasi_palsu'],
+                        $row['koreksi_mandiri'],
                     ]);
                 }
             }
@@ -189,7 +200,10 @@ class RekapPresensiGuruController extends Controller
         $selectedGuru = $request->filled('guru_id') ? $guruList->firstWhere('id', (int) $request->get('guru_id')) : null;
 
         $detail = collect();
+        $insidenDetail = collect();
         if ($selectedGuru) {
+            $insidenDetail = InsidenLokasiPalsu::where('guru_id', $selectedGuru->id)->whereBetween('tanggal', [$start, $end])
+                ->orderBy('tanggal')->orderBy('jam')->get();
             $detail = PresensiGuru::where('guru_id', $selectedGuru->id)
                 ->whereBetween('tanggal', [$start, $end])
                 ->orderBy('tanggal')
@@ -205,6 +219,9 @@ class RekapPresensiGuruController extends Controller
             'selectedGuru' => $selectedGuru,
             'ringkasan' => $this->ringkasan($guruList, $start, $end),
             'detail' => $detail,
+            // Bukti lokasi palsu: jam percobaan pertama per tanggal, dan daftar lengkap untuk satu guru.
+            'insidenPerHari' => $selectedGuru ? InsidenLokasiPalsu::petaPerHari([$selectedGuru->id], $start, $end)->get($selectedGuru->id, collect()) : collect(),
+            'insidenDetail' => $insidenDetail,
         ];
     }
 
@@ -231,8 +248,11 @@ class RekapPresensiGuruController extends Controller
             ->groupBy('guru_id')
             ->get()
             ->keyBy('guru_id');
+        $insiden = InsidenLokasiPalsu::petaPerHari($guruList->pluck('id')->all(), $start, $end);
+        $mandiri = PresensiGuru::whereBetween('tanggal', [$start, $end])->where('koreksi_mandiri', true)
+            ->selectRaw('guru_id, COUNT(*) as n')->groupBy('guru_id')->pluck('n', 'guru_id');
 
-        return $guruList->map(function (User $guru) use ($counts) {
+        return $guruList->map(function (User $guru) use ($counts, $insiden, $mandiri) {
             $row = $counts->get($guru->id);
             $hadir = (int) ($row->hadir_count ?? 0);
             $tidakHadir = (int) ($row->tidak_hadir_count ?? 0);
@@ -244,6 +264,8 @@ class RekapPresensiGuruController extends Controller
                 'terlambat' => (int) ($row->terlambat_count ?? 0),
                 'tidak_hadir' => $tidakHadir,
                 'persen' => $total > 0 ? round($hadir / $total * 100, 1) : 0,
+                'lokasi_palsu' => $insiden->get($guru->id, collect())->count(),
+                'koreksi_mandiri' => (int) ($mandiri[$guru->id] ?? 0),
             ];
         })->values();
     }

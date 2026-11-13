@@ -1,15 +1,18 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AdminController;
+use App\Http\Controllers\Api\V1\Admin\EksporController;
 use App\Http\Controllers\Api\V1\Admin\KelolaSekolahController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\Guru\AbsenController;
 use App\Http\Controllers\Api\V1\Guru\DashboardController;
+use App\Http\Controllers\Api\V1\Guru\KartuGuruController;
 use App\Http\Controllers\Api\V1\Guru\LainnyaController;
 use App\Http\Controllers\Api\V1\Guru\PresensiKelasController;
 use App\Http\Controllers\Api\V1\Guru\SholatController;
 use App\Http\Controllers\Api\V1\KonselingController;
 use App\Http\Controllers\Api\V1\NotifikasiController;
+use App\Http\Controllers\Api\V1\PanduanController;
 use App\Http\Controllers\Api\V1\Wali\WaliController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,11 +36,21 @@ Route::prefix('v1')->group(function () {
         Route::get('/notifikasi', [NotifikasiController::class, 'index']);
         Route::post('/notifikasi/baca-semua', [NotifikasiController::class, 'bacaSemua']);
         Route::post('/notifikasi/{id}/baca', [NotifikasiController::class, 'baca']);
+        // Panduan pengguna PDF sesuai peran (guru, kepala sekolah, wali murid).
+        Route::get('/panduan', PanduanController::class)->middleware('throttle:30,1');
 
         Route::prefix('guru')->middleware('peran:guru')->group(function () {
             Route::post('/ubah-sandi', [AuthController::class, 'ubahSandi'])->middleware('throttle:api-sandi');
             Route::post('/profil/foto', [AuthController::class, 'uploadFotoGuru'])->middleware('throttle:api-foto');
             Route::get('/dashboard', DashboardController::class);
+            Route::get('/kartu', KartuGuruController::class)->middleware('throttle:30,1');
+
+            // Rekap presensi kelas, sholat, dan nilai: hanya wali kelas yang mengampu (dicek di controller).
+            Route::get('/opsi', [AdminController::class, 'opsi']);
+            Route::get('/rekap/absensi', [AdminController::class, 'rekapAbsensi']);
+            Route::get('/rekap/sholat', [AdminController::class, 'rekapSholat']);
+            Route::get('/rekap/nilai', [AdminController::class, 'rekapNilai']);
+            Route::get('/ekspor/{jenis}/{format}', EksporController::class)->whereIn('jenis', ['absensi', 'sholat', 'nilai'])->middleware('throttle:30,1');
 
             // Presensi kelas
             Route::get('/presensi/kelas', [PresensiKelasController::class, 'kelas']);
@@ -112,7 +125,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('/perangkat-guru/{perangkat}', [KelolaSekolahController::class, 'cabutPerangkat']);
             Route::get('/wali', [KelolaSekolahController::class, 'wali']);
             Route::post('/wali/sinkron', [KelolaSekolahController::class, 'sinkronWali']);
-            Route::get('/ekspor/{jenis}/{format}', \App\Http\Controllers\Api\V1\Admin\EksporController::class)->middleware('throttle:30,1');
+            Route::get('/ekspor/{jenis}/{format}', EksporController::class)->middleware('throttle:30,1');
             Route::get('/rekap/absensi', [AdminController::class, 'rekapAbsensi']);
             Route::get('/rekap/sholat', [AdminController::class, 'rekapSholat']);
             Route::get('/rekap/nilai', [AdminController::class, 'rekapNilai']);
@@ -129,6 +142,8 @@ Route::prefix('v1')->group(function () {
         // Wali murid
         Route::prefix('wali')->middleware('peran:wali')->group(function () {
             Route::get('/dashboard', [WaliController::class, 'dashboard']);
+            Route::get('/kartu', [WaliController::class, 'kartu'])->middleware('throttle:30,1');
+            Route::post('/ubah-sandi', [AuthController::class, 'ubahSandi'])->middleware('throttle:api-sandi');
             Route::get('/kehadiran', [WaliController::class, 'kehadiran']);
             Route::get('/jadwal', [WaliController::class, 'jadwal']);
             Route::get('/pengumuman', [WaliController::class, 'pengumuman']);

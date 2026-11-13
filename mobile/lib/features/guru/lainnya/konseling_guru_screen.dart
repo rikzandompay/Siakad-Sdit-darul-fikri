@@ -29,20 +29,28 @@ class _KonselingGuruScreenState extends State<KonselingGuruScreen> {
         load: () => api.get('/guru/konseling'),
         builder: (context, d, _) {
           final list = (d['data'] as List).cast<Map>();
-          return ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
-            const SectionLabel('Permintaan konseling'),
-            if (list.isEmpty) const EmptyPanel(icon: Icons.forum_outlined, message: 'Belum ada pesan. Percakapan muncul saat wali murid di kelas yang Anda ampu konselingnya mengirim pesan.'),
-            for (final p in list)
-              KonselingRow(
-                p: Map<String, dynamic>.from(p),
-                judul: p['nama_wali'] ?? 'Wali ${p['siswa']}',
-                subjudul: 'Wali ${p['siswa']} · ${p['kelas'] ?? '-'} · ${p['topik']}',
-                onTap: () async {
-                  await context.push('/guru/konseling/${p['id']}');
-                  setState(() => _key = UniqueKey());
-                },
-              ),
-          ]);
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            children: [
+              const SectionLabel('Permintaan konseling'),
+              if (list.isEmpty)
+                const EmptyPanel(
+                  icon: Icons.forum_outlined,
+                  message: 'Belum ada pesan. Percakapan muncul saat wali murid di kelas yang Anda ampu konselingnya mengirim pesan.',
+                ),
+              for (final p in list)
+                KonselingRow(
+                  p: Map<String, dynamic>.from(p),
+                  judul: p['nama_wali'] ?? 'Wali ${p['siswa']}',
+                  subjudul:
+                      'Wali ${p['siswa']} · ${p['kelas'] ?? '-'} · ${p['topik']}',
+                  onTap: () async {
+                    await context.push('/guru/konseling/${p['id']}');
+                    setState(() => _key = UniqueKey());
+                  },
+                ),
+            ],
+          );
         },
       ),
     );

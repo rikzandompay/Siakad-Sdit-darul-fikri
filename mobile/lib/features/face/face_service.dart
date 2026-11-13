@@ -38,7 +38,10 @@ class FaceService {
   static const _cosPenuh = 0.75;
 
   Future<Interpreter> _model() async {
-    return _interpreter ??= await Interpreter.fromAsset('assets/models/mobilefacenet.tflite', options: InterpreterOptions()..threads = 2);
+    return _interpreter ??= await Interpreter.fromAsset(
+      'assets/models/mobilefacenet.tflite',
+      options: InterpreterOptions()..threads = 2,
+    );
   }
 
   /// Embedding (sudah dinormalisasi L2) dari satu foto kamera berisi tepat satu wajah.
@@ -48,20 +51,31 @@ class FaceService {
   /// bukan kotak wajah, karena kotak wajah ML Kit dan detektor server berbeda.
   Future<List<double>> embeddingDariFoto(String path) async {
     final faces = await _detector.processImage(InputImage.fromFilePath(path));
-    if (faces.isEmpty) throw FaceException('Wajah tidak terlihat. Pastikan wajah berada di dalam bingkai dan cukup terang.');
-    if (faces.length > 1) throw FaceException('Terdeteksi lebih dari satu wajah. Pastikan hanya Anda yang ada di kamera.');
+    if (faces.isEmpty)
+      throw FaceException(
+        'Wajah tidak terlihat. Pastikan wajah berada di dalam bingkai dan cukup terang.',
+      );
+    if (faces.length > 1)
+      throw FaceException(
+        'Terdeteksi lebih dari satu wajah. Pastikan hanya Anda yang ada di kamera.',
+      );
 
     final decoded = img.decodeImage(await File(path).readAsBytes());
-    if (decoded == null) throw FaceException('Foto tidak dapat dibaca. Coba lagi.');
+    if (decoded == null)
+      throw FaceException('Foto tidak dapat dibaca. Coba lagi.');
     final foto = img.bakeOrientation(decoded);
 
     final face = faces.first;
     final mataA = face.landmarks[FaceLandmarkType.leftEye]?.position;
     final mataB = face.landmarks[FaceLandmarkType.rightEye]?.position;
-    if (mataA == null || mataB == null) throw FaceException('Mata tidak terlihat jelas. Hadapkan wajah lurus ke kamera tanpa kacamata hitam.');
+    if (mataA == null || mataB == null)
+      throw FaceException(
+        'Mata tidak terlihat jelas. Hadapkan wajah lurus ke kamera tanpa kacamata hitam.',
+      );
     final a = math.Point<double>(mataA.x.toDouble(), mataA.y.toDouble());
     final b = math.Point<double>(mataB.x.toDouble(), mataB.y.toDouble());
-    if (a.distanceTo(b) < minJarakMata) throw FaceException('Wajah terlalu jauh. Dekatkan wajah ke kamera.');
+    if (a.distanceTo(b) < minJarakMata)
+      throw FaceException('Wajah terlalu jauh. Dekatkan wajah ke kamera.');
 
     final interpreter = await _model();
     final outShape = interpreter.getOutputTensor(0).shape; // [1, 192]
@@ -73,7 +87,8 @@ class FaceService {
 
   // Pemotongan wajah: HARUS sama dengan scripts/wajah/embedding.py (potong_wajah).
   static const sisiMata = 3.0; // sisi potong / jarak mata
-  static const turunMata = 0.4; // pusat potong di bawah titik tengah mata (x jarak mata)
+  static const turunMata =
+      0.4; // pusat potong di bawah titik tengah mata (x jarak mata)
   static const ukuranAntara = 448;
   static const ukuranInput = 112;
   static const minJarakMata = 20.0;
@@ -84,7 +99,11 @@ class FaceService {
   /// di foto), wajah diluruskan pada garis mata, sisi potong 3 x jarak mata dengan pusat 0.4 x
   /// jarak mata di bawah titik tengah mata. Disampel bilinear 448x448 (tepi direplikasi) lalu
   /// dirata-rata per blok 4x4 agar tidak terjadi aliasing saat diperkecil.
-  static Float32List potongWajah(img.Image foto, math.Point<double> mataA, math.Point<double> mataB) {
+  static Float32List potongWajah(
+    img.Image foto,
+    math.Point<double> mataA,
+    math.Point<double> mataB,
+  ) {
     final kiri = mataA.x <= mataB.x ? mataA : mataB;
     final kanan = identical(kiri, mataA) ? mataB : mataA;
     final dx = kanan.x - kiri.x, dy = kanan.y - kiri.y;
@@ -121,7 +140,10 @@ class FaceService {
         final x0 = sx.floor(), y0 = sy.floor();
         final x1 = math.min(x0 + 1, w - 1), y1 = math.min(y0 + 1, h - 1);
         final ax = sx - x0, ay = sy - y0;
-        final i00 = (y0 * w + x0) * 3, i01 = (y0 * w + x1) * 3, i10 = (y1 * w + x0) * 3, i11 = (y1 * w + x1) * 3;
+        final i00 = (y0 * w + x0) * 3,
+            i01 = (y0 * w + x1) * 3,
+            i10 = (y1 * w + x0) * 3,
+            i11 = (y1 * w + x1) * 3;
         final o = (baris + c ~/ blok) * 3;
         for (var ch = 0; ch < 3; ch++) {
           final atas = px[i00 + ch] * (1 - ax) + px[i01 + ch] * ax;
@@ -131,7 +153,9 @@ class FaceService {
       }
     }
     const n = blok * blok;
-    return Float32List.fromList([for (final v in jumlah) (v / n - 127.5) / 128]);
+    return Float32List.fromList([
+      for (final v in jumlah) (v / n - 127.5) / 128,
+    ]);
   }
 
   /// Rata-rata beberapa embedding (saat pendaftaran) agar lebih stabil.

@@ -9,17 +9,19 @@ use App\Models\Pengumuman;
 use App\Models\PerangkatNotifikasi;
 use App\Models\Tugas;
 use App\Observers\NotifikasiObserver;
-use Illuminate\Notifications\Events\NotificationFailed;
-use Illuminate\Support\Facades\Event;
-use NotificationChannels\Fcm\FcmChannel;
+use App\Support\PengenalWajah;
+use App\Support\PengenalWajahPython;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Connection;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Events\NotificationFailed;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use NotificationChannels\Fcm\FcmChannel;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,7 +30,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(\App\Support\PengenalWajah::class, \App\Support\PengenalWajahPython::class);
+        $this->app->bind(PengenalWajah::class, PengenalWajahPython::class);
         // Boolean ke kolom Postgres aman di PHP 8.4 (lihat PostgresKoneksi).
         Connection::resolverFor('pgsql', fn ($pdo, $database, $prefix, $config) => new PostgresKoneksi($pdo, $database, $prefix, $config));
     }

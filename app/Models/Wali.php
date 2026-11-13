@@ -4,13 +4,15 @@ namespace App\Models;
 
 use App\Models\Concerns\MenerimaNotifikasi;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\HasApiTokens;
 
 /**
  * Akun wali murid untuk aplikasi MyDarfik. Dibuat dan disinkronkan OTOMATIS dari data siswa:
  * - username  = NIS siswa
  * - kata sandi = tanggal lahir siswa format YY-MM-DD (mis. 16-01-25); disimpan ter-hash.
+ *   Ini sandi bawaan: wali wajib menggantinya (wajib_ganti_sandi). Setelah diganti, sinkron
+ *   dari data siswa tidak lagi menimpa sandi wali.
  *   Pemisah "-", "/", "." dan tahun 4 digit juga diterima.
  * - status    = Aktif selama siswa berstatus Aktif.
  * Tidak ada pembuatan akun manual: tambah/ubah/hapus siswa sudah cukup.
@@ -27,7 +29,7 @@ class Wali extends Authenticatable
 
     protected function casts(): array
     {
-        return ['password' => 'hashed', 'terakhir_login_pada' => 'datetime'];
+        return ['password' => 'hashed', 'terakhir_login_pada' => 'datetime', 'wajib_ganti_sandi' => 'boolean'];
     }
 
     public function siswa()
@@ -57,10 +59,16 @@ class Wali extends Authenticatable
         return $siswa->tanggal_lahir ? static::normalisasiTanggal(substr((string) $siswa->tanggal_lahir, 0, 10)) : '';
     }
 
-    /** Apakah tanggal lahir yang diketik wali cocok dengan kata sandi akun ini. */
-    public function cocokSandi(?string $tanggal): bool
+    /**
+     * Apakah sandi yang diketik wali cocok. Sandi bawaan (tanggal lahir) diterima dalam berbagai
+     * format; sandi yang sudah diganti wali dicocokkan apa adanya.
+     */
+    public function cocokSandi(?string $sandi): bool
     {
-        $norm = static::normalisasiTanggal($tanggal);
+        if (! $this->wajib_ganti_sandi) {
+            return Hash::check((string) $sandi, $this->password);
+        }
+        $norm = static::normalisasiTanggal($sandi);
 
         return $norm !== '' && Hash::check($norm, $this->password);
     }
@@ -96,13 +104,15 @@ class Wali extends Authenticatable
             // Username (NIS) bisa sempat dipakai akun lama yang tak terhubung ke siswa mana pun.
             static::where('username', $data['username'])->whereDoesntHave('siswa')->delete();
             $wali = static::create($data + ['password' => $norm]);
+            $wali->forceFill(['wajib_ganti_sandi' => true])->save();
             $wali->siswa()->attach($siswa->id);
 
             return $wali;
         }
 
         $wali->fill($data);
-        if (! Hash::check($norm, $wali->password)) {
+        // Sandi yang sudah diganti wali tidak ditimpa tanggal lahir.
+        if ($wali->wajib_ganti_sandi && ! Hash::check($norm, $wali->password)) {
             $wali->password = $norm;
             // Kata sandi berubah: keluarkan semua perangkat yang memakai sandi lama.
             $wali->tokens()->delete();

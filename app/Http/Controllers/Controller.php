@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\JadwalPelajaran;
+use App\Models\Kelas;
+use Carbon\Carbon;
+
 abstract class Controller
 {
     protected function putSafeCsv($stream, array $row): void
@@ -16,18 +20,18 @@ abstract class Controller
     /**
      * Rentang tanggal untuk filter rekap: hari_ini | minggu_ini | bulan_ini | semester_ini.
      *
-     * @return array{start: \Carbon\Carbon, end: \Carbon\Carbon}
+     * @return array{start: Carbon, end: Carbon}
      */
     protected function periodeRange(string $rentang, ?string $tanggal = null): array
     {
-        $now = $tanggal ? \Carbon\Carbon::parse($tanggal) : \Carbon\Carbon::today();
+        $now = $tanggal ? Carbon::parse($tanggal) : Carbon::today();
 
         return match ($rentang) {
             'minggu_ini' => ['start' => $now->copy()->startOfWeek(), 'end' => $now->copy()->endOfWeek()],
             'bulan_ini' => ['start' => $now->copy()->startOfMonth(), 'end' => $now->copy()->endOfMonth()],
             'semester_ini' => [
-                'start' => $now->month >= 7 ? \Carbon\Carbon::create($now->year, 7, 1) : \Carbon\Carbon::create($now->year, 1, 1),
-                'end' => $now->month >= 7 ? \Carbon\Carbon::create($now->year, 12, 31) : \Carbon\Carbon::create($now->year, 6, 30),
+                'start' => $now->month >= 7 ? Carbon::create($now->year, 7, 1) : Carbon::create($now->year, 1, 1),
+                'end' => $now->month >= 7 ? Carbon::create($now->year, 12, 31) : Carbon::create($now->year, 6, 30),
             ],
             default => ['start' => $now->copy()->startOfDay(), 'end' => $now->copy()->endOfDay()],
         };
@@ -35,7 +39,7 @@ abstract class Controller
 
     protected function periodeLabel(string $rentang, ?string $tanggal = null): string
     {
-        $now = $tanggal ? \Carbon\Carbon::parse($tanggal) : \Carbon\Carbon::today();
+        $now = $tanggal ? Carbon::parse($tanggal) : Carbon::today();
 
         return match ($rentang) {
             'minggu_ini' => 'Minggu '.$now->copy()->startOfWeek()->translatedFormat('d M').' - '.$now->copy()->endOfWeek()->translatedFormat('d M Y'),
@@ -50,8 +54,8 @@ abstract class Controller
         $guruId = auth()->id();
 
         return array_values(array_unique(array_merge(
-            \App\Models\Kelas::where('wali_kelas_id', $guruId)->pluck('id')->all(),
-            \App\Models\JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->all()
+            Kelas::where('wali_kelas_id', $guruId)->pluck('id')->all(),
+            JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->all()
         )));
     }
 }

@@ -1,23 +1,24 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FotoController;
 use App\Http\Controllers\GuruController;
-use App\Http\Controllers\SiswaController;
-use App\Http\Controllers\KelasController;
+use App\Http\Controllers\IzinController;
 use App\Http\Controllers\JadwalPelajaranController;
-use App\Http\Controllers\PresensiController;
+use App\Http\Controllers\KelasController;
+use App\Http\Controllers\KonselingController;
 use App\Http\Controllers\NilaiRapotController;
 use App\Http\Controllers\PengaturanController;
-use App\Http\Controllers\PresensiSholatController;
-use App\Http\Controllers\PengumumanController;
-use App\Http\Controllers\KonselingController;
-use App\Http\Controllers\RekapPresensiGuruController;
 use App\Http\Controllers\PengaturanSekolahController;
-use App\Http\Controllers\WaliController;
-use App\Http\Controllers\IzinController;
+use App\Http\Controllers\PengumumanController;
+use App\Http\Controllers\PresensiController;
+use App\Http\Controllers\PresensiSholatController;
+use App\Http\Controllers\RekapPresensiGuruController;
+use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\TugasController;
+use App\Http\Controllers\WaliController;
+use Illuminate\Support\Facades\Route;
 
 // ── AUTH ROUTES ──
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
@@ -27,9 +28,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // ── PROTECTED ROUTES ──
 // Foto guru/siswa: hanya untuk akun yang login (sesi web atau token aplikasi MyDarfik).
 Route::middleware(['auth:web,sanctum', 'throttle:240,1'])->group(function () {
-    Route::get('/foto/guru/{guru}', [\App\Http\Controllers\FotoController::class, 'guru'])->name('foto.guru');
-    Route::get('/foto/guru/{guru}/pengajuan', [\App\Http\Controllers\FotoController::class, 'guruPengajuan'])->name('foto.guru.pengajuan');
-    Route::get('/foto/siswa/{siswa}', [\App\Http\Controllers\FotoController::class, 'siswa'])->name('foto.siswa');
+    Route::get('/foto/guru/{guru}', [FotoController::class, 'guru'])->name('foto.guru');
+    Route::get('/foto/guru/{guru}/pengajuan', [FotoController::class, 'guruPengajuan'])->name('foto.guru.pengajuan');
+    Route::get('/foto/siswa/{siswa}', [FotoController::class, 'siswa'])->name('foto.siswa');
 });
 
 Route::middleware('auth')->group(function () {

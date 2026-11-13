@@ -2,13 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Siswa;
 use App\Models\Kelas;
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Writer;
+use App\Models\Siswa;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class SiswaController extends Controller
 {
@@ -19,16 +16,7 @@ class SiswaController extends Controller
     {
         abort_unless(auth()->user()->isAdmin(), 403);
 
-        if (! $siswa->qr_token) {
-            $siswa->regenerateQrToken();
-        }
-
-        $writer = new Writer(new ImageRenderer(new RendererStyle(240, 1), new SvgImageBackEnd()));
-        $qrSvg = preg_replace('/^<\?xml[^>]*>\s*/', '', $writer->writeString($siswa->qr_payload));
-
-        $siswa->load('kelas');
-
-        return view('exports.kartu-pelajar', compact('siswa', 'qrSvg'));
+        return view('exports.kartu-pelajar', $siswa->dataKartu());
     }
 
     /**
@@ -55,7 +43,7 @@ class SiswaController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nama_siswa', 'like', "%{$search}%")
-                  ->orWhere('nis', 'like', "%{$search}%");
+                    ->orWhere('nis', 'like', "%{$search}%");
             });
         }
 
@@ -75,7 +63,7 @@ class SiswaController extends Controller
         }
 
         $siswa = $query->orderBy('nama_siswa')->paginate(15)->withQueryString();
-        $kelasList = \Illuminate\Support\Facades\Cache::remember('kelas_list_filter', 300, fn() => Kelas::orderBy('nama_kelas')->get());
+        $kelasList = Cache::remember('kelas_list_filter', 300, fn () => Kelas::orderBy('nama_kelas')->get());
 
         return view('datasiswa', compact('siswa', 'kelasList'));
     }
@@ -108,8 +96,8 @@ class SiswaController extends Controller
         abort_unless(auth()->user()->isAdmin(), 403);
 
         $validated = $request->validate([
-            'nis' => 'required|string|max:20|unique:siswa,nis,' . $siswa->id,
-            'nisn' => 'required|string|max:20|unique:siswa,nisn,' . $siswa->id,
+            'nis' => 'required|string|max:20|unique:siswa,nis,'.$siswa->id,
+            'nisn' => 'required|string|max:20|unique:siswa,nisn,'.$siswa->id,
             'nama_siswa' => 'required|string|max:100',
             'tanggal_lahir' => 'required|date',
             'alamat' => 'nullable|string|max:100',
@@ -134,6 +122,7 @@ class SiswaController extends Controller
         $kelasId = $siswa->getAttribute('kelas_id');
         $siswa->delete();
         $this->clearSiswaCache($kelasId);
+
         return redirect()->route('siswa.index')->with('success', 'Data siswa berhasil dihapus!');
     }
 
@@ -151,7 +140,7 @@ class SiswaController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nama_siswa', 'like', "%{$search}%")
-                  ->orWhere('nis', 'like', "%{$search}%");
+                    ->orWhere('nis', 'like', "%{$search}%");
             });
         }
         if ($request->filled('kelas_id') && $request->kelas_id !== '') {
@@ -165,7 +154,7 @@ class SiswaController extends Controller
         }
 
         $data = $query->orderBy('nama_siswa')->get();
-        $filename = 'data_siswa_' . now()->format('Ymd_His') . '.csv';
+        $filename = 'data_siswa_'.now()->format('Ymd_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -177,8 +166,8 @@ class SiswaController extends Controller
 
         $callback = function () use ($data, $tampilTanggalLahir) {
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+
             // Header Section
             fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
             fputcsv($file, ['SD IT DARUL FIKRI']);
@@ -224,7 +213,7 @@ class SiswaController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nama_siswa', 'like', "%{$search}%")
-                  ->orWhere('nis', 'like', "%{$search}%");
+                    ->orWhere('nis', 'like', "%{$search}%");
             });
         }
         if ($request->filled('kelas_id') && $request->kelas_id !== '') {
@@ -247,10 +236,10 @@ class SiswaController extends Controller
 
     private function clearSiswaCache($kelasId, $oldKelasId = null)
     {
-        \Illuminate\Support\Facades\Cache::forget("siswa_aktif_kelas_{$kelasId}");
+        Cache::forget("siswa_aktif_kelas_{$kelasId}");
         if ($oldKelasId) {
-            \Illuminate\Support\Facades\Cache::forget("siswa_aktif_kelas_{$oldKelasId}");
+            Cache::forget("siswa_aktif_kelas_{$oldKelasId}");
         }
-        \Illuminate\Support\Facades\Cache::forget('total_siswa_aktif');
+        Cache::forget('total_siswa_aktif');
     }
 }

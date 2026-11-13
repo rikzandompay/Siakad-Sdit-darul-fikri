@@ -23,8 +23,16 @@ const _ovalR = 0.31;
 /// [ukuranMentah] adalah ukuran frame kamera sebelum diputar ([diputar] = rotasi 90/270).
 /// Pratinjau ditampilkan BoxFit.cover pada area 0.82 x 1 dan dicerminkan (kamera depan).
 @visibleForTesting
-String? cekPosisiWajah({required int jumlahWajah, Rect? kotak, required Size ukuranMentah, required bool diputar, double eulerY = 0, double eulerZ = 0}) {
-  if (jumlahWajah == 0 || kotak == null && jumlahWajah == 1) return 'Wajah tidak ditemukan';
+String? cekPosisiWajah({
+  required int jumlahWajah,
+  Rect? kotak,
+  required Size ukuranMentah,
+  required bool diputar,
+  double eulerY = 0,
+  double eulerZ = 0,
+}) {
+  if (jumlahWajah == 0 || kotak == null && jumlahWajah == 1)
+    return 'Wajah tidak ditemukan';
   if (jumlahWajah > 1) return 'Terlihat lebih dari satu wajah';
 
   final iw = diputar ? ukuranMentah.height : ukuranMentah.width;
@@ -43,7 +51,8 @@ String? cekPosisiWajah({required int jumlahWajah, Rect? kotak, required Size uku
   if (dx * dx + dy * dy > 0.3) return 'Masukkan wajah ke dalam bingkai';
   if (lebar < rx * 2 * 0.5) return 'Dekatkan wajah ke kamera';
   if (lebar > rx * 2 * 1.25) return 'Jauhkan sedikit wajah dari kamera';
-  if (eulerY.abs() > 20 || eulerZ.abs() > 20) return 'Hadapkan wajah lurus ke kamera';
+  if (eulerY.abs() > 20 || eulerZ.abs() > 20)
+    return 'Hadapkan wajah lurus ke kamera';
   return null;
 }
 
@@ -88,7 +97,13 @@ class _FaceCaptureState extends State<FaceCapture> {
   /// Peringatan posisi wajah (null = wajah sudah pas di bingkai).
   String? _peringatan = 'Wajah tidak ditemukan';
 
-  final _detector = FaceDetector(options: FaceDetectorOptions(enableClassification: true, performanceMode: FaceDetectorMode.fast, minFaceSize: 0.15));
+  final _detector = FaceDetector(
+    options: FaceDetectorOptions(
+      enableClassification: true,
+      performanceMode: FaceDetectorMode.fast,
+      minFaceSize: 0.15,
+    ),
+  );
 
   @override
   void initState() {
@@ -99,12 +114,17 @@ class _FaceCaptureState extends State<FaceCapture> {
   Future<void> _mulai() async {
     try {
       final kamera = await availableCameras();
-      _desc = kamera.firstWhere((c) => c.lensDirection == CameraLensDirection.front, orElse: () => kamera.first);
+      _desc = kamera.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+        orElse: () => kamera.first,
+      );
       final c = CameraController(
         _desc!,
         ResolutionPreset.high,
         enableAudio: false,
-        imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+        imageFormatGroup: Platform.isAndroid
+            ? ImageFormatGroup.nv21
+            : ImageFormatGroup.bgra8888,
       );
       await c.initialize();
       await c.lockCaptureOrientation(DeviceOrientation.portraitUp);
@@ -118,7 +138,11 @@ class _FaceCaptureState extends State<FaceCapture> {
       });
       await c.startImageStream(_olahFrame);
     } on CameraException catch (e) {
-      widget.onGagal(e.code == 'CameraAccessDenied' ? 'Izin kamera ditolak. Aktifkan izin kamera untuk MyDarfik di pengaturan HP.' : 'Kamera tidak dapat dibuka.');
+      widget.onGagal(
+        e.code == 'CameraAccessDenied'
+            ? 'Izin kamera ditolak. Aktifkan izin kamera untuk MyDarfik di pengaturan HP.'
+            : 'Kamera tidak dapat dibuka.',
+      );
     }
   }
 
@@ -172,7 +196,9 @@ class _FaceCaptureState extends State<FaceCapture> {
       jumlahWajah: faces.length,
       kotak: f?.boundingBox,
       ukuranMentah: meta.size,
-      diputar: meta.rotation == InputImageRotation.rotation90deg || meta.rotation == InputImageRotation.rotation270deg,
+      diputar:
+          meta.rotation == InputImageRotation.rotation90deg ||
+          meta.rotation == InputImageRotation.rotation270deg,
       eulerY: f?.headEulerAngleY ?? 0,
       eulerZ: f?.headEulerAngleZ ?? 0,
     );
@@ -185,14 +211,20 @@ class _FaceCaptureState extends State<FaceCapture> {
     final paths = <String>[];
     for (var i = 0; i < widget.jumlahFoto; i++) {
       paths.add((await c.takePicture()).path);
-      if (i < widget.jumlahFoto - 1) await Future.delayed(const Duration(milliseconds: 250));
+      if (i < widget.jumlahFoto - 1)
+        await Future.delayed(const Duration(milliseconds: 250));
     }
     if (!mounted) return;
     setState(() => _tahap = _Tahap.memproses);
     await widget.onSelesai(paths);
   }
 
-  static const _rotasi = {DeviceOrientation.portraitUp: 0, DeviceOrientation.landscapeLeft: 90, DeviceOrientation.portraitDown: 180, DeviceOrientation.landscapeRight: 270};
+  static const _rotasi = {
+    DeviceOrientation.portraitUp: 0,
+    DeviceOrientation.landscapeLeft: 90,
+    DeviceOrientation.portraitDown: 180,
+    DeviceOrientation.landscapeRight: 270,
+  };
 
   InputImage? _toInputImage(CameraImage frame) {
     final desc = _desc!;
@@ -202,16 +234,24 @@ class _FaceCaptureState extends State<FaceCapture> {
     } else {
       final kompensasi = _rotasi[_camera!.value.deviceOrientation];
       if (kompensasi == null) return null;
-      rotation = InputImageRotationValue.fromRawValue(desc.lensDirection == CameraLensDirection.front
-          ? (desc.sensorOrientation + kompensasi) % 360
-          : (desc.sensorOrientation - kompensasi + 360) % 360);
+      rotation = InputImageRotationValue.fromRawValue(
+        desc.lensDirection == CameraLensDirection.front
+            ? (desc.sensorOrientation + kompensasi) % 360
+            : (desc.sensorOrientation - kompensasi + 360) % 360,
+      );
     }
     final format = InputImageFormatValue.fromRawValue(frame.format.raw);
-    if (rotation == null || format == null || frame.planes.length != 1) return null;
+    if (rotation == null || format == null || frame.planes.length != 1)
+      return null;
     final plane = frame.planes.first;
     return InputImage.fromBytes(
       bytes: plane.bytes,
-      metadata: InputImageMetadata(size: Size(frame.width.toDouble(), frame.height.toDouble()), rotation: rotation, format: format, bytesPerRow: plane.bytesPerRow),
+      metadata: InputImageMetadata(
+        size: Size(frame.width.toDouble(), frame.height.toDouble()),
+        rotation: rotation,
+        format: format,
+        bytesPerRow: plane.bytesPerRow,
+      ),
     );
   }
 
@@ -223,100 +263,203 @@ class _FaceCaptureState extends State<FaceCapture> {
   }
 
   String get _petunjuk => switch (widget.hasil) {
-        HasilWajah.cocok => 'Wajah cocok',
-        HasilWajah.tidakCocok => 'Wajah tidak sesuai',
-        HasilWajah.belum => switch (_tahap) {
-            _Tahap.memulai => 'Membuka kamera…',
-            _Tahap.posisikan => 'Posisikan wajah di dalam bingkai',
-            _Tahap.kedip => 'Tetap diam, kedipkan mata satu kali',
-            _Tahap.mengambil => 'Mengambil foto…',
-            _Tahap.memproses => widget.pesanProses ?? 'Mencocokkan wajah…',
-          },
-      };
+    HasilWajah.cocok => 'Wajah cocok',
+    HasilWajah.tidakCocok => 'Wajah tidak sesuai',
+    HasilWajah.belum => switch (_tahap) {
+      _Tahap.memulai => 'Membuka kamera…',
+      _Tahap.posisikan => 'Posisikan wajah di dalam bingkai',
+      _Tahap.kedip => 'Tetap diam, kedipkan mata satu kali',
+      _Tahap.mengambil => 'Mengambil foto…',
+      _Tahap.memproses => widget.pesanProses ?? 'Mencocokkan wajah…',
+    },
+  };
 
   @override
   Widget build(BuildContext context) {
     final c = _camera;
     final adaHasil = widget.hasil != HasilWajah.belum;
-    final peringatan = !adaHasil && _tahap == _Tahap.posisikan ? _peringatan : null;
+    final peringatan = !adaHasil && _tahap == _Tahap.posisikan
+        ? _peringatan
+        : null;
     final warna = switch (widget.hasil) {
       HasilWajah.cocok => AppColors.ok600,
       HasilWajah.tidakCocok => AppColors.alpa,
       HasilWajah.belum => peringatan != null ? AppColors.gold : Colors.white,
     };
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: AspectRatio(
-          aspectRatio: _rasio,
-          child: Stack(fit: StackFit.expand, children: [
-            Container(color: AppColors.dark),
-            if (c != null && c.value.isInitialized)
-              FittedBox(fit: BoxFit.cover, child: SizedBox(width: c.value.previewSize!.height, height: c.value.previewSize!.width, child: CameraPreview(c))),
-            CustomPaint(painter: _OvalPainter(color: warna, penuh: adaHasil, cy: _ovalCy, r: _ovalR)),
-            if (adaHasil)
-              Align(
-                alignment: const Alignment(0, _ovalCy * 2 - 1),
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(color: warna, shape: BoxShape.circle),
-                  child: Icon(widget.hasil == HasilWajah.cocok ? Icons.check_rounded : Icons.close_rounded, color: Colors.white, size: 38),
-                ),
-              ),
-            if (peringatan != null)
-              Positioned(
-                top: 14,
-                left: 14,
-                right: 14,
-                child: Semantics(
-                  liveRegion: true,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                    decoration: BoxDecoration(color: const Color(0xE6FEF3C7), borderRadius: BorderRadius.circular(12)),
-                    child: Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
-                      const Icon(Icons.warning_amber_rounded, size: 20, color: Color(0xFF7A5512)),
-                      const SizedBox(width: 8),
-                      Flexible(child: Text(peringatan, style: AppText.label.copyWith(color: const Color(0xFF7A5512)))),
-                    ]),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: AspectRatio(
+            aspectRatio: _rasio,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Container(color: AppColors.dark),
+                if (c != null && c.value.isInitialized)
+                  FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: c.value.previewSize!.height,
+                      height: c.value.previewSize!.width,
+                      child: CameraPreview(c),
+                    ),
+                  ),
+                CustomPaint(
+                  painter: _OvalPainter(
+                    color: warna,
+                    penuh: adaHasil,
+                    cy: _ovalCy,
+                    r: _ovalR,
                   ),
                 ),
-              ),
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 20,
-              child: Column(children: [
-                if (!adaHasil && _tahap.index >= _Tahap.mengambil.index)
-                  const Padding(padding: EdgeInsets.only(bottom: 8), child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))),
-                Text(_petunjuk, style: AppText.label.copyWith(color: Colors.white, shadows: const [Shadow(blurRadius: 6)]), textAlign: TextAlign.center),
-              ]),
+                if (adaHasil)
+                  Align(
+                    alignment: const Alignment(0, _ovalCy * 2 - 1),
+                    child: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: warna,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        widget.hasil == HasilWajah.cocok
+                            ? Icons.check_rounded
+                            : Icons.close_rounded,
+                        color: Colors.white,
+                        size: 38,
+                      ),
+                    ),
+                  ),
+                if (peringatan != null)
+                  Positioned(
+                    top: 14,
+                    left: 14,
+                    right: 14,
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xE6FEF3C7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.warning_amber_rounded,
+                              size: 20,
+                              color: Color(0xFF7A5512),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                peringatan,
+                                style: AppText.label.copyWith(
+                                  color: const Color(0xFF7A5512),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 20,
+                  child: Column(
+                    children: [
+                      if (!adaHasil && _tahap.index >= _Tahap.mengambil.index)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      Text(
+                        _petunjuk,
+                        style: AppText.label.copyWith(
+                          color: Colors.white,
+                          shadows: const [Shadow(blurRadius: 6)],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ]),
+          ),
         ),
-      ),
-      if (!adaHasil) ...[
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.line)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(child: Text('Verifikasi kehidupan (liveness)', style: AppText.captionBold)),
-              Text('${(_progress * 100).round()}%', style: AppText.captionBold.copyWith(color: AppColors.brand700)),
-            ]),
-            const SizedBox(height: 8),
-            ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: _progress, minHeight: 6, color: AppColors.brand700, backgroundColor: AppColors.line)),
-          ]),
-        ),
+        if (!adaHasil) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.line),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Verifikasi kehidupan (liveness)',
+                        style: AppText.captionBold,
+                      ),
+                    ),
+                    Text(
+                      '${(_progress * 100).round()}%',
+                      style: AppText.captionBold.copyWith(
+                        color: AppColors.brand700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: _progress,
+                    minHeight: 6,
+                    color: AppColors.brand700,
+                    backgroundColor: AppColors.line,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
-    ]);
+    );
   }
 }
 
 class _OvalPainter extends CustomPainter {
-  _OvalPainter({required this.color, required this.penuh, required this.cy, required this.r});
+  _OvalPainter({
+    required this.color,
+    required this.penuh,
+    required this.cy,
+    required this.r,
+  });
   final Color color;
 
   /// Garis utuh dan tebal saat hasil sudah ada; putus-putus saat masih memindai.
@@ -326,7 +469,11 @@ class _OvalPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromCenter(center: Offset(size.width / 2, size.height * cy), width: size.width * r * 2, height: size.height * r * 2);
+    final rect = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height * cy),
+      width: size.width * r * 2,
+      height: size.height * r * 2,
+    );
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -344,5 +491,6 @@ class _OvalPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_OvalPainter old) => old.color != color || old.penuh != penuh;
+  bool shouldRepaint(_OvalPainter old) =>
+      old.color != color || old.penuh != penuh;
 }

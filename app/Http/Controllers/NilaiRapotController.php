@@ -26,7 +26,7 @@ class NilaiRapotController extends Controller
             ->where('kelas_id', $kelasId)
             ->exists();
 
-        if (!$isWaliKelas && !$isGuruPengajar) {
+        if (! $isWaliKelas && ! $isGuruPengajar) {
             abort(403, 'Anda tidak memiliki akses ke kelas ini.');
         }
     }
@@ -55,7 +55,7 @@ class NilaiRapotController extends Controller
             ->where('pelajaran_id', $pelajaranId)
             ->exists();
 
-        if (!$hasAccess) {
+        if (! $hasAccess) {
             abort(403, 'Anda tidak memiliki akses untuk menginput nilai di kelas dan mata pelajaran ini.');
         }
     }
@@ -136,20 +136,13 @@ class NilaiRapotController extends Controller
         $user = Auth::user();
         $tahunAjaranList = Cache::remember('tahun_ajaran_list', 300, fn () => TahunAjaran::orderByDesc('id')->get());
 
-        if ($user->isAdmin()) {
-            $kelasList = Cache::remember('kelas_list_all_ordered', 300, fn () => Kelas::orderBy('nama_kelas')->get());
-        } else {
-            $kelasList = Kelas::where('wali_kelas_id', $user->id)->orderBy('nama_kelas')->get();
-        }
+        $kelasList = Kelas::where('wali_kelas_id', $user->id)->orderBy('nama_kelas')->get();
 
         $tahunAjaranId = $request->get('tahun_ajaran_id', TahunAjaran::where('status_aktif', 'Y')->value('id'));
         $kelasId = $request->get('kelas_id');
 
-        if (! $user->isAdmin() && $kelasId) {
-            $isWaliKelas = $kelasList->contains('id', $kelasId);
-            if (! $isWaliKelas) {
-                abort(403, 'Anda tidak memiliki akses ke kelas ini.');
-            }
+        if ($kelasId) {
+            abort_unless($user->mengampuKelas((int) $kelasId, hanyaWali: true), 403, 'Anda tidak memiliki akses ke kelas ini.');
         }
 
         $siswaList = collect();
@@ -427,15 +420,12 @@ class NilaiRapotController extends Controller
         $tahunAjaranId = $request->get('tahun_ajaran_id');
         $kelasId = $request->get('kelas_id');
 
-        if (! $kelasId || ! $tahunAjaranId) {
-            return redirect()->route('nilai.rekap')->with('error', 'Pilih filter terlebih dahulu.');
+        if ($kelasId) {
+            abort_unless($user->mengampuKelas((int) $kelasId, hanyaWali: true), 403, 'Anda tidak memiliki akses ke kelas ini.');
         }
 
-        if (! $user->isAdmin()) {
-            $isWaliKelas = Kelas::where('id', $kelasId)->where('wali_kelas_id', $user->id)->exists();
-            if (! $isWaliKelas) {
-                return redirect()->route('nilai.rekap')->with('error', 'Anda tidak memiliki akses ke kelas ini.');
-            }
+        if (! $kelasId || ! $tahunAjaranId) {
+            return redirect()->route('nilai.rekap')->with('error', 'Pilih filter terlebih dahulu.');
         }
 
         $siswaList = Siswa::where('kelas_id', $kelasId)->where('status', 'Aktif')->orderBy('nama_siswa')->get();
@@ -514,15 +504,12 @@ class NilaiRapotController extends Controller
         $tahunAjaranId = $request->get('tahun_ajaran_id');
         $kelasId = $request->get('kelas_id');
 
-        if (! $kelasId || ! $tahunAjaranId) {
-            return redirect()->route('nilai.rekap')->with('error', 'Pilih filter terlebih dahulu.');
+        if ($kelasId) {
+            abort_unless($user->mengampuKelas((int) $kelasId, hanyaWali: true), 403, 'Anda tidak memiliki akses ke kelas ini.');
         }
 
-        if (! $user->isAdmin()) {
-            $isWaliKelas = Kelas::where('id', $kelasId)->where('wali_kelas_id', $user->id)->exists();
-            if (! $isWaliKelas) {
-                return redirect()->route('nilai.rekap')->with('error', 'Anda tidak memiliki akses ke kelas ini.');
-            }
+        if (! $kelasId || ! $tahunAjaranId) {
+            return redirect()->route('nilai.rekap')->with('error', 'Pilih filter terlebih dahulu.');
         }
 
         $siswaList = Siswa::where('kelas_id', $kelasId)->where('status', 'Aktif')->orderBy('nama_siswa')->get();

@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\HariLibur;
+use App\Models\Kelas;
 use App\Models\PresensiSholat;
 use App\Models\Siswa;
 use Carbon\Carbon;
@@ -47,13 +48,20 @@ class TandaiSholatTidakHadir extends Command
         }
 
         $tanggalStr = $tanggal->toDateString();
+        $kelasIds = Kelas::all()->filter->ikutSholat($jenis)->pluck('id');
+        if ($kelasIds->isEmpty()) {
+            $this->info("Tidak ada kelas yang mengikuti Sholat {$jenis}.");
+
+            return self::SUCCESS;
+        }
+
         $batas = config("sholat.batas_tidak_hadir.{$jenis}");
         $keterangan = 'Otomatis: belum scan'.($batas ? " sampai {$batas}" : '');
         $now = now();
         $total = 0;
 
         Siswa::where('status', 'Aktif')
-            ->whereNotNull('kelas_id')
+            ->whereIn('kelas_id', $kelasIds)
             ->whereDoesntHave('presensiSholat', fn ($q) => $q->where('tanggal', $tanggalStr)->where('jenis_sholat', $jenis))
             ->select(['id', 'kelas_id'])
             ->chunkById(500, function ($siswaList) use ($tanggalStr, $jenis, $keterangan, $now, &$total) {

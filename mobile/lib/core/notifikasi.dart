@@ -48,12 +48,18 @@ class LayananNotifikasi extends ChangeNotifier {
     }
 
     await _lokal.initialize(
-      settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
+      settings: const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      ),
       onDidReceiveNotificationResponse: (r) {
         if (r.payload != null && r.payload!.isNotEmpty) _buka(r.payload!);
       },
     );
-    await _lokal.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(_kanal);
+    await _lokal
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(_kanal);
 
     // Aplikasi sedang terbuka: FCM tidak menampilkan notifikasi sendiri, jadi tampilkan lewat notifikasi lokal.
     FirebaseMessaging.onMessage.listen((m) {
@@ -80,7 +86,9 @@ class LayananNotifikasi extends ChangeNotifier {
     });
 
     // Notifikasi diketuk saat aplikasi di latar belakang / tertutup.
-    FirebaseMessaging.onMessageOpenedApp.listen((m) => _buka(m.data['rute'] as String?));
+    FirebaseMessaging.onMessageOpenedApp.listen(
+      (m) => _buka(m.data['rute'] as String?),
+    );
     final awal = await FirebaseMessaging.instance.getInitialMessage();
     if (awal != null) _ruteTertunda = awal.data['rute'] as String?;
   }
@@ -96,7 +104,13 @@ class LayananNotifikasi extends ChangeNotifier {
       // getToken/onTokenRefresh (register() menghasilkan Installation ID untuk API lain).
       // ignore: deprecated_member_use
       _token = await FirebaseMessaging.instance.getToken();
-      if (_token != null) await api.post('/perangkat', {'token': _token, 'platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android'});
+      if (_token != null)
+        await api.post('/perangkat', {
+          'token': _token,
+          'platform': defaultTargetPlatform == TargetPlatform.iOS
+              ? 'ios'
+              : 'android',
+        });
       // ignore: deprecated_member_use
       _subToken ??= FirebaseMessaging.instance.onTokenRefresh.listen((t) async {
         _token = t;

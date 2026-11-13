@@ -36,20 +36,34 @@ class KartuIdentitas extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.brand200),
-        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Colors.white, AppColors.brand50, AppColors.brand100]),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.white, AppColors.brand50, AppColors.brand100],
+        ),
       ),
       child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
-            child: Row(children: [
-              Image.asset('assets/images/logo.png', height: 34),
-              const SizedBox(width: 10),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(jenis, style: AppText.overline.copyWith(color: AppColors.brand700)),
-                Text('SDIT Darul Fikri', style: AppText.title),
-              ]),
-            ]),
+            child: Row(
+              children: [
+                Image.asset('assets/images/logo.png', height: 34),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      jenis,
+                      style: AppText.overline.copyWith(
+                        color: AppColors.brand700,
+                      ),
+                    ),
+                    Text('SDIT Darul Fikri', style: AppText.title),
+                  ],
+                ),
+              ],
+            ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
@@ -65,7 +79,11 @@ class KartuIdentitas extends StatelessWidget {
                         width: 74,
                         height: 92,
                         clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(color: AppColors.brand100, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.brand200)),
+                        decoration: BoxDecoration(
+                          color: AppColors.brand100,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.brand200),
+                        ),
                         alignment: Alignment.center,
                         child: (fotoUrl != null && fotoUrl!.trim().isNotEmpty)
                             ? Image.network(
@@ -75,7 +93,8 @@ class KartuIdentitas extends StatelessWidget {
                                 width: 74,
                                 height: 92,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => _FotoPlaceholder(inisial: inisial),
+                                errorBuilder: (_, _, _) =>
+                                    _FotoPlaceholder(inisial: inisial),
                               )
                             : _FotoPlaceholder(inisial: inisial),
                       ),
@@ -85,8 +104,15 @@ class KartuIdentitas extends StatelessWidget {
                           bottom: -4,
                           child: Container(
                             padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(color: AppColors.brand700, shape: BoxShape.circle),
-                            child: const Icon(Icons.camera_alt, size: 12, color: Colors.white),
+                            decoration: const BoxDecoration(
+                              color: AppColors.brand700,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              size: 12,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                     ],
@@ -97,7 +123,12 @@ class KartuIdentitas extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(nama, style: AppText.heading, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      Text(
+                        nama,
+                        style: AppText.heading,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 16,
@@ -105,16 +136,31 @@ class KartuIdentitas extends StatelessWidget {
                         children: [
                           for (final f in fields)
                             SizedBox(
-                              width: qr == null ? 200 : (f.$1.toLowerCase() == 'alamat' ? 180 : 85),
-                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(f.$1.toUpperCase(), style: AppText.overline.copyWith(fontSize: 10)),
-                                Text(
-                                  f.$2,
-                                  style: AppText.captionBold.copyWith(fontSize: 12, color: AppColors.ink),
-                                  maxLines: f.$1.toLowerCase() == 'alamat' ? 2 : 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ]),
+                              width: qr == null
+                                  ? 200
+                                  : (f.$1.toLowerCase() == 'alamat' ? 180 : 85),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    f.$1.toUpperCase(),
+                                    style: AppText.overline.copyWith(
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                  Text(
+                                    f.$2,
+                                    style: AppText.captionBold.copyWith(
+                                      fontSize: 12,
+                                      color: AppColors.ink,
+                                    ),
+                                    maxLines: f.$1.toLowerCase() == 'alamat'
+                                        ? 2
+                                        : 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
                             ),
                         ],
                       ),
@@ -128,10 +174,27 @@ class KartuIdentitas extends StatelessWidget {
           Container(
             color: AppColors.brand700,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            child: Row(children: [
-              Expanded(child: Text('Tahun Ajaran ${tahunAjaran ?? '-'}', style: AppText.captionBold.copyWith(color: Colors.white, fontSize: 11), overflow: TextOverflow.ellipsis)),
-              Text(footerKanan ?? '', style: AppText.caption.copyWith(color: Colors.white, fontSize: 11)),
-            ]),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Tahun Ajaran ${tahunAjaran ?? '-'}',
+                    style: AppText.captionBold.copyWith(
+                      color: Colors.white,
+                      fontSize: 11,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  footerKanan ?? '',
+                  style: AppText.caption.copyWith(
+                    color: Colors.white,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -145,9 +208,18 @@ class _FotoPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      Text(inisial, style: AppText.title.copyWith(color: AppColors.brand700)),
-      Text('FOTO 3×4', style: AppText.overline.copyWith(color: AppColors.brand700, fontSize: 9)),
-    ]);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(inisial, style: AppText.title.copyWith(color: AppColors.brand700)),
+        Text(
+          'FOTO 3×4',
+          style: AppText.overline.copyWith(
+            color: AppColors.brand700,
+            fontSize: 9,
+          ),
+        ),
+      ],
+    );
   }
 }

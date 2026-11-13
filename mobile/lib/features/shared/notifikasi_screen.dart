@@ -22,7 +22,10 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
 
   Future<Map<String, dynamic>> _muat() async {
     final res = await context.read<ApiClient>().get('/notifikasi');
-    if (mounted) context.read<LayananNotifikasi>().setJumlah((res['belum_dibaca'] as num?)?.toInt() ?? 0);
+    if (mounted)
+      context.read<LayananNotifikasi>().setJumlah(
+        (res['belum_dibaca'] as num?)?.toInt() ?? 0,
+      );
     return res;
   }
 
@@ -56,7 +59,11 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
   Widget build(BuildContext context) {
     final session = context.read<Session>();
     final adaBelumDibaca = context.watch<LayananNotifikasi>().belumDibaca > 0;
-    final rutePengumuman = session.isAdmin ? '/admin/pengumuman' : (session.peran == Peran.wali ? '/wali/pengumuman' : '/guru/pengumuman');
+    final rutePengumuman = session.isAdmin
+        ? '/admin/pengumuman'
+        : (session.peran == Peran.wali
+              ? '/wali/pengumuman'
+              : '/guru/pengumuman');
 
     return AppPage(
       title: 'Notifikasi',
@@ -67,21 +74,39 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
         key: _key,
         load: _muat,
         builder: (context, d, _) {
-          final list = (d['data'] as List).cast<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
-          return ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
-            // Wrap, bukan Row: di layar sempit tombol turun ke baris berikutnya, tidak overflow.
-            Wrap(alignment: WrapAlignment.spaceBetween, children: [
-              TextButton.icon(
-                onPressed: () => context.push(rutePengumuman),
-                icon: const Icon(Icons.campaign_outlined, size: 20),
-                label: const Text('Semua pengumuman'),
+          final list = (d['data'] as List)
+              .cast<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList();
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            children: [
+              // Wrap, bukan Row: di layar sempit tombol turun ke baris berikutnya, tidak overflow.
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: () => context.push(rutePengumuman),
+                    icon: const Icon(Icons.campaign_outlined, size: 20),
+                    label: const Text('Semua pengumuman'),
+                  ),
+                  if (adaBelumDibaca)
+                    TextButton(
+                      onPressed: _bacaSemua,
+                      child: const Text('Tandai semua dibaca'),
+                    ),
+                ],
               ),
-              if (adaBelumDibaca) TextButton(onPressed: _bacaSemua, child: const Text('Tandai semua dibaca')),
-            ]),
-            const SizedBox(height: 4),
-            if (list.isEmpty) const EmptyPanel(icon: Icons.notifications_none_rounded, message: 'Belum ada notifikasi.'),
-            for (final n in list) _ItemNotifikasi(n: n, onTap: () => _buka(n)),
-          ]);
+              const SizedBox(height: 4),
+              if (list.isEmpty)
+                const EmptyPanel(
+                  icon: Icons.notifications_none_rounded,
+                  message: 'Belum ada notifikasi.',
+                ),
+              for (final n in list)
+                _ItemNotifikasi(n: n, onTap: () => _buka(n)),
+            ],
+          );
         },
       ),
     );
@@ -98,14 +123,24 @@ class _ItemNotifikasi extends StatelessWidget {
     'pengumuman': (Icons.campaign_outlined, AppColors.gold, AppColors.goldTint),
     'izin': (Icons.assignment_outlined, AppColors.sakit, AppColors.sakitTint),
     'tugas': (Icons.menu_book_outlined, AppColors.ok700, AppColors.ok100),
-    'foto': (Icons.account_circle_outlined, AppColors.brand700, AppColors.brand100),
-    'lokasi': (Icons.wrong_location_outlined, AppColors.alpa, AppColors.alpaTint),
+    'foto': (
+      Icons.account_circle_outlined,
+      AppColors.brand700,
+      AppColors.brand100,
+    ),
+    'lokasi': (
+      Icons.wrong_location_outlined,
+      AppColors.alpa,
+      AppColors.alpaTint,
+    ),
   };
 
   @override
   Widget build(BuildContext context) {
     final belum = n['dibaca'] != true;
-    final (ikon, warna, latar) = _ikon[n['jenis']] ?? (Icons.notifications_none_rounded, AppColors.inkMuted, AppColors.field);
+    final (ikon, warna, latar) =
+        _ikon[n['jenis']] ??
+        (Icons.notifications_none_rounded, AppColors.inkMuted, AppColors.field);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Semantics(
@@ -115,32 +150,69 @@ class _ItemNotifikasi extends StatelessWidget {
           color: belum ? AppColors.brand50 : null,
           borderColor: belum ? AppColors.brand200 : null,
           padding: const EdgeInsets.all(14),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(color: latar, borderRadius: BorderRadius.circular(12)),
-              child: Icon(ikon, color: warna, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Expanded(
-                    child: Text(n['judul'] ?? '', style: AppText.label.copyWith(fontWeight: belum ? FontWeight.w700 : FontWeight.w500), maxLines: 2, overflow: TextOverflow.ellipsis),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: latar,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(ikon, color: warna, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            n['judul'] ?? '',
+                            style: AppText.label.copyWith(
+                              fontWeight: belum
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _waktu(n['waktu'] as String?),
+                          style: AppText.caption,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      n['isi'] ?? '',
+                      style: AppText.bodySmall,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              if (belum) ...[
+                const SizedBox(width: 8),
+                Container(
+                  width: 8,
+                  height: 8,
+                  margin: const EdgeInsets.only(top: 6),
+                  decoration: const BoxDecoration(
+                    color: AppColors.brand700,
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(width: 8),
-                  Text(_waktu(n['waktu'] as String?), style: AppText.caption),
-                ]),
-                const SizedBox(height: 4),
-                Text(n['isi'] ?? '', style: AppText.bodySmall, maxLines: 3, overflow: TextOverflow.ellipsis),
-              ]),
-            ),
-            if (belum) ...[
-              const SizedBox(width: 8),
-              Container(width: 8, height: 8, margin: const EdgeInsets.only(top: 6), decoration: const BoxDecoration(color: AppColors.brand700, shape: BoxShape.circle)),
+                ),
+              ],
             ],
-          ]),
+          ),
         ),
       ),
     );
@@ -184,7 +256,14 @@ class TombolNotifikasi extends StatelessWidget {
             setelahKembali?.call();
           },
           icon: const Icon(Icons.notifications_none_rounded),
-          style: IconButton.styleFrom(side: const BorderSide(color: AppColors.line), backgroundColor: AppColors.surface, minimumSize: const Size(48, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          style: IconButton.styleFrom(
+            side: const BorderSide(color: AppColors.line),
+            backgroundColor: AppColors.surface,
+            minimumSize: const Size(48, 48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
         ),
       ),
     );

@@ -92,26 +92,26 @@ class DatabaseSeeder extends Seeder
             // ── KELAS I ──
             ['nis' => '202101001', 'nisn' => '0011223344', 'nama_siswa' => 'Siswa Dummy Satu', 'tanggal_lahir' => '2018-05-10', 'alamat' => 'Jl. Pendidikan No. 1', 'jenis_kelamin' => 'L', 'kelas_id' => $kelas1->id, 'nama_wali' => 'Wali Satu', 'no_hp_wali' => '08110000001'],
             ['nis' => '202101002', 'nisn' => '0011223345', 'nama_siswa' => 'Siswa Dummy Dua',  'tanggal_lahir' => '2018-08-15', 'alamat' => 'Jl. Pendidikan No. 2', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas1->id, 'nama_wali' => 'Wali Dua',  'no_hp_wali' => '08110000002'],
-            
+
             // ── KELAS II ──
             ['nis' => '202102001', 'nisn' => '0021223344', 'nama_siswa' => 'Siswa Dummy Tiga', 'tanggal_lahir' => '2017-02-20', 'alamat' => 'Jl. Merdeka No. 3',    'jenis_kelamin' => 'L', 'kelas_id' => $kelas2->id, 'nama_wali' => 'Wali Tiga', 'no_hp_wali' => '08110000003'],
-            ['nis' => '202102002', 'nisn' => '0021223345', 'nama_siswa' => 'Siswa Dummy Empat','tanggal_lahir' => '2017-11-12', 'alamat' => 'Jl. Merdeka No. 4',    'jenis_kelamin' => 'P', 'kelas_id' => $kelas2->id, 'nama_wali' => 'Wali Empat','no_hp_wali' => '08110000004'],
+            ['nis' => '202102002', 'nisn' => '0021223345', 'nama_siswa' => 'Siswa Dummy Empat', 'tanggal_lahir' => '2017-11-12', 'alamat' => 'Jl. Merdeka No. 4',    'jenis_kelamin' => 'P', 'kelas_id' => $kelas2->id, 'nama_wali' => 'Wali Empat', 'no_hp_wali' => '08110000004'],
 
             // ── KELAS III ──
             ['nis' => '202103001', 'nisn' => '0031223344', 'nama_siswa' => 'Siswa Dummy Lima', 'tanggal_lahir' => '2016-04-05', 'alamat' => 'Jl. Pahlawan No. 5',   'jenis_kelamin' => 'L', 'kelas_id' => $kelas3->id, 'nama_wali' => 'Wali Lima', 'no_hp_wali' => '08110000005'],
             ['nis' => '202103002', 'nisn' => '0031223345', 'nama_siswa' => 'Siswa Dummy Enam', 'tanggal_lahir' => '2016-09-25', 'alamat' => 'Jl. Pahlawan No. 6',   'jenis_kelamin' => 'P', 'kelas_id' => $kelas3->id, 'nama_wali' => 'Wali Enam', 'no_hp_wali' => '08110000006'],
 
             // ── KELAS IV ──
-            ['nis' => '202104001', 'nisn' => '0041223344', 'nama_siswa' => 'Siswa Dummy Tujuh','tanggal_lahir' => '2015-01-10', 'alamat' => 'Jl. Bangsa No. 7',     'jenis_kelamin' => 'L', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Wali Tujuh','no_hp_wali' => '08110000007'],
-            ['nis' => '202104002', 'nisn' => '0041223345', 'nama_siswa' => 'Siswa Dummy Delapan','tanggal_lahir'=> '2015-07-30', 'alamat' => 'Jl. Bangsa No. 8',     'jenis_kelamin' => 'P', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Wali Delapan','no_hp_wali'=> '08110000008'],
+            ['nis' => '202104001', 'nisn' => '0041223344', 'nama_siswa' => 'Siswa Dummy Tujuh', 'tanggal_lahir' => '2015-01-10', 'alamat' => 'Jl. Bangsa No. 7',     'jenis_kelamin' => 'L', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Wali Tujuh', 'no_hp_wali' => '08110000007'],
+            ['nis' => '202104002', 'nisn' => '0041223345', 'nama_siswa' => 'Siswa Dummy Delapan', 'tanggal_lahir' => '2015-07-30', 'alamat' => 'Jl. Bangsa No. 8',     'jenis_kelamin' => 'P', 'kelas_id' => $kelas4->id, 'nama_wali' => 'Wali Delapan', 'no_hp_wali' => '08110000008'],
 
             // ── KELAS V ──
-            ['nis' => '202105001', 'nisn' => '0051223344', 'nama_siswa' => 'Siswa Dummy Sembilan','tanggal_lahir'=>'2014-03-15','alamat' => 'Jl. Nusantara No. 9',  'jenis_kelamin' => 'L', 'kelas_id' => $kelas5->id, 'nama_wali' => 'Wali Sembilan','no_hp_wali'=>'08110000009'],
-            ['nis' => '202105002', 'nisn' => '0051223345', 'nama_siswa' => 'Siswa Dummy Sepuluh','tanggal_lahir'=>'2014-10-20','alamat' => 'Jl. Nusantara No. 10', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas5->id, 'nama_wali' => 'Wali Sepuluh','no_hp_wali'=>'08110000010'],
+            ['nis' => '202105001', 'nisn' => '0051223344', 'nama_siswa' => 'Siswa Dummy Sembilan', 'tanggal_lahir' => '2014-03-15', 'alamat' => 'Jl. Nusantara No. 9',  'jenis_kelamin' => 'L', 'kelas_id' => $kelas5->id, 'nama_wali' => 'Wali Sembilan', 'no_hp_wali' => '08110000009'],
+            ['nis' => '202105002', 'nisn' => '0051223345', 'nama_siswa' => 'Siswa Dummy Sepuluh', 'tanggal_lahir' => '2014-10-20', 'alamat' => 'Jl. Nusantara No. 10', 'jenis_kelamin' => 'P', 'kelas_id' => $kelas5->id, 'nama_wali' => 'Wali Sepuluh', 'no_hp_wali' => '08110000010'],
 
             // ── KELAS VI ──
-            ['nis' => '202106001', 'nisn' => '0061223344', 'nama_siswa' => 'Siswa Dummy Sebelas','tanggal_lahir'=>'2013-06-01','alamat' => 'Jl. Cerdas No. 11',    'jenis_kelamin' => 'L', 'kelas_id' => $kelas6->id, 'nama_wali' => 'Wali Sebelas','no_hp_wali'=>'08110000011'],
-            ['nis' => '202106002', 'nisn' => '0061223345', 'nama_siswa' => 'Siswa Dummy Dua Belas','tanggal_lahir'=>'2013-12-15','alamat'=>'Jl. Cerdas No. 12',    'jenis_kelamin' => 'P', 'kelas_id' => $kelas6->id, 'nama_wali' => 'Wali Dua Belas','no_hp_wali'=>'08110000012'],
+            ['nis' => '202106001', 'nisn' => '0061223344', 'nama_siswa' => 'Siswa Dummy Sebelas', 'tanggal_lahir' => '2013-06-01', 'alamat' => 'Jl. Cerdas No. 11',    'jenis_kelamin' => 'L', 'kelas_id' => $kelas6->id, 'nama_wali' => 'Wali Sebelas', 'no_hp_wali' => '08110000011'],
+            ['nis' => '202106002', 'nisn' => '0061223345', 'nama_siswa' => 'Siswa Dummy Dua Belas', 'tanggal_lahir' => '2013-12-15', 'alamat' => 'Jl. Cerdas No. 12',    'jenis_kelamin' => 'P', 'kelas_id' => $kelas6->id, 'nama_wali' => 'Wali Dua Belas', 'no_hp_wali' => '08110000012'],
         ];
         foreach ($siswaData as $s) {
             Siswa::create($s);

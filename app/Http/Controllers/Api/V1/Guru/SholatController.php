@@ -46,7 +46,10 @@ class SholatController extends Controller
         return response()->json([
             'kelas' => ['id' => $kelas->id, 'nama' => $kelas->nama_kelas, 'jumlah_siswa' => $total],
             'tanggal' => $now->toDateString(),
-            'data' => collect(PresensiSholat::JENIS)->map(function ($jenis) use ($rekap, $now, $total) {
+            'catatan' => $kelas->ikutSholat(PresensiSholat::DZUHUR)
+                ? null
+                : 'Kelas 1 dan 2 tidak mengikuti absensi sholat Dzuhur (khusus kelas 3 hingga 6).',
+            'data' => collect($kelas->jenisSholat())->map(function ($jenis) use ($rekap, $now, $total) {
                 $waktu = config("sholat.waktu.{$jenis}");
                 $hadir = (int) $rekap->where('jenis_sholat', $jenis)->where('status_kehadiran', PresensiSholat::HADIR)->sum('jumlah');
                 $tercatat = (int) $rekap->where('jenis_sholat', $jenis)->sum('jumlah');
@@ -65,6 +68,7 @@ class SholatController extends Controller
     {
         $this->pastikanWali($kelas);
         $jenis = $this->jenisValid($request->query('jenis'));
+        $this->pastikanIkutSholat($kelas, $jenis);
         $tanggal = Sekolah::now()->toDateString();
         $records = PresensiSholat::where('kelas_id', $kelas->id)->where('tanggal', $tanggal)->where('jenis_sholat', $jenis)
             ->get(['siswa_id', 'status_kehadiran', 'updated_at'])->keyBy('siswa_id');
@@ -88,6 +92,7 @@ class SholatController extends Controller
     {
         $this->pastikanWali($kelas);
         $data = $request->validate(['jenis' => ['required', Rule::in(PresensiSholat::JENIS)], 'qr' => 'required|string|max:200']);
+        $this->pastikanIkutSholat($kelas, $data['jenis']);
 
         $token = str_starts_with($data['qr'], Siswa::QR_PREFIX) ? substr($data['qr'], strlen(Siswa::QR_PREFIX)) : null;
         $siswa = $token ? Siswa::where('qr_token', $token)->first() : null;
@@ -133,6 +138,7 @@ class SholatController extends Controller
             'presensi.*.siswa_id' => ['required', Rule::exists('siswa', 'id')->where('kelas_id', $kelas->id)],
             'presensi.*.status' => ['nullable', Rule::in(PresensiSholat::STATUS)],
         ]);
+        $this->pastikanIkutSholat($kelas, $data['jenis']);
 
         $tanggal = Sekolah::now()->toDateString();
         $now = now();
@@ -166,5 +172,12 @@ class SholatController extends Controller
         }
 
         return $jenis;
+    }
+
+    private function pastikanIkutSholat(Kelas $kelas, string $jenis): void
+    {
+        if (! $kelas->ikutSholat($jenis)) {
+            throw ValidationException::withMessages(['jenis' => 'Kelas 1 dan 2 tidak mengikuti presensi sholat Dzuhur.']);
+        }
     }
 }

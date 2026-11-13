@@ -23,10 +23,18 @@ class PengumumanScreen extends StatelessWidget {
         load: () => api.get(endpoint),
         builder: (context, d, _) {
           final list = (d['data'] as List).cast<Map>();
-          return ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
-            if (list.isEmpty) const EmptyPanel(icon: Icons.campaign_outlined, message: 'Belum ada pengumuman.'),
-            for (final p in list) PengumumanCard(p: Map<String, dynamic>.from(p)),
-          ]);
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            children: [
+              if (list.isEmpty)
+                const EmptyPanel(
+                  icon: Icons.campaign_outlined,
+                  message: 'Belum ada pengumuman.',
+                ),
+              for (final p in list)
+                PengumumanCard(p: Map<String, dynamic>.from(p)),
+            ],
+          );
         },
       ),
     );
@@ -44,19 +52,34 @@ class PengumumanCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: AppCard(
         borderColor: p['penting'] == true ? AppColors.gold : null,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            if (p['penting'] == true) const Padding(padding: EdgeInsets.only(right: 6), child: StatusChip('Penting', tone: ChipTone.gold)),
-            StatusChip(p['sasaran'] == 'Wali Murid' ? 'Wali' : p['sasaran'], tone: ChipTone.brand),
-            const Spacer(),
-            Text(Fmt.tanggalPendek(Fmt.parse(p['tanggal'])), style: AppText.caption),
-            ?aksi,
-          ]),
-          const SizedBox(height: 10),
-          Text(p['judul'], style: AppText.heading),
-          const SizedBox(height: 6),
-          Text(p['isi'], style: AppText.bodySmall),
-        ]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (p['penting'] == true)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 6),
+                    child: StatusChip('Penting', tone: ChipTone.gold),
+                  ),
+                StatusChip(
+                  p['sasaran'] == 'Wali Murid' ? 'Wali' : p['sasaran'],
+                  tone: ChipTone.brand,
+                ),
+                const Spacer(),
+                Text(
+                  Fmt.tanggalPendek(Fmt.parse(p['tanggal'])),
+                  style: AppText.caption,
+                ),
+                ?aksi,
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(p['judul'], style: AppText.heading),
+            const SizedBox(height: 6),
+            Text(p['isi'], style: AppText.bodySmall),
+          ],
+        ),
       ),
     );
   }

@@ -15,7 +15,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -73,14 +72,14 @@ class AuthController extends Controller
             if ($wali) {
                 RateLimiter::hit($kunciIp, 3600);
                 if ($lama = KunciLogin::gagal($kunci)) {
-                    $this->tolakTerkunci($lama, 'NIS atau tanggal lahir (YY-MM-DD) tidak cocok. ');
+                    $this->tolakTerkunci($lama, 'NIS atau kata sandi tidak cocok. ');
                 }
             } else {
                 BatasLoginGuru::gagal($data['username'], $request->ip());
             }
             throw ValidationException::withMessages([
                 'username' => $wali
-                    ? 'NIS atau tanggal lahir (YY-MM-DD) tidak cocok.'
+                    ? 'NIS atau kata sandi (tanggal lahir YY-MM-DD) tidak cocok.'
                     : 'Username/NIP atau kata sandi salah.',
             ]);
         }
@@ -115,15 +114,20 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $request->validate([
-            'sandi_lama' => 'required|string',
+            'sandi_lama' => 'required|string|max:255',
             'sandi_baru' => ['required', 'string', 'min:8', 'confirmed', 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/'],
         ], ['sandi_baru.regex' => 'Kata sandi harus mengandung huruf besar, huruf kecil, dan angka.']);
 
-        if (! Hash::check($request->input('sandi_lama'), $user->password)) {
+        // Wali: sandi lama bisa berupa tanggal lahir siswa dalam format apa pun.
+        $cocok = $user instanceof Wali ? $user->cocokSandi($request->input('sandi_lama')) : Hash::check($request->input('sandi_lama'), $user->password);
+        if (! $cocok) {
             throw ValidationException::withMessages(['sandi_lama' => 'Kata sandi lama tidak sesuai.']);
         }
+        if (Hash::check($request->input('sandi_baru'), $user->password)) {
+            throw ValidationException::withMessages(['sandi_baru' => 'Kata sandi baru harus berbeda dari kata sandi lama.']);
+        }
 
-        $user->update(['password' => $request->input('sandi_baru')]);
+        $user->forceFill(['password' => $request->input('sandi_baru'), 'wajib_ganti_sandi' => false])->save();
         // Keluarkan perangkat lain, pertahankan sesi saat ini.
         $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
 
@@ -176,6 +180,7 @@ class AuthController extends Controller
                 'nama' => $akun->nama,
                 'no_hp' => $akun->no_hp,
                 'tahun_ajaran' => $tahun,
+                'wajib_ganti_sandi' => (bool) $akun->wajib_ganti_sandi,
                 'anak' => $akun->siswa->sortBy('nama_siswa')->map(fn ($s) => WaliController::dataAnak($s))->values(),
             ];
         }
@@ -200,6 +205,7 @@ class AuthController extends Controller
             'wali_kelas' => $waliKelas,
             'sekolah' => Sekolah::NAMA,
             'tahun_ajaran' => $tahun,
+            'wajib_ganti_sandi' => (bool) $akun->wajib_ganti_sandi,
         ];
     }
 }

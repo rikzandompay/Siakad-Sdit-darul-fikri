@@ -24,6 +24,7 @@ class TahunAjaran extends Model
     {
         static::where('id', '!=', $this->id)->where('status_aktif', 'Y')->update(['status_aktif' => 'N']);
         $this->status_aktif = 'Y';
+
         return $this->save();
     }
 }

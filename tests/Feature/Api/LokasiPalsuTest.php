@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\InsidenLokasiPalsu;
 use App\Models\PengaturanSekolah;
 use App\Models\PresensiGuru;
 use App\Models\User;
@@ -135,5 +136,70 @@ class LokasiPalsuTest extends TestCase
             ->assertOk()->assertJsonPath('di_dalam_area', true);
 
         Notification::assertNothingSent();
+    }
+
+    public function test_kepala_sekolah_satu_satunya_admin_tercatat_permanen_tanpa_klaim_memberi_tahu(): void
+    {
+        $this->withHeaders($this->headers($this->kepsek))->postJson('/api/v1/guru/absen/masuk', $this->palsu() + ['embedding' => [0.1], 'liveness' => true])
+            ->assertStatus(423)->assertJsonPath('kode', 'lokasi_palsu')
+            ->assertJsonPath('message', fn ($m) => str_contains($m, 'dicatat permanen') && ! str_contains($m, 'sudah diberi tahu'));
+
+        Notification::assertNothingSent();
+        $ins = InsidenLokasiPalsu::sole();
+        $this->assertSame($this->kepsek->id, $ins->guru_id);
+        $this->assertSame('2026-11-09', $ins->tanggal->toDateString());
+        $this->assertSame('absen masuk', $ins->tahap);
+        $this->assertSame(1112, $ins->jarak_meter);
+
+        // Percobaan berulang dalam 5 menit tidak menggandakan catatan.
+        $this->withHeaders($this->headers($this->kepsek))->postJson('/api/v1/guru/absen/masuk', $this->palsu() + ['embedding' => [0.1], 'liveness' => true])->assertStatus(423);
+        $this->assertSame(1, InsidenLokasiPalsu::count());
+    }
+
+    public function test_guru_biasa_tetap_memberi_tahu_kepala_sekolah_dan_tercatat(): void
+    {
+        $this->withHeaders($this->headers())->postJson('/api/v1/guru/absen/cek-lokasi', $this->palsu())
+            ->assertStatus(423)->assertJsonPath('message', fn ($m) => str_contains($m, 'kepala sekolah sudah diberi tahu'));
+        Notification::assertSentTo($this->kepsek, LokasiPalsuTerdeteksi::class);
+        $this->assertSame($this->guru->id, InsidenLokasiPalsu::sole()->guru_id);
+    }
+
+    public function test_koreksi_absen_sendiri_ditandai_dan_insiden_tampil_di_rekap(): void
+    {
+        $this->withHeaders($this->headers($this->kepsek))->postJson('/api/v1/guru/absen/cek-lokasi', $this->palsu())->assertStatus(423);
+
+        // Koreksi absen milik sendiri lewat aplikasi: tetap boleh, tetapi ditandai.
+        $h = $this->headers($this->kepsek);
+        $this->withHeaders($h)->postJson('/api/v1/admin/presensi-guru/koreksi', ['guru_id' => $this->kepsek->id, 'tanggal' => '2026-11-09', 'status' => 'Hadir', 'jam_masuk' => '07:00', 'keterangan' => 'GPS bermasalah'])->assertOk();
+        $p = PresensiGuru::where('guru_id', $this->kepsek->id)->sole();
+        $this->assertTrue($p->koreksi_mandiri);
+        $this->assertStringStartsWith('[Koreksi mandiri] GPS bermasalah', $p->keterangan);
+
+        // Koreksi untuk guru lain tidak ditandai mandiri.
+        $this->withHeaders($this->headers($this->kepsek))->postJson('/api/v1/admin/presensi-guru/koreksi', ['guru_id' => $this->guru->id, 'tanggal' => '2026-11-09', 'status' => 'Hadir', 'jam_masuk' => '07:00', 'keterangan' => 'Lupa absen'])->assertOk();
+        $this->assertFalse(PresensiGuru::where('guru_id', $this->guru->id)->sole()->koreksi_mandiri);
+
+        // Rekap guru dan riwayat menampilkan tanda.
+        $this->withHeaders($this->headers($this->kepsek))->getJson('/api/v1/admin/rekap/guru')->assertOk()
+            ->assertJsonFragment(['id' => $this->kepsek->id, 'lokasi_palsu' => 1, 'koreksi_mandiri' => 1]);
+        $this->withHeaders($this->headers($this->kepsek))->getJson('/api/v1/admin/presensi-guru/'.$this->kepsek->id)->assertOk()
+            ->assertJsonPath('data.0.lokasi_palsu', '07:05')->assertJsonPath('data.0.koreksi_mandiri', true);
+        $this->withHeaders($this->headers($this->kepsek))->getJson('/api/v1/guru/absen/rekap')->assertOk()
+            ->assertJsonPath('data.0.lokasi_palsu', '07:05');
+
+        // Koreksi lewat web juga ditandai, dan halaman rekap memuat tanda serta catatan permanen.
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($this->kepsek)->post('/presensi-guru/manual', ['guru_id' => $this->kepsek->id, 'tanggal' => '2026-11-09', 'status' => 'Hadir', 'jam_masuk' => '07:00', 'keterangan' => 'Ulang'])->assertRedirect();
+        $this->assertTrue(PresensiGuru::where('guru_id', $this->kepsek->id)->sole()->koreksi_mandiri);
+        $this->actingAs($this->kepsek)->get('/presensi-guru/rekap?guru_id='.$this->kepsek->id)->assertOk()
+            ->assertSee('Lokasi palsu 07:05')->assertSee('Koreksi mandiri')->assertSee('tidak bisa dihapus');
+        $this->actingAs($this->kepsek)->get('/presensi-guru/rekap/export/csv?guru_id='.$this->kepsek->id)->assertOk();
+    }
+
+    public function test_tanggal_yang_hanya_punya_catatan_lokasi_palsu_tetap_muncul_di_riwayat(): void
+    {
+        $this->withHeaders($this->headers())->postJson('/api/v1/guru/absen/cek-lokasi', $this->palsu())->assertStatus(423);
+        $this->withHeaders($this->headers())->getJson('/api/v1/guru/absen/rekap')->assertOk()
+            ->assertJsonPath('data.0.tanggal', '2026-11-09')->assertJsonPath('data.0.status', null)->assertJsonPath('data.0.lokasi_palsu', '07:05');
     }
 }
