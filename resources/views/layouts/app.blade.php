@@ -73,7 +73,10 @@
         :class="asideClass">
         <div class="px-6 mb-8 flex items-center gap-3 shrink-0">
             <div class="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden p-0">
-                <img src="{{ asset('images/logo.png') }}" alt="Logo" class="w-full h-full object-contain">
+                <picture>
+                    <source srcset="{{ asset('images/logo.webp') }}" type="image/webp">
+                    <img src="{{ asset('images/logo.png') }}" alt="Logo" class="w-full h-full object-contain" width="40" height="40" loading="eager">
+                </picture>
             </div>
             <div>
                 <h1 class="text-gray-900 font-bold text-lg leading-tight">Darul Fikri</h1>

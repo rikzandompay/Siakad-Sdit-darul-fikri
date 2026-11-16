@@ -19,15 +19,17 @@ class SecurityHeaders
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
+        $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');
 
         // Content-Security-Policy (ponytail: keep unsafe-inline until Blade inline scripts move to Vite)
         $csp = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' https://app.secureprivacy.ai https://www.googletagmanager.com https://www.google-analytics.com",
+            "script-src 'self' 'unsafe-inline' https://app.secureprivacy.ai https://www.googletagmanager.com https://www.google-analytics.com https://static.cloudflareinsights.com",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: https://www.googletagmanager.com",
-            "connect-src 'self' https://www.google-analytics.com https://app.secureprivacy.ai",
+            "connect-src 'self' https://www.google-analytics.com https://app.secureprivacy.ai https://cloudflareinsights.com",
             "frame-src 'self' https://www.googletagmanager.com",
             "object-src 'none'",
             "base-uri 'self'",
@@ -37,7 +39,7 @@ class SecurityHeaders
 
         // HSTS — only on HTTPS
         if ($request->secure()) {
-            $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+            $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
         }
 
         return $response;

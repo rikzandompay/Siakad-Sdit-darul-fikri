@@ -222,25 +222,28 @@
         }
     </style>
 
-    {{-- Load full Tailwind CSS asynchronously (non-render-blocking) --}}
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- Preload LCP Image --}}
+    <link rel="preload" as="image" href="{{ asset('images/logo.webp') }}" type="image/webp" fetchpriority="high">
 
     {{-- Huruf Plus Jakarta Sans - preload non-render-blocking --}}
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap"
         as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
     </noscript>
 </head>
 
 <body>
 
-    <div class="login-wrapper">
+    <main class="login-wrapper" id="main-content">
         {{-- Logo & Header --}}
         <div class="login-header">
             <div class="login-logo">
-                <img src="{{ asset('images/logo.png') }}" alt="Logo SDIT Darul Fikri"
-                    style="width: 100%; height: 100%; object-fit: contain;">
+                <picture>
+                    <source srcset="{{ asset('images/logo.webp') }}" type="image/webp">
+                    <img src="{{ asset('images/logo.png') }}" alt="Logo SDIT Darul Fikri" width="80" height="80"
+                        fetchpriority="high" decoding="async" style="width: 100%; height: 100%; object-fit: contain;">
+                </picture>
             </div>
             <h1 class="login-title">SDIT Darul Fikri</h1>
             <p class="login-subtitle">Sistem Informasi Akademik</p>
@@ -317,7 +320,7 @@
         <p class="copyright">
             &copy; 2026 SDIT Darul Fikri V2.0, <br>Semua Hak Dilindungi.<br>
         </p>
-    </div>
+    </main>
 </body>
 
 </html>
