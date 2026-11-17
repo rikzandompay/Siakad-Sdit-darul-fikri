@@ -279,16 +279,16 @@ class _IzinGuruScreenState extends State<IzinGuruScreen> {
                                 Row(
                                   children: [
                                     Expanded(
+                                      flex: 3,
                                       child: SuccessButton(
-                                        label:
-                                            'Setujui (Otomatis Isi ${i['jenis']})',
+                                        label: 'Setujui',
                                         icon: Icons.check_circle_outline,
                                         onPressed: () => _setujui(i),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    SizedBox(
-                                      width: 90,
+                                    Expanded(
+                                      flex: 2,
                                       child: AlertButton(
                                         label: 'Tolak',
                                         icon: Icons.cancel_outlined,

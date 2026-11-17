@@ -154,6 +154,17 @@
  * Ukuran dan tata letak (w-full, px-*, text-xs) tetap bisa ditimpa lewat kelas utilitas di elemen.
  */
 @layer components {
+    /*
+     * Logo lambang sekolah. Gambarnya berbentuk perisai: ujung atas dan bawah
+     * melengkung, sehingga tidak boleh dipotong persegi (object-cover) maupun
+     * diperkecil di dalam kotak persegi (object-contain) — keduanya membuat
+     * lambang tampak terpotong. Ukuran kotak mengikuti rasio asli gambar
+     * (190 × 241) agar lambang tampil utuh.
+     */
+    .brand-logo {
+        aspect-ratio: 190 / 241;
+    }
+
     .btn {
         @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-[background-color,opacity,color];
         @apply hover:opacity-80 disabled:pointer-events-none disabled:opacity-20 aria-disabled:pointer-events-none aria-disabled:opacity-20;

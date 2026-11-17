@@ -20,7 +20,8 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     {{-- Load fonts non-render-blocking with media="print" trick + onload swap --}}
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    <link rel="preload"
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
@@ -64,23 +65,29 @@
     @include('partials.analytics-body')
 
     <a href="#konten"
-        class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Lewati ke konten</a>
+        class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Lewati
+        ke konten</a>
 
     <!-- Sidebar -->
     <aside
         class="fixed left-0 top-0 h-screen w-64 border-r border-gray-200 flex flex-col py-6 z-50 transition-transform duration-300 ease-in-out max-md:-translate-x-full"
-        style="background: linear-gradient(to bottom, #ffffff 0%, #aadaf5 100%);"
-        :class="asideClass">
-        <div class="px-6 mb-8 flex items-center gap-3 shrink-0">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden p-0">
-                <picture>
-                    <source srcset="{{ asset('images/logo.webp') }}" type="image/webp">
-                    <img src="{{ asset('images/logo.png') }}" alt="Logo" class="w-full h-full object-contain" width="40" height="40" loading="eager">
-                </picture>
-            </div>
-            <div>
-                <h1 class="text-gray-900 font-bold text-lg leading-tight">Darul Fikri</h1>
-                <p class="text-gray-600 text-xs font-medium">Sistem Informasi Akademik</p>
+        style="background: linear-gradient(to bottom, #ffffff 0%, #aadaf5 100%);" :class="asideClass">
+        <div class="relative px-6 mb-8 flex items-center gap-3 shrink-0">
+            <!-- Tutup menu (hanya tampil di layar kecil) -->
+            <button type="button" @click="toggleSidebar"
+                class="md:hidden absolute right-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-lg text-blue-800 hover:bg-white/60"
+                aria-label="Tutup menu">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <picture class="brand-logo block w-9 shrink-0">
+                <source srcset="{{ asset('images/logo.webp') }}?v=3" type="image/webp">
+                <img src="{{ asset('images/logo.png') }}?v=3" alt="Logo SDIT Darul Fikri" class="block w-full h-full"
+                    width="44" height="44" loading="eager">
+            </picture>
+            <div class="min-w-0 pr-10 md:pr-0">
+                <h1 class="text-gray-900 font-bold text-lg leading-tight whitespace-nowrap">SD IT Darul Fikri</h1>
+                <p class="text-gray-600 text-[11px] font-medium leading-snug whitespace-nowrap">Sistem Informasi
+                    Akademik</p>
             </div>
         </div>
 
@@ -100,8 +107,9 @@
                 <x-nav-sub :href="route('presensi.rekap')" :active="request()->routeIs('presensi.rekap')">Rekap Absensi Siswa</x-nav-sub>
                 @foreach (\App\Models\PresensiSholat::JENIS as $jenisMenu)
                     @php
-                        $sholatAktif = request()->routeIs('presensi-sholat.index', 'presensi-sholat.show')
-                            && \App\Models\PresensiSholat::normalizeJenis(request()->get('jenis')) === $jenisMenu;
+                        $sholatAktif =
+                            request()->routeIs('presensi-sholat.index', 'presensi-sholat.show') &&
+                            \App\Models\PresensiSholat::normalizeJenis(request()->get('jenis')) === $jenisMenu;
                     @endphp
                     <x-nav-sub :href="route('presensi-sholat.index', ['jenis' => $jenisMenu])" :active="$sholatAktif">Sholat {{ $jenisMenu }}</x-nav-sub>
                 @endforeach
@@ -116,11 +124,11 @@
                 <x-nav-sub :href="route('nilai.rekap')" :active="request()->routeIs('nilai.rekap')">Rekap Nilai Siswa</x-nav-sub>
             </x-nav-group>
 
-            <x-nav-item :href="route('izin.index')" icon="mail" :active="request()->routeIs('izin.*')"
-                :badge="$izinMenunggu ?? 0" :badge-title="($izinMenunggu ?? 0).' izin menunggu'">Izin Siswa</x-nav-item>
+            <x-nav-item :href="route('izin.index')" icon="mail" :active="request()->routeIs('izin.*')" :badge="$izinMenunggu ?? 0" :badge-title="($izinMenunggu ?? 0) . ' izin menunggu'">Izin
+                Siswa</x-nav-item>
             <x-nav-item :href="route('pengumuman.index')" icon="campaign" :active="request()->routeIs('pengumuman.*')">Pengumuman</x-nav-item>
-            <x-nav-item :href="route('konseling.index')" icon="forum" :active="request()->routeIs('konseling.*')"
-                :badge="$konselingBelumDibaca ?? 0" :badge-title="($konselingBelumDibaca ?? 0).' pesan wali belum dibaca'">Konseling</x-nav-item>
+            <x-nav-item :href="route('konseling.index')" icon="forum" :active="request()->routeIs('konseling.*')" :badge="$konselingBelumDibaca ?? 0"
+                :badge-title="($konselingBelumDibaca ?? 0) . ' pesan wali belum dibaca'">Konseling</x-nav-item>
             <x-nav-item :href="route('pengaturan.index')" icon="settings" :active="request()->routeIs('pengaturan.*')">Pengaturan</x-nav-item>
         </nav>
 
@@ -143,7 +151,8 @@
         <div class="flex items-center gap-4">
             <!-- Mobile Hamburger Toggle -->
             <button type="button" @click="toggleSidebar"
-                class="md:hidden text-blue-700 p-2 -ml-2 rounded-lg hover:bg-gray-100 flex items-center justify-center" aria-label="Buka menu">
+                class="md:hidden text-blue-700 p-2 -ml-2 rounded-lg hover:bg-gray-100 flex items-center justify-center"
+                aria-label="Buka menu">
                 <span class="material-symbols-outlined">menu</span>
             </button>
             <p class="truncate text-sm font-semibold text-gray-900">@yield('page-title', 'Dashboard')</p>
@@ -158,7 +167,9 @@
                 <a href="{{ route('pengaturan.index') }}" title="Profil saya"
                     class="w-10 h-10 shrink-0 rounded-full bg-blue-600 flex items-center justify-center text-sm text-white font-bold overflow-hidden">
                     @if (Auth::user()->fotoUrl())
-                        <img src="{{ Auth::user()->fotoUrl() }}" alt="Foto {{ Auth::user()->nama_lengkap ?? Auth::user()->name }}" class="w-full h-full object-cover">
+                        <img src="{{ Auth::user()->fotoUrl() }}"
+                            alt="Foto {{ Auth::user()->nama_lengkap ?? Auth::user()->name }}"
+                            class="w-full h-full object-cover">
                     @else
                         {{ strtoupper(substr(Auth::user()->nama_lengkap ?? Auth::user()->name, 0, 2)) }}
                     @endif
@@ -168,13 +179,15 @@
     </header>
 
     <!-- Main Content -->
-    <main id="konten" tabindex="-1" class="ml-0 md:ml-64 mt-16 p-4 md:p-margin-page min-h-screen transition-transform duration-300 ease-in-out"
+    <main id="konten" tabindex="-1"
+        class="ml-0 md:ml-64 mt-16 p-4 md:p-margin-page min-h-screen transition-transform duration-300 ease-in-out"
         :class="shiftClass">
         <div class="max-w-container-max mx-auto space-y-stack-lg">
             {{-- Flash Messages --}}
             @if (session('success'))
                 <div id="flash-success"
-                    class="bg-green-50 border border-green-200 text-green-900 px-5 py-3.5 rounded-xl flex items-center gap-3" role="status">
+                    class="bg-green-50 border border-green-200 text-green-900 px-5 py-3.5 rounded-xl flex items-center gap-3"
+                    role="status">
                     <span class="material-symbols-outlined text-green-700" aria-hidden="true">check_circle</span>
                     <span class="font-medium text-sm">{{ session('success') }}</span>
                     <button onclick="document.getElementById('flash-success').remove()"

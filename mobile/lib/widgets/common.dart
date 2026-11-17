@@ -247,13 +247,22 @@ class _BaseButton extends StatelessWidget {
                         Icon(icon, size: 18, color: effectiveFg),
                         const SizedBox(width: 8),
                       ],
-                      Text(
-                        label,
-                        style: AppText.label.copyWith(
-                          color: effectiveFg,
-                          fontWeight: FontWeight.w600,
+                      // Flexible + skala mundur agar label panjang tidak
+                      // meluber ke kanan saat ruang tombol sempit.
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            softWrap: false,
+                            style: AppText.label.copyWith(
+                              color: effectiveFg,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
