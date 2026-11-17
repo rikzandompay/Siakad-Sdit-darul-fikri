@@ -17,7 +17,6 @@ use App\Models\Tugas;
 use App\Models\User;
 use App\Support\Rapor;
 use App\Support\Sekolah;
-use App\Support\SuratIzin;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -152,18 +151,11 @@ class WaliController extends Controller
     {
         $siswa = $this->anak($request);
 
-        return response()->json([
-            'data' => PengajuanIzin::where('siswa_id', $siswa->id)->latest()->limit(30)->get()->map(fn ($i) => [
-                'id' => $i->id, 'jenis' => $i->jenis, 'status' => $i->status,
-                'tanggal_mulai' => $i->tanggal_mulai->toDateString(), 'tanggal_selesai' => $i->tanggal_selesai->toDateString(),
-                'alasan' => $i->alasan, 'catatan_peninjau' => $i->catatan_peninjau, 'ada_lampiran' => (bool) $i->lampiran,
-            ]),
-            'kuota_izin' => [
-                'maksimal' => PengajuanIzin::MAKS_IZIN_PER_SEMESTER,
-                'terpakai' => PengajuanIzin::hitungIzinSemester($siswa->id),
-                'sisa' => PengajuanIzin::sisaKuotaIzin($siswa->id),
-            ],
-        ]);
+        return response()->json(['data' => PengajuanIzin::where('siswa_id', $siswa->id)->latest()->limit(30)->get()->map(fn ($i) => [
+            'id' => $i->id, 'jenis' => $i->jenis, 'status' => $i->status,
+            'tanggal_mulai' => $i->tanggal_mulai->toDateString(), 'tanggal_selesai' => $i->tanggal_selesai->toDateString(),
+            'alasan' => $i->alasan, 'catatan_peninjau' => $i->catatan_peninjau, 'ada_lampiran' => (bool) $i->lampiran,
+        ])]);
     }
 
     public function ajukanIzin(Request $request): JsonResponse
@@ -177,16 +169,6 @@ class WaliController extends Controller
             'lampiran' => 'nullable|image|max:2048',
         ], ['lampiran.max' => 'Foto maksimal 2 MB.', 'tanggal_mulai.after_or_equal' => 'Izin hanya bisa diajukan paling lama 7 hari ke belakang.']);
 
-        if ($data['jenis'] === 'Izin') {
-            $terpakai = PengajuanIzin::hitungIzinSemester($siswa->id);
-            if ($terpakai >= PengajuanIzin::MAKS_IZIN_PER_SEMESTER) {
-                return response()->json([
-                    'message' => 'Batas pengajuan izin keperluan (maksimal '.PengajuanIzin::MAKS_IZIN_PER_SEMESTER.' kali per semester) sudah tercapai.',
-                    'sisa_kuota' => 0,
-                ], 422);
-            }
-        }
-
         $izin = PengajuanIzin::create([
             'siswa_id' => $siswa->id, 'wali_id' => $request->user()->id, 'jenis' => $data['jenis'], 'status' => PengajuanIzin::MENUNGGU,
             'tanggal_mulai' => $data['tanggal_mulai'], 'tanggal_selesai' => $data['tanggal_selesai'], 'alasan' => $data['alasan'],
@@ -198,52 +180,6 @@ class WaliController extends Controller
             'izin' => ['id' => $izin->id, 'jenis' => $izin->jenis, 'status' => $izin->status],
             'anak' => $siswa->nama_siswa, 'kelas' => $siswa->kelas?->nama_kelas,
         ], 201);
-    }
-
-    /** Unduh surat izin siswa PDF berdasarkan pengajuan izin yang sudah ada. */
-    public function suratIzinPdf(Request $request, PengajuanIzin $izin): Response
-    {
-        $wali = $request->user();
-        $anakIds = $wali->siswa()->pluck('siswa.id')->all();
-        abort_unless(in_array($izin->siswa_id, $anakIds, true), 403, 'Akses ditolak.');
-
-        $izin->loadMissing(['siswa.kelas.waliKelas', 'wali']);
-        $pdf = SuratIzin::buatPdf(SuratIzin::dataSurat($izin, $request->all()));
-        $nis = $izin->siswa?->nis ?? 'izin';
-
-        return response($pdf, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="surat-izin-'.$nis.'-'.$izin->id.'.pdf"',
-        ]);
-    }
-
-    /** Buat dan unduh surat izin siswa PDF sesuai form kustom. */
-    public function buatSuratPdf(Request $request): Response
-    {
-        $siswa = $this->anak($request);
-        $wali = $request->user();
-
-        $data = $request->validate([
-            'nama_lengkap' => 'nullable|string|max:150',
-            'nama_anak' => 'nullable|string|max:150',
-            'kelas' => 'nullable|string|max:50',
-            'nama_sekolah' => 'nullable|string|max:150',
-            'nama_wali_kelas' => 'nullable|string|max:150',
-            'kota' => 'nullable|string|max:100',
-            'tanggal_surat' => 'nullable|date',
-            'tanggal_mulai' => 'nullable|date',
-            'jumlah_hari' => 'nullable|integer|min:1|max:60',
-            'alasan' => 'nullable|string|max:500',
-            'kontak' => 'nullable|string|max:100',
-        ]);
-
-        $pdf = SuratIzin::buatPdf(SuratIzin::dataSuratKustom($data, $siswa, $wali));
-        $nis = $siswa->nis ?? 'siswa';
-
-        return response($pdf, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="surat-izin-'.$nis.'.pdf"',
-        ]);
     }
 
     // ── Rapor ────────────────────────────────────────────────────

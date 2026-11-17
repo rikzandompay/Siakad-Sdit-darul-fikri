@@ -45,12 +45,6 @@
                             @if($izin->wali) · diajukan {{ $izin->wali->nama }} @endif
                         </p>
                         <p class="text-sm text-gray-800 mt-2 whitespace-pre-line break-words">{{ $izin->alasan }}</p>
-                        <div class="mt-2.5 flex items-center gap-3">
-                            <a href="{{ route('izin.surat', $izin) }}" target="_blank"
-                                class="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md transition-colors">
-                                <span class="material-symbols-outlined text-[15px]">description</span> Surat Izin PDF
-                            </a>
-                        </div>
                         @if($izin->status !== 'Menunggu')
                             <p class="text-xs text-gray-500 mt-2">Ditinjau {{ $izin->peninjau?->nama_lengkap ?? '-' }} · {{ $izin->ditinjau_pada?->diffForHumans() }}@if($izin->catatan_peninjau) — “{{ $izin->catatan_peninjau }}”@endif</p>
                         @endif

@@ -17,8 +17,6 @@ class PengajuanIzin extends Model
 
     public const JENIS = ['Sakit', 'Izin'];
 
-    public const MAKS_IZIN_PER_SEMESTER = 3;
-
     /** Kode di tabel presensi untuk tiap jenis izin. */
     public const KODE_PRESENSI = ['Sakit' => 'S', 'Izin' => 'I'];
 
@@ -114,29 +112,5 @@ class PengajuanIzin extends Model
     public function jumlahHari(): int
     {
         return Carbon::parse($this->tanggal_mulai)->diffInDays($this->tanggal_selesai) + 1;
-    }
-
-    /**
-     * Hitung izin keperluan (jenis 'Izin') siswa pada semester aktif/dipilih
-     * yang tidak berstatus Ditolak (Menunggu atau Disetujui).
-     */
-    public static function hitungIzinSemester(int $siswaId, ?TahunAjaran $ta = null): int
-    {
-        $ta ??= TahunAjaran::getAktif();
-        $rentang = $ta ? $ta->rentangTanggal() : (new TahunAjaran(['nama_semester' => '']))->rentangTanggal();
-
-        $mulai = $rentang['mulai']->toDateString();
-        $selesai = $rentang['selesai']->toDateString();
-
-        return static::where('siswa_id', $siswaId)
-            ->where('jenis', 'Izin')
-            ->where('status', '!=', self::DITOLAK)
-            ->whereBetween('tanggal_mulai', [$mulai, $selesai])
-            ->count();
-    }
-
-    public static function sisaKuotaIzin(int $siswaId, ?TahunAjaran $ta = null): int
-    {
-        return max(0, self::MAKS_IZIN_PER_SEMESTER - static::hitungIzinSemester($siswaId, $ta));
     }
 }

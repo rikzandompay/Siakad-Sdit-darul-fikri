@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\PengajuanIzin;
-use App\Support\SuratIzin;
 use Illuminate\Http\Request;
 
 /**
@@ -53,20 +52,5 @@ class IzinController extends Controller
         $izin->tolak($request->user(), $data['catatan']);
 
         return redirect()->route('izin.index')->with('success', "Izin {$izin->siswa->nama_siswa} ditolak.");
-    }
-
-    /** Pratinjau / unduh Surat Izin Siswa resmi dalam format PDF. */
-    public function surat(Request $request, PengajuanIzin $izin)
-    {
-        abort_unless($izin->bisaDitinjauOleh($request->user()), 403);
-
-        $izin->loadMissing(['siswa.kelas.waliKelas', 'wali']);
-        $pdf = SuratIzin::buatPdf(SuratIzin::dataSurat($izin));
-        $nis = $izin->siswa?->nis ?? 'izin';
-
-        return response($pdf, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="surat-izin-'.$nis.'-'.$izin->id.'.pdf"',
-        ]);
     }
 }
