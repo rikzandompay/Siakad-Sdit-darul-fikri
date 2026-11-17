@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/format.dart';
 import '../../core/theme.dart';
+import '../../core/unduh.dart';
 import '../../widgets/common.dart';
 import '../../widgets/pilihan.dart';
 import '../shared/pengumuman_screen.dart';
@@ -75,6 +77,14 @@ class _PengumumanAdminScreenState extends State<PengumumanAdminScreen> {
             for (final p in (d['data'] as List).cast<Map>())
               PengumumanCard(
                 p: Map<String, dynamic>.from(p),
+                onUnduh: () => unduhLaporan(
+                  context,
+                  jenis: 'pengumuman',
+                  format: 'pdf',
+                  keterangan: 'Surat pengumuman',
+                  namaBerkas: 'pengumuman-${p['id']}',
+                  alamatApi: '/admin/pengumuman/${p['id']}/pdf',
+                ),
                 aksi: PopupMenuButton<String>(
                   tooltip: 'Pilihan',
                   onSelected: (v) async {
@@ -111,6 +121,20 @@ class _FormPengumuman extends StatefulWidget {
 class _FormPengumumanState extends State<_FormPengumuman> {
   late final _judul = TextEditingController(text: widget.p?['judul']);
   late final _isi = TextEditingController(text: widget.p?['isi']);
+  late final _tempat = TextEditingController(
+    text: widget.p?['tempat'] ?? 'Kab. Kubu Raya',
+  );
+  late final _jadwalHari = TextEditingController(
+    text: widget.p?['jadwal_hari_tanggal'],
+  );
+  late final _jadwalWaktu = TextEditingController(
+    text: widget.p?['jadwal_waktu'],
+  );
+  late final _jadwalTempat = TextEditingController(
+    text: widget.p?['jadwal_tempat'],
+  );
+  late DateTime _tanggalSurat =
+      DateTime.tryParse('${widget.p?['tanggal_surat']}') ?? DateTime.now();
   late String _sasaran = widget.p?['sasaran'] ?? 'Semua';
   late bool _penting = widget.p?['penting'] == true;
   bool _simpan = false;
@@ -120,7 +144,24 @@ class _FormPengumumanState extends State<_FormPengumuman> {
   void dispose() {
     _judul.dispose();
     _isi.dispose();
+    _tempat.dispose();
+    _jadwalHari.dispose();
+    _jadwalWaktu.dispose();
+    _jadwalTempat.dispose();
     super.dispose();
+  }
+
+  String _ymd(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  Future<void> _pilihTanggal() async {
+    final t = await showDatePicker(
+      context: context,
+      initialDate: _tanggalSurat,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (t != null) setState(() => _tanggalSurat = t);
   }
 
   Future<void> _kirim() async {
@@ -133,6 +174,11 @@ class _FormPengumumanState extends State<_FormPengumuman> {
       'isi': _isi.text.trim(),
       'sasaran': _sasaran,
       'penting': _penting,
+      'tanggal_surat': _ymd(_tanggalSurat),
+      'tempat': _tempat.text.trim(),
+      'jadwal_hari_tanggal': _jadwalHari.text.trim(),
+      'jadwal_waktu': _jadwalWaktu.text.trim(),
+      'jadwal_tempat': _jadwalTempat.text.trim(),
     };
     try {
       final api = context.read<ApiClient>();
@@ -178,6 +224,72 @@ class _FormPengumumanState extends State<_FormPengumuman> {
               maxLines: 8,
               maxLength: 5000,
               decoration: const InputDecoration(labelText: 'Isi pengumuman'),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pilihTanggal,
+                    icon: const Icon(Icons.event_outlined, size: 18),
+                    label: Text(
+                      'Surat: ${Fmt.tanggalPendek(_tanggalSurat)}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      alignment: Alignment.centerLeft,
+                      backgroundColor: AppColors.field,
+                      side: const BorderSide(color: AppColors.line),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _tempat,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(labelText: 'Tempat'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'JADWAL KEGIATAN (OPSIONAL)',
+              style: AppText.overline.copyWith(fontSize: 10),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _jadwalHari,
+              decoration: const InputDecoration(
+                labelText: 'Hari / tanggal',
+                hintText: 'Contoh: Senin, 1 Desember 2026',
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _jadwalWaktu,
+                    decoration: const InputDecoration(
+                      labelText: 'Waktu',
+                      hintText: '08.00 WIB',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _jadwalTempat,
+                    decoration: const InputDecoration(
+                      labelText: 'Tempat',
+                      hintText: 'Aula',
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(

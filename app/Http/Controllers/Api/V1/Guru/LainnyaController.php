@@ -9,8 +9,11 @@ use App\Models\PengajuanIzin;
 use App\Models\Pengumuman;
 use App\Models\Tugas;
 use App\Support\Sekolah;
+use App\Support\SuratIzin;
+use App\Support\SuratPengumuman;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -106,6 +109,7 @@ class LainnyaController extends Controller
                 'siswa' => $i->siswa?->nama_siswa, 'kelas' => $i->siswa?->kelas?->nama_kelas, 'wali' => $i->wali?->nama ?? $i->siswa?->nama_wali,
                 'tanggal_mulai' => $i->tanggal_mulai->toDateString(), 'tanggal_selesai' => $i->tanggal_selesai->toDateString(),
                 'diajukan' => $i->created_at->toIso8601String(), 'ada_lampiran' => (bool) $i->lampiran, 'catatan_peninjau' => $i->catatan_peninjau,
+                'nomor_surat' => $i->nomor_surat, 'punya_surat' => $i->punyaSurat(),
             ])]);
     }
 
@@ -133,6 +137,20 @@ class LainnyaController extends Controller
         return Storage::disk('local')->response($izin->lampiran);
     }
 
+    /** Surat izin keperluan (PDF surat orang tua) untuk wali kelas, tersedia sejak pengajuan masuk. */
+    public function suratIzin(Request $request, PengajuanIzin $izin): Response
+    {
+        abort_unless($izin->bisaDitinjauOleh($request->user()), 403);
+        abort_unless($izin->punyaSurat(), 404, 'Surat izin hanya tersedia untuk izin keperluan.');
+
+        $izin->loadMissing(['siswa.kelas.waliKelas', 'wali']);
+
+        return response(SuratIzin::buatPdf(SuratIzin::dataSurat($izin)), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="surat-izin-'.($izin->siswa?->nis ?? 'izin').'-'.$izin->id.'.pdf"',
+        ]);
+    }
+
     private function bisaTinjau(Request $request, PengajuanIzin $izin): void
     {
         abort_unless($izin->bisaDitinjauOleh($request->user()), 403);
@@ -146,7 +164,22 @@ class LainnyaController extends Controller
         return response()->json(['data' => Pengumuman::when(! $request->user()->isAdmin(), fn ($q) => $q->untukGuru())
             ->orderByDesc('penting')->latest()->limit(50)->get()->map(fn ($p) => [
                 'id' => $p->id, 'judul' => $p->judul, 'isi' => $p->isi, 'sasaran' => $p->sasaran, 'penting' => $p->penting, 'tanggal' => $p->created_at->toDateString(),
+                'nomor_surat' => $p->nomor_surat, 'tanggal_surat' => $p->tanggal_surat?->toDateString(), 'tempat' => $p->tempat,
+                'jadwal_hari_tanggal' => $p->jadwal_hari_tanggal, 'jadwal_waktu' => $p->jadwal_waktu, 'jadwal_tempat' => $p->jadwal_tempat,
             ])]);
+    }
+
+    /** Surat pengumuman PDF untuk dibuka dari aplikasi guru. */
+    public function suratPengumuman(Request $request, Pengumuman $pengumuman): Response
+    {
+        $boleh = $request->user()->isAdmin()
+            || in_array($pengumuman->sasaran, [Pengumuman::SEMUA, Pengumuman::GURU], true);
+        abort_unless($boleh, 404);
+
+        return response(SuratPengumuman::buatPdf($pengumuman), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="pengumuman-'.$pengumuman->id.'.pdf"',
+        ]);
     }
 
     public function jadwal(Request $request): JsonResponse

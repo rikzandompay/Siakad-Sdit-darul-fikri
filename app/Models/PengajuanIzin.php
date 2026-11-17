@@ -17,6 +17,9 @@ class PengajuanIzin extends Model
 
     public const JENIS = ['Sakit', 'Izin'];
 
+    /** Izin keperluan (jenis 'Izin') paling banyak sekian kali per semester; izin sakit bebas. */
+    public const MAKS_IZIN_PER_SEMESTER = 3;
+
     /** Kode di tabel presensi untuk tiap jenis izin. */
     public const KODE_PRESENSI = ['Sakit' => 'S', 'Izin' => 'I'];
 
@@ -25,11 +28,15 @@ class PengajuanIzin extends Model
     protected $fillable = [
         'siswa_id', 'wali_id', 'jenis', 'tanggal_mulai', 'tanggal_selesai', 'alasan',
         'status', 'ditinjau_oleh', 'ditinjau_pada', 'catatan_peninjau', 'lampiran',
+        'nomor_surat', 'nama_orang_tua', 'kota', 'tanggal_surat', 'jumlah_hari', 'kontak',
     ];
 
     protected function casts(): array
     {
-        return ['tanggal_mulai' => 'date', 'tanggal_selesai' => 'date', 'ditinjau_pada' => 'datetime'];
+        return [
+            'tanggal_mulai' => 'date', 'tanggal_selesai' => 'date', 'ditinjau_pada' => 'datetime',
+            'tanggal_surat' => 'date', 'jumlah_hari' => 'integer',
+        ];
     }
 
     public function siswa()
@@ -111,6 +118,33 @@ class PengajuanIzin extends Model
 
     public function jumlahHari(): int
     {
-        return Carbon::parse($this->tanggal_mulai)->diffInDays($this->tanggal_selesai) + 1;
+        return $this->jumlah_hari ?: Carbon::parse($this->tanggal_mulai)->diffInDays($this->tanggal_selesai) + 1;
+    }
+
+    /**
+     * Izin keperluan (jenis 'Izin') siswa pada semester yang disetujui wali kelas.
+     * Hanya izin yang disetujui yang dihitung sebagai pemakaian kuota.
+     */
+    public static function hitungIzinSemester(int $siswaId, ?TahunAjaran $ta = null): int
+    {
+        $ta ??= TahunAjaran::getAktif();
+        $rentang = ($ta ?? new TahunAjaran(['nama_semester' => '']))->rentangTanggal();
+
+        return static::where('siswa_id', $siswaId)
+            ->where('jenis', 'Izin')
+            ->where('status', self::DISETUJUI)
+            ->whereBetween('tanggal_mulai', [$rentang['mulai']->toDateString(), $rentang['selesai']->toDateString()])
+            ->count();
+    }
+
+    public static function sisaKuotaIzin(int $siswaId, ?TahunAjaran $ta = null): int
+    {
+        return max(0, self::MAKS_IZIN_PER_SEMESTER - static::hitungIzinSemester($siswaId, $ta));
+    }
+
+    /** Hanya izin keperluan yang berformat surat dan punya PDF untuk wali kelas. */
+    public function punyaSurat(): bool
+    {
+        return $this->jenis === 'Izin' && (bool) $this->nomor_surat;
     }
 }

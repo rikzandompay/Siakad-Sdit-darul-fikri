@@ -17,11 +17,21 @@ class Pengumuman extends Model
 
     protected $table = 'pengumuman';
 
-    protected $fillable = ['judul', 'isi', 'sasaran', 'penting', 'dibuat_oleh'];
+    protected $fillable = [
+        'judul', 'isi', 'sasaran', 'penting', 'dibuat_oleh',
+        'nomor_surat', 'tanggal_surat', 'tempat',
+        'jadwal_hari_tanggal', 'jadwal_waktu', 'jadwal_tempat',
+    ];
 
     protected function casts(): array
     {
-        return ['penting' => 'boolean'];
+        return ['penting' => 'boolean', 'tanggal_surat' => 'date'];
+    }
+
+    /** Ada blok jadwal kegiatan untuk dicetak di surat. */
+    public function punyaJadwal(): bool
+    {
+        return filled($this->jadwal_hari_tanggal) || filled($this->jadwal_waktu) || filled($this->jadwal_tempat);
     }
 
     public function pembuat()

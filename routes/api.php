@@ -83,7 +83,10 @@ Route::prefix('v1')->group(function () {
             Route::post('/izin/{izin}/setujui', [LainnyaController::class, 'setujuiIzin']);
             Route::post('/izin/{izin}/tolak', [LainnyaController::class, 'tolakIzin']);
             Route::get('/izin/{izin}/lampiran', [LainnyaController::class, 'lampiranIzin']);
+            Route::get('/izin/{izin}/surat', [LainnyaController::class, 'suratIzin'])->middleware('throttle:60,1');
             Route::get('/pengumuman', [LainnyaController::class, 'pengumuman']);
+            Route::get('/pengumuman/{pengumuman}/pdf', [LainnyaController::class, 'suratPengumuman'])->middleware('throttle:60,1');
+            Route::get('/pengumuman/surat/{pengumuman}', [LainnyaController::class, 'suratPengumuman'])->middleware('throttle:60,1');
             Route::get('/jadwal', [LainnyaController::class, 'jadwal']);
             Route::get('/konseling', [KonselingController::class, 'guruIndex']);
             Route::get('/konseling/{percakapan}', [KonselingController::class, 'guruShow']);
@@ -104,6 +107,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/pengumuman', [AdminController::class, 'simpanPengumuman']);
             Route::put('/pengumuman/{pengumuman}', [AdminController::class, 'simpanPengumuman']);
             Route::delete('/pengumuman/{pengumuman}', [AdminController::class, 'hapusPengumuman']);
+            Route::get('/pengumuman/{pengumuman}/pdf', [AdminController::class, 'pdfPengumuman'])->middleware('throttle:30,1');
             // Pengelolaan sekolah (kepala sekolah)
             Route::get('/pengaturan-sekolah', [KelolaSekolahController::class, 'pengaturan']);
             Route::put('/pengaturan-sekolah', [KelolaSekolahController::class, 'simpanPengaturan']);
@@ -147,9 +151,15 @@ Route::prefix('v1')->group(function () {
             Route::get('/kehadiran', [WaliController::class, 'kehadiran']);
             Route::get('/jadwal', [WaliController::class, 'jadwal']);
             Route::get('/pengumuman', [WaliController::class, 'pengumuman']);
+            // Rute dibuat eksplisit (bukan "/pengumuman/{id}/pdf") agar tidak bentrok dengan
+            // pola /pengumuman di aplikasi lama maupun cache rute yang masih lama di server.
+            Route::get('/pengumuman/{pengumuman}/pdf', [WaliController::class, 'suratPengumuman'])->middleware('throttle:60,1');
+            Route::get('/pengumuman/surat/{pengumuman}', [WaliController::class, 'suratPengumuman'])->middleware('throttle:60,1');
             Route::get('/tugas', [WaliController::class, 'tugas']);
             Route::get('/izin', [WaliController::class, 'izin']);
             Route::post('/izin', [WaliController::class, 'ajukanIzin'])->middleware('throttle:api-sandi');
+            Route::post('/izin/pratinjau-surat', [WaliController::class, 'pratinjauSuratIzin'])->middleware('throttle:60,1');
+            Route::get('/izin/opsi-surat', [WaliController::class, 'opsiSuratIzin']);
             Route::get('/rapor', [WaliController::class, 'rapor']);
             Route::get('/rapor/grafik', [WaliController::class, 'raporGrafik']);
             Route::get('/rapor/{tahunAjaran}', [WaliController::class, 'raporSemester']);

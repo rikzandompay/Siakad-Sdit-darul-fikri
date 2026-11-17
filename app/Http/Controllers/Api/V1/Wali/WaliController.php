@@ -8,6 +8,7 @@ use App\Models\JadwalPelajaran;
 use App\Models\NilaiRapot;
 use App\Models\NilaiTugas;
 use App\Models\PengajuanIzin;
+use App\Models\PengaturanSekolah;
 use App\Models\Pengumuman;
 use App\Models\Presensi;
 use App\Models\PresensiSholat;
@@ -15,8 +16,11 @@ use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\Tugas;
 use App\Models\User;
+use App\Support\NomorSurat;
 use App\Support\Rapor;
 use App\Support\Sekolah;
+use App\Support\SuratIzin;
+use App\Support\SuratPengumuman;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -137,6 +141,17 @@ class WaliController extends Controller
             ->orderByDesc('penting')->latest()->limit(50)->get()->map(fn ($p) => $this->dataPengumuman($p))]);
     }
 
+    /** Surat pengumuman PDF untuk dibuka dari aplikasi wali. */
+    public function suratPengumuman(Pengumuman $pengumuman): Response
+    {
+        abort_unless(in_array($pengumuman->sasaran, [Pengumuman::SEMUA, Pengumuman::WALI], true), 404);
+
+        return response(SuratPengumuman::buatPdf($pengumuman), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="pengumuman-'.$pengumuman->id.'.pdf"',
+        ]);
+    }
+
     public function tugas(Request $request): JsonResponse
     {
         $siswa = $this->anak($request);
@@ -151,11 +166,19 @@ class WaliController extends Controller
     {
         $siswa = $this->anak($request);
 
-        return response()->json(['data' => PengajuanIzin::where('siswa_id', $siswa->id)->latest()->limit(30)->get()->map(fn ($i) => [
-            'id' => $i->id, 'jenis' => $i->jenis, 'status' => $i->status,
-            'tanggal_mulai' => $i->tanggal_mulai->toDateString(), 'tanggal_selesai' => $i->tanggal_selesai->toDateString(),
-            'alasan' => $i->alasan, 'catatan_peninjau' => $i->catatan_peninjau, 'ada_lampiran' => (bool) $i->lampiran,
-        ])]);
+        return response()->json([
+            'data' => PengajuanIzin::where('siswa_id', $siswa->id)->latest()->limit(30)->get()->map(fn ($i) => [
+                'id' => $i->id, 'jenis' => $i->jenis, 'status' => $i->status,
+                'tanggal_mulai' => $i->tanggal_mulai->toDateString(), 'tanggal_selesai' => $i->tanggal_selesai->toDateString(),
+                'alasan' => $i->alasan, 'catatan_peninjau' => $i->catatan_peninjau, 'ada_lampiran' => (bool) $i->lampiran,
+                'nomor_surat' => $i->nomor_surat,
+            ]),
+            'kuota_izin' => [
+                'maksimal' => PengajuanIzin::MAKS_IZIN_PER_SEMESTER,
+                'terpakai' => PengajuanIzin::hitungIzinSemester($siswa->id),
+                'sisa' => PengajuanIzin::sisaKuotaIzin($siswa->id),
+            ],
+        ]);
     }
 
     public function ajukanIzin(Request $request): JsonResponse
@@ -167,19 +190,73 @@ class WaliController extends Controller
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai|before_or_equal:'.Sekolah::now()->addDays(30)->toDateString(),
             'alasan' => 'required|string|max:1000',
             'lampiran' => 'nullable|image|max:2048',
-        ], ['lampiran.max' => 'Foto maksimal 2 MB.', 'tanggal_mulai.after_or_equal' => 'Izin hanya bisa diajukan paling lama 7 hari ke belakang.']);
+            'nama_lengkap' => 'nullable|string|max:150',
+            'kota' => 'nullable|string|max:100',
+            'tanggal_surat' => 'nullable|date',
+            'jumlah_hari' => 'nullable|integer|min:1|max:30',
+            'kontak' => 'nullable|string|max:100',
+        ], [
+            'lampiran.max' => 'Foto maksimal 2 MB.',
+            'tanggal_mulai.after_or_equal' => 'Izin hanya bisa diajukan paling lama 7 hari ke belakang.',
+        ]);
+
+        $keperluan = $data['jenis'] === 'Izin';
+
+        if ($keperluan && PengajuanIzin::sisaKuotaIzin($siswa->id) === 0) {
+            return response()->json([
+                'message' => 'Batas izin keperluan (maksimal '.PengajuanIzin::MAKS_IZIN_PER_SEMESTER.' kali per semester) sudah tercapai. Izin sakit tetap bisa diajukan.',
+                'sisa_kuota' => 0,
+            ], 422);
+        }
 
         $izin = PengajuanIzin::create([
             'siswa_id' => $siswa->id, 'wali_id' => $request->user()->id, 'jenis' => $data['jenis'], 'status' => PengajuanIzin::MENUNGGU,
             'tanggal_mulai' => $data['tanggal_mulai'], 'tanggal_selesai' => $data['tanggal_selesai'], 'alasan' => $data['alasan'],
             'lampiran' => $request->file('lampiran')?->store('izin', 'local'),
+            // Detail surat hanya untuk izin keperluan; izin sakit tetap memakai foto bukti.
+            'nomor_surat' => $keperluan ? NomorSurat::berikutnya(NomorSurat::IZIN, Carbon::parse($data['tanggal_surat'] ?? null)) : null,
+            'nama_orang_tua' => $keperluan ? ($data['nama_lengkap'] ?? null) : null,
+            'kota' => $keperluan ? ($data['kota'] ?? null) : null,
+            'tanggal_surat' => $keperluan ? ($data['tanggal_surat'] ?? null) : null,
+            'jumlah_hari' => $keperluan ? ($data['jumlah_hari'] ?? null) : null,
+            'kontak' => $keperluan ? ($data['kontak'] ?? null) : null,
         ]);
 
         return response()->json([
             'message' => 'Izin terkirim ke wali kelas.',
-            'izin' => ['id' => $izin->id, 'jenis' => $izin->jenis, 'status' => $izin->status],
+            'izin' => ['id' => $izin->id, 'jenis' => $izin->jenis, 'status' => $izin->status, 'nomor_surat' => $izin->nomor_surat],
             'anak' => $siswa->nama_siswa, 'kelas' => $siswa->kelas?->nama_kelas,
         ], 201);
+    }
+
+    /** Pilihan alasan izin keperluan & daftar form surat, agar aplikasi dan PDF selalu sama. */
+    public function opsiSuratIzin(): JsonResponse
+    {
+        return response()->json([
+            'alasan' => array_keys(SuratIzin::ALASAN_PILIHAN),
+            'kota' => PengaturanSekolah::ambil('kota', 'Kab. Kubu Raya'),
+            'nama_sekolah' => 'SDIT Darul Fikri',
+        ]);
+    }
+
+    /** Pratinjau surat izin keperluan sebelum dikirim: teks surat sudah diformat, belum bernomor. */
+    public function pratinjauSuratIzin(Request $request): JsonResponse
+    {
+        $siswa = $this->anak($request);
+        $data = $request->validate([
+            'nama_lengkap' => 'nullable|string|max:150',
+            'kota' => 'nullable|string|max:100',
+            'tanggal_surat' => 'nullable|date',
+            'tanggal_mulai' => 'nullable|date',
+            'jumlah_hari' => 'nullable|integer|min:1|max:30',
+            'alasan' => 'nullable|string|max:500',
+            'kontak' => 'nullable|string|max:100',
+        ]);
+
+        return response()->json([
+            'data' => SuratIzin::dataPratinjau($data, $siswa, $request->user()),
+            'sisa_kuota' => PengajuanIzin::sisaKuotaIzin($siswa->id),
+        ]);
     }
 
     // ── Rapor ────────────────────────────────────────────────────
@@ -374,6 +451,12 @@ class WaliController extends Controller
 
     private function dataPengumuman(Pengumuman $p): array
     {
-        return ['id' => $p->id, 'judul' => $p->judul, 'isi' => $p->isi, 'sasaran' => $p->sasaran, 'penting' => $p->penting, 'tanggal' => $p->created_at->toDateString()];
+        return [
+            'id' => $p->id, 'judul' => $p->judul, 'isi' => $p->isi, 'sasaran' => $p->sasaran,
+            'penting' => $p->penting, 'tanggal' => $p->created_at->toDateString(), 'nomor_surat' => $p->nomor_surat,
+            'tanggal_surat' => $p->tanggal_surat?->toDateString(), 'tempat' => $p->tempat,
+            'jadwal_hari_tanggal' => $p->jadwal_hari_tanggal, 'jadwal_waktu' => $p->jadwal_waktu,
+            'jadwal_tempat' => $p->jadwal_tempat,
+        ];
     }
 }

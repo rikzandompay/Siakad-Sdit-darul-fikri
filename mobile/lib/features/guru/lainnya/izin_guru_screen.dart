@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/api_client.dart';
 import '../../../core/format.dart';
 import '../../../core/theme.dart';
+import '../../../core/unduh.dart';
 import '../../../widgets/common.dart';
 import '../../../widgets/pilihan.dart';
 
@@ -20,6 +21,13 @@ class _IzinGuruScreenState extends State<IzinGuruScreen> {
   Key _key = UniqueKey();
 
   void _muatUlang() => setState(() => _key = UniqueKey());
+
+  /// Nama siswa jadi bagian nama berkas: huruf/angka kecil dengan tanda hubung.
+  String _namaBerkasSederhana(Object? nama) => (nama ?? 'siswa')
+      .toString()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
 
   Future<void> _setujui(Map i) async {
     try {
@@ -217,6 +225,49 @@ class _IzinGuruScreenState extends State<IzinGuruScreen> {
                                       ),
                                       const Icon(
                                         Icons.chevron_right,
+                                        color: AppColors.brand700,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              if (i['punya_surat'] == true) ...[
+                                const SizedBox(height: 10),
+                                AppCard(
+                                  color: AppColors.brand50,
+                                  borderColor: AppColors.brand100,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  onTap: () => unduhLaporan(
+                                    context,
+                                    jenis: 'surat-izin',
+                                    format: 'pdf',
+                                    keterangan: 'Surat Izin',
+                                    namaBerkas:
+                                        'surat-izin-${_namaBerkasSederhana(i['siswa'])}-${i['tanggal_mulai']}',
+                                    alamatApi: '/guru/izin/${i['id']}/surat',
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.picture_as_pdf_outlined,
+                                        color: AppColors.brand700,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          i['nomor_surat'] == null
+                                              ? 'Surat Izin Keperluan (PDF)'
+                                              : 'Surat Izin Keperluan · ${i['nomor_surat']}',
+                                          style: AppText.label.copyWith(
+                                            color: AppColors.brand700,
+                                          ),
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.download_outlined,
                                         color: AppColors.brand700,
                                       ),
                                     ],

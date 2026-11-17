@@ -18,10 +18,13 @@ use App\Models\PresensiSholat;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Support\NomorSurat;
 use App\Support\Rapor;
 use App\Support\Sekolah;
+use App\Support\SuratPengumuman;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
@@ -146,15 +149,32 @@ class AdminController extends Controller
         $data = $request->validate([
             'judul' => 'required|string|max:150', 'isi' => 'required|string|max:5000',
             'sasaran' => ['required', Rule::in(Pengumuman::SASARAN)], 'penting' => 'boolean',
+            'tanggal_surat' => 'nullable|date', 'tempat' => 'nullable|string|max:100',
+            'jadwal_hari_tanggal' => 'nullable|string|max:150', 'jadwal_waktu' => 'nullable|string|max:100',
+            'jadwal_tempat' => 'nullable|string|max:150',
         ]);
         $data['penting'] = $request->boolean('penting');
+        $data['tanggal_surat'] ??= Sekolah::now()->toDateString();
+        $data['tempat'] ??= PengaturanSekolah::ambil('kota', 'Kab. Kubu Raya');
         if ($pengumuman?->exists) {
             $pengumuman->update($data);
+            $pengumuman->nomor_surat ??= NomorSurat::berikutnya(NomorSurat::PENGUMUMAN, $pengumuman->tanggal_surat);
+            $pengumuman->save();
         } else {
             $pengumuman = Pengumuman::create($data + ['dibuat_oleh' => $request->user()->id]);
+            $pengumuman->update(['nomor_surat' => NomorSurat::berikutnya(NomorSurat::PENGUMUMAN, $pengumuman->tanggal_surat)]);
         }
 
-        return response()->json(['message' => 'Pengumuman tersimpan.', 'data' => $this->dataPengumuman($pengumuman)], 201);
+        return response()->json(['message' => 'Pengumuman tersimpan.', 'data' => $this->dataPengumuman($pengumuman->fresh())], 201);
+    }
+
+    /** PDF surat pengumuman (kop sekolah + tanda tangan kepala sekolah) untuk diunduh dari aplikasi. */
+    public function pdfPengumuman(Pengumuman $pengumuman): Response
+    {
+        return response(SuratPengumuman::buatPdf($pengumuman), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="pengumuman-'.$pengumuman->id.'.pdf"',
+        ]);
     }
 
     public function hapusPengumuman(Pengumuman $pengumuman): JsonResponse
@@ -379,7 +399,13 @@ class AdminController extends Controller
 
     private function dataPengumuman(Pengumuman $p): array
     {
-        return ['id' => $p->id, 'judul' => $p->judul, 'isi' => $p->isi, 'sasaran' => $p->sasaran, 'penting' => $p->penting, 'tanggal' => $p->created_at->toDateString()];
+        return [
+            'id' => $p->id, 'judul' => $p->judul, 'isi' => $p->isi, 'sasaran' => $p->sasaran,
+            'penting' => $p->penting, 'tanggal' => $p->created_at->toDateString(), 'nomor_surat' => $p->nomor_surat,
+            'tanggal_surat' => $p->tanggal_surat?->toDateString(), 'tempat' => $p->tempat,
+            'jadwal_hari_tanggal' => $p->jadwal_hari_tanggal, 'jadwal_waktu' => $p->jadwal_waktu,
+            'jadwal_tempat' => $p->jadwal_tempat,
+        ];
     }
 
     private function bersihkanCache(): void

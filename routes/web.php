@@ -131,6 +131,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/pengumuman/{pengumuman}/edit', [PengumumanController::class, 'edit'])->name('pengumuman.edit');
         Route::put('/pengumuman/{pengumuman}', [PengumumanController::class, 'update'])->middleware('throttle:30,1')->name('pengumuman.update');
         Route::delete('/pengumuman/{pengumuman}', [PengumumanController::class, 'destroy'])->middleware('throttle:30,1')->name('pengumuman.destroy');
+        Route::get('/pengumuman/{pengumuman}/pdf', [PengumumanController::class, 'pdf'])->middleware('throttle:30,1')->name('pengumuman.pdf');
     });
 
     // Konseling: privat antara pengampu kelas dan wali; admin hanya mengatur pengampu
@@ -178,6 +179,8 @@ Route::middleware('auth')->group(function () {
 
     // Izin siswa: wali kelas / admin meninjau
     Route::get('/izin', [IzinController::class, 'index'])->name('izin.index');
+    Route::get('/izin/{izin}/surat', [IzinController::class, 'surat'])->middleware('throttle:60,1')->name('izin.surat');
+    Route::get('/izin/{izin}/lampiran', [IzinController::class, 'lampiran'])->middleware('throttle:60,1')->name('izin.lampiran');
     Route::post('/izin/{izin}/setujui', [IzinController::class, 'approve'])->middleware('throttle:60,1')->name('izin.approve');
     Route::post('/izin/{izin}/tolak', [IzinController::class, 'reject'])->middleware('throttle:60,1')->name('izin.reject');
 

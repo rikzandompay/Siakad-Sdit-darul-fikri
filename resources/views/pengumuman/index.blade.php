@@ -24,22 +24,11 @@
 </div>
 
 <form method="GET" action="{{ route('pengumuman.index') }}" class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-    <div class="{{ $isAdmin ? 'md:col-span-2' : 'md:col-span-3' }}">
+    <div class="md:col-span-3">
         <label for="search" class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Cari</label>
         <input id="search" name="search" type="text" value="{{ $search }}" placeholder="Judul atau isi pengumuman"
             class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3 focus:ring-blue-500 focus:border-blue-300">
     </div>
-    @if($isAdmin)
-        <div>
-            <label for="sasaran" class="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">Sasaran</label>
-            <select id="sasaran" name="sasaran" class="w-full bg-white border border-gray-200 rounded-lg text-sm h-10 px-3">
-                <option value="">Semua sasaran</option>
-                @foreach(\App\Models\Pengumuman::SASARAN as $s)
-                    <option value="{{ $s }}" @selected($sasaran === $s)>{{ $s }}</option>
-                @endforeach
-            </select>
-        </div>
-    @endif
     <button type="submit" class="h-10 bg-white border border-gray-200 text-gray-700 font-bold rounded-lg text-sm hover:bg-gray-50 flex items-center justify-center gap-2">
         <span class="material-symbols-outlined text-sm">search</span> Tampilkan
     </button>
@@ -58,11 +47,17 @@
                         @endif
                         <span class="text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 px-2 py-0.5 rounded">{{ $p->sasaran }}</span>
                         <span class="text-xs text-gray-400">{{ $p->created_at->translatedFormat('d M Y, H:i') }} · {{ $p->pembuat?->nama_lengkap ?? 'Sekolah' }}</span>
+                        @if($p->nomor_surat)
+                            <span class="text-xs text-gray-400">· No. {{ $p->nomor_surat }}</span>
+                        @endif
                     </div>
                     <h3 class="font-bold text-lg text-gray-900 break-words">{{ $p->judul }}</h3>
                 </div>
                 @if($isAdmin)
                     <div class="flex items-center gap-1 shrink-0">
+                        <a href="{{ route('pengumuman.pdf', $p) }}" target="_blank" rel="noopener" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Unduh PDF surat">
+                            <span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+                        </a>
                         <a href="{{ route('pengumuman.edit', $p) }}" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Ubah">
                             <span class="material-symbols-outlined text-lg">edit</span>
                         </a>
@@ -76,6 +71,13 @@
                 @endif
             </div>
             <p class="text-sm text-gray-700 mt-3 whitespace-pre-line break-words">{{ $p->isi }}</p>
+            @if($p->punyaJadwal())
+                <dl class="text-sm text-gray-700 mt-3 space-y-0.5">
+                    @if($p->jadwal_hari_tanggal)<div><span class="text-gray-500">Hari/Tanggal:</span> {{ $p->jadwal_hari_tanggal }}</div>@endif
+                    @if($p->jadwal_waktu)<div><span class="text-gray-500">Waktu:</span> {{ $p->jadwal_waktu }}</div>@endif
+                    @if($p->jadwal_tempat)<div><span class="text-gray-500">Tempat:</span> {{ $p->jadwal_tempat }}</div>@endif
+                </dl>
+            @endif
         </article>
     @empty
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">

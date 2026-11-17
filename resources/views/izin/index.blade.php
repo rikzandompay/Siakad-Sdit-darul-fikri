@@ -44,29 +44,48 @@
                             · {{ $izin->jumlahHari() }} hari
                             @if($izin->wali) · diajukan {{ $izin->wali->nama }} @endif
                         </p>
+                        @if($izin->nomor_surat)
+                            <p class="text-xs text-gray-500 mt-1">No. surat {{ $izin->nomor_surat }}</p>
+                        @endif
                         <p class="text-sm text-gray-800 mt-2 whitespace-pre-line break-words">{{ $izin->alasan }}</p>
                         @if($izin->status !== 'Menunggu')
                             <p class="text-xs text-gray-500 mt-2">Ditinjau {{ $izin->peninjau?->nama_lengkap ?? '-' }} · {{ $izin->ditinjau_pada?->diffForHumans() }}@if($izin->catatan_peninjau) — “{{ $izin->catatan_peninjau }}”@endif</p>
                         @endif
                     </div>
 
-                    @if($izin->status === 'Menunggu')
-                        <div class="flex flex-col sm:flex-row gap-2 md:w-[28rem] shrink-0">
-                            <form method="POST" action="{{ route('izin.approve', $izin) }}" class="sm:flex-none">
-                                @csrf
-                                <button type="submit" class="btn btn-success w-full h-10 px-4 rounded-lg text-sm flex items-center justify-center gap-1.5 whitespace-nowrap">
-                                    <span class="material-symbols-outlined text-sm">check</span> Setujui
-                                </button>
-                            </form>
-                            <form method="POST" action="{{ route('izin.reject', $izin) }}" class="sm:flex-1 flex gap-1.5">
-                                @csrf
-                                <label for="catatan-{{ $izin->id }}" class="sr-only">Alasan penolakan</label>
-                                <input id="catatan-{{ $izin->id }}" name="catatan" type="text" required maxlength="255" placeholder="Alasan jika ditolak"
-                                    class="min-w-0 flex-1 border border-gray-200 rounded-lg text-sm h-10 px-3">
-                                <button type="submit" class="btn btn-alert h-10 px-3 rounded-lg text-sm">Tolak</button>
-                            </form>
-                        </div>
-                    @endif
+                    <div class="flex flex-col gap-2 shrink-0">
+                        @if($izin->punyaSurat())
+                            <a href="{{ route('izin.surat', $izin) }}" target="_blank" rel="noopener"
+                                class="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg text-sm font-semibold border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100">
+                                <span class="material-symbols-outlined text-sm">description</span> Surat Izin PDF
+                            </a>
+                        @endif
+
+                        @if($izin->lampiran)
+                            <a href="{{ route('izin.lampiran', $izin) }}" target="_blank" rel="noopener"
+                                class="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg text-sm font-semibold border border-gray-200 text-gray-700 bg-white hover:bg-gray-50">
+                                <span class="material-symbols-outlined text-sm">photo</span> Lihat Bukti Foto
+                            </a>
+                        @endif
+
+                        @if($izin->status === 'Menunggu')
+                            <div class="flex flex-col sm:flex-row gap-2 md:w-[28rem]">
+                                <form method="POST" action="{{ route('izin.approve', $izin) }}" class="sm:flex-none">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success w-full h-10 px-4 rounded-lg text-sm flex items-center justify-center gap-1.5 whitespace-nowrap">
+                                        <span class="material-symbols-outlined text-sm">check</span> Setujui
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('izin.reject', $izin) }}" class="sm:flex-1 flex gap-1.5">
+                                    @csrf
+                                    <label for="catatan-{{ $izin->id }}" class="sr-only">Alasan penolakan</label>
+                                    <input id="catatan-{{ $izin->id }}" name="catatan" type="text" required maxlength="255" placeholder="Alasan jika ditolak"
+                                        class="min-w-0 flex-1 border border-gray-200 rounded-lg text-sm h-10 px-3">
+                                    <button type="submit" class="btn btn-alert h-10 px-3 rounded-lg text-sm">Tolak</button>
+                                </form>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </li>
         @empty

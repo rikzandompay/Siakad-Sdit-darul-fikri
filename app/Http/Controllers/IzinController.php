@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\PengajuanIzin;
+use App\Support\SuratIzin;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Izin siswa (diajukan wali lewat aplikasi MyDarfik). Wali kelas atau admin
@@ -41,6 +44,31 @@ class IzinController extends Controller
         $jumlah = $izin->setujui($request->user(), $catatan);
 
         return redirect()->route('izin.index')->with('success', "Izin {$izin->siswa->nama_siswa} disetujui dan dicatat di {$jumlah} presensi pelajaran.");
+    }
+
+    /** Surat izin keperluan (PDF) dari orang tua, bisa dibuka wali kelas sejak pengajuan masuk. */
+    public function surat(Request $request, PengajuanIzin $izin): Response
+    {
+        abort_unless($izin->bisaDitinjauOleh($request->user()), 403);
+        abort_unless($izin->punyaSurat(), 404, 'Surat izin hanya tersedia untuk izin keperluan.');
+
+        $izin->loadMissing(['siswa.kelas.waliKelas', 'wali']);
+        $pdf = SuratIzin::buatPdf(SuratIzin::dataSurat($izin));
+        $nis = $izin->siswa?->nis ?? 'izin';
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="surat-izin-'.$nis.'-'.$izin->id.'.pdf"',
+        ]);
+    }
+
+    /** Foto bukti (surat dokter/dll.) yang diunggah wali, hanya untuk peninjau. */
+    public function lampiran(Request $request, PengajuanIzin $izin)
+    {
+        abort_unless($izin->bisaDitinjauOleh($request->user()) && $izin->lampiran
+            && Storage::disk('local')->exists($izin->lampiran), 404);
+
+        return Storage::disk('local')->response($izin->lampiran);
     }
 
     public function reject(Request $request, PengajuanIzin $izin)

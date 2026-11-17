@@ -15,12 +15,15 @@ const _kanal = MethodChannel('mydarfik/unduh');
 /// Android: folder Download publik (lewat MediaStore). Platform lain / bila gagal: folder dokumen aplikasi.
 /// [jenis] = nama laporan di API (absensi, sholat, nilai, guru-presensi, data-guru, data-siswa).
 /// [alamatApi] mengganti alamat bawaan `/admin/ekspor/...` (mis. `/wali/kartu`); [jenis] tetap dipakai untuk nama berkas.
+/// [namaBerkas] mengganti seluruh nama berkas (tanpa timestamp), [keterangan] menggantikan "Laporan" di pesan progres.
 Future<void> unduhLaporan(
   BuildContext context, {
   required String jenis,
   required String format,
   String? alamatApi,
   Map<String, Object?> query = const {},
+  String? namaBerkas,
+  String keterangan = 'Laporan',
 }) async {
   final api = context.read<ApiClient>();
   final messenger = ScaffoldMessenger.of(context);
@@ -29,7 +32,7 @@ Future<void> unduhLaporan(
     ..showSnackBar(
       SnackBar(
         duration: const Duration(minutes: 1),
-        content: Text('Menyiapkan ${format.toUpperCase()}...'),
+        content: Text('Menyiapkan $keterangan ${format.toUpperCase()}...'),
       ),
     );
   try {
@@ -47,7 +50,9 @@ Future<void> unduhLaporan(
         .substring(0, 19)
         .replaceAll(':', '')
         .replaceAll('T', '-');
-    final nama = 'darfik-$jenis-$stamp.$format';
+    final nama = namaBerkas != null
+        ? '$namaBerkas.$format'
+        : 'darfik-$jenis-$stamp.$format';
     final mime = format == 'pdf' ? 'application/pdf' : 'text/csv';
 
     String lokasi;
@@ -75,8 +80,9 @@ Future<void> unduhLaporan(
         fileExtension: format,
         mimeType: format == 'pdf' ? MimeType.pdf : MimeType.csv,
       );
-      if (!File(path).existsSync())
+      if (!File(path).existsSync()) {
         throw const FileSystemException('Berkas tidak tersimpan');
+      }
       lokasi = 'penyimpanan aplikasi';
       buka = () => OpenFilex.open(path);
     }
@@ -92,14 +98,17 @@ Future<void> unduhLaporan(
       );
   } on ApiException catch (e) {
     messenger.hideCurrentSnackBar();
-    if (context.mounted) showMessage(context, e.message, error: true);
+    if (context.mounted) {
+      showMessage(context, e.message, error: true);
+    }
   } catch (_) {
     messenger.hideCurrentSnackBar();
-    if (context.mounted)
+    if (context.mounted) {
       showMessage(
         context,
         'Berkas tidak dapat disimpan. Periksa ruang kosong HP lalu coba lagi.',
         error: true,
       );
+    }
   }
 }
