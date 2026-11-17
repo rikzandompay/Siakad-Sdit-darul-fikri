@@ -178,6 +178,7 @@ Route::middleware('auth')->group(function () {
 
     // Izin siswa: wali kelas / admin meninjau
     Route::get('/izin', [IzinController::class, 'index'])->name('izin.index');
+    Route::get('/izin/{izin}/surat', [IzinController::class, 'surat'])->name('izin.surat');
     Route::post('/izin/{izin}/setujui', [IzinController::class, 'approve'])->middleware('throttle:60,1')->name('izin.approve');
     Route::post('/izin/{izin}/tolak', [IzinController::class, 'reject'])->middleware('throttle:60,1')->name('izin.reject');
 

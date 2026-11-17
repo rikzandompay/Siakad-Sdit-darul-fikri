@@ -150,6 +150,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/tugas', [WaliController::class, 'tugas']);
             Route::get('/izin', [WaliController::class, 'izin']);
             Route::post('/izin', [WaliController::class, 'ajukanIzin'])->middleware('throttle:api-sandi');
+            Route::get('/izin/{izin}/surat', [WaliController::class, 'suratIzinPdf'])->middleware('throttle:30,1');
+            Route::post('/izin/surat', [WaliController::class, 'buatSuratPdf'])->middleware('throttle:30,1');
             Route::get('/rapor', [WaliController::class, 'rapor']);
             Route::get('/rapor/grafik', [WaliController::class, 'raporGrafik']);
             Route::get('/rapor/{tahunAjaran}', [WaliController::class, 'raporSemester']);
