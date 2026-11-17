@@ -365,3 +365,4 @@ class SuratIzinDanBatasSemesterTest extends TestCase
         $this->assertSame('ada keperluan mendadak', SuratIzin::formatAlasanKalimat('ada keperluan mendadak'));
     }
 }
+
