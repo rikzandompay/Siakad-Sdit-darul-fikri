@@ -71,8 +71,7 @@
                         <th class="px-4 md:px-6 py-3 border-b">Status</th>
                         <th class="px-4 md:px-6 py-3 border-b text-center">Masuk</th>
                         <th class="px-4 md:px-6 py-3 border-b text-center">Pulang</th>
-                        <th class="px-4 md:px-6 py-3 border-b text-center">Jarak masuk</th>
-                        <th class="px-4 md:px-6 py-3 border-b text-center">Kecocokan wajah</th>
+                        <th class="px-4 md:px-6 py-3 border-b">Lokasi presensi</th>
                         <th class="px-4 md:px-6 py-3 border-b">Keterangan</th>
                     </tr>
                 </thead>
@@ -94,12 +93,22 @@
                             </td>
                             <td class="px-4 md:px-6 py-3 text-center">{{ $row->jam_masuk ? substr($row->jam_masuk, 0, 5) : '-' }}</td>
                             <td class="px-4 md:px-6 py-3 text-center">{{ $row->jam_pulang ? substr($row->jam_pulang, 0, 5) : '-' }}</td>
-                            <td class="px-4 md:px-6 py-3 text-center">{{ $row->masuk_jarak_meter !== null ? $row->masuk_jarak_meter.' m' : '-' }}</td>
-                            <td class="px-4 md:px-6 py-3 text-center">{{ $row->masuk_skor_wajah !== null ? $row->masuk_skor_wajah.'%' : '-' }}</td>
+                            <td class="px-4 md:px-6 py-3">
+                                @php $lokasi = $row->keteranganLokasi(); @endphp
+                                @if($lokasi === null)
+                                    <span class="text-gray-400">-</span>
+                                @else
+                                    <span class="inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded {{ $lokasi['di_lokasi'] ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700' }}"
+                                        title="{{ $lokasi['jarak'] }} m dari sekolah (radius {{ \App\Models\PengaturanSekolah::radiusMeter() }} m)">
+                                        <span class="material-symbols-outlined text-[14px]" aria-hidden="true">{{ $lokasi['di_lokasi'] ? 'check_circle' : 'cancel' }}</span>
+                                        {{ $lokasi['teks'] }}
+                                    </span>
+                                @endif
+                            </td>
                             <td class="px-4 md:px-6 py-3 text-gray-500">{{ $row->keterangan ?? '-' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="px-6 py-12 text-center text-gray-400">Belum ada data absen pada periode ini.</td></tr>
+                        <tr><td colspan="6" class="px-6 py-12 text-center text-gray-400">Belum ada data absen pada periode ini.</td></tr>
                     @endforelse
                 </tbody>
             </table>

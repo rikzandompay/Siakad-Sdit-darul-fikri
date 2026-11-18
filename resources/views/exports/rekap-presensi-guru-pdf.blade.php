@@ -52,7 +52,7 @@
     <table class="data">
         @if($selectedGuru)
             <thead>
-                <tr><th>No</th><th>Tanggal</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Terlambat</th><th>Jarak Masuk</th><th>Wajah</th><th>Keterangan</th></tr>
+                <tr><th>No</th><th>Tanggal</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Terlambat</th><th>Lokasi Presensi</th><th>Keterangan</th></tr>
             </thead>
             <tbody>
                 @forelse($detail as $row)
@@ -63,8 +63,8 @@
                         <td>{{ $row->jam_masuk ? substr($row->jam_masuk, 0, 5) : '-' }}</td>
                         <td>{{ $row->jam_pulang ? substr($row->jam_pulang, 0, 5) : '-' }}</td>
                         <td>{{ $row->terlambat ? 'Ya' : '-' }}</td>
-                        <td>{{ $row->masuk_jarak_meter !== null ? $row->masuk_jarak_meter.' m' : '-' }}</td>
-                        <td>{{ $row->masuk_skor_wajah !== null ? $row->masuk_skor_wajah.'%' : '-' }}</td>
+                        @php $lokasi = $row->keteranganLokasi(); @endphp
+                        <td>{!! $lokasi === null ? '-' : '<span style="color:'.($lokasi['di_lokasi'] ? '#15803d' : '#b91c1c').'">'.($lokasi['di_lokasi'] ? '&#10004; ' : '&#10008; ').e($lokasi['teks']).'</span>' !!}</td>
                         <td class="l">@if($insidenPerHari->has($row->tanggal->toDateString()))<b>[Lokasi palsu {{ $insidenPerHari->get($row->tanggal->toDateString()) }}]</b> @endif{{ $row->keterangan ?? '-' }}</td>
                     </tr>
                 @empty

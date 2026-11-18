@@ -206,7 +206,14 @@ class KonselingPengumumanPresensiGuruTest extends TestCase
             });
 
         $this->actingAs($this->sinta)->get('/presensi-guru/rekap?rentang=bulan_ini&tanggal=2026-11-10&guru_id='.$this->pengampu->id)
-            ->assertOk()->assertSee('Terlambat')->assertSee('42 m')->assertSee('97.5%');
+            ->assertOk()->assertSee('Terlambat')
+            ->assertSee('Di lokasi SDIT Darul Fikri')
+            ->assertDontSee('Kecocokan wajah')->assertDontSee('Jarak masuk');
+
+        // Titik absen di luar radius sekolah ditandai merah.
+        PresensiGuru::whereDate('tanggal', '2026-11-03')->update(['masuk_jarak_meter' => 5000]);
+        $this->actingAs($this->sinta)->get('/presensi-guru/rekap?rentang=bulan_ini&tanggal=2026-11-10&guru_id='.$this->pengampu->id)
+            ->assertOk()->assertSee('Di luar lokasi presensi');
 
         $csv = $this->actingAs($this->sinta)->get('/presensi-guru/rekap/export/csv?rentang=bulan_ini&tanggal=2026-11-10');
         $this->assertStringContainsString('"Rina Pengampu",2,1,1,66.7', $csv->streamedContent());

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Sekolah;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
@@ -46,6 +47,27 @@ class PresensiGuru extends Model
      * Nilai kolom untuk koreksi manual oleh admin. Koreksi atas absen milik sendiri tetap boleh
      * (tidak ada admin lain), tetapi selalu ditandai agar terlihat di rekap dan ekspor.
      */
+    /**
+     * Keterangan lokasi presensi untuk rekap: "Di lokasi SD IT Darul Fikri" bila
+     * titik absen masuk berada di dalam radius sekolah, "Di luar lokasi presensi"
+     * bila di luar. Null untuk absen manual (tanpa titik lokasi).
+     *
+     * @return array{di_lokasi: bool, teks: string}|null
+     */
+    public function keteranganLokasi(): ?array
+    {
+        if ($this->masuk_jarak_meter === null) {
+            return null;
+        }
+
+        $jarak = (int) $this->masuk_jarak_meter;
+        $radius = PengaturanSekolah::radiusMeter();
+
+        return $jarak <= $radius
+            ? ['di_lokasi' => true, 'teks' => 'Di lokasi '.Sekolah::NAMA, 'jarak' => $jarak]
+            : ['di_lokasi' => false, 'teks' => 'Di luar lokasi presensi', 'jarak' => $jarak];
+    }
+
     public static function dataKoreksi(int $guruId, User $oleh, string $keterangan): array
     {
         $mandiri = $guruId === $oleh->id;

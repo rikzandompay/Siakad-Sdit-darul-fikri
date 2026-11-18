@@ -130,7 +130,7 @@ class RekapPresensiGuruController extends Controller
             fputcsv($file, []);
 
             if ($data['selectedGuru']) {
-                fputcsv($file, ['No', 'Tanggal', 'Status', 'Jam Masuk', 'Jam Pulang', 'Terlambat', 'Jarak Masuk (m)', 'Kecocokan Wajah (%)', 'Lokasi Palsu', 'Koreksi Mandiri', 'Keterangan']);
+                fputcsv($file, ['No', 'Tanggal', 'Status', 'Jam Masuk', 'Jam Pulang', 'Terlambat', 'Lokasi Presensi', 'Lokasi Palsu', 'Koreksi Mandiri', 'Keterangan']);
                 foreach ($data['detail'] as $i => $row) {
                     $this->putSafeCsv($file, [
                         $i + 1,
@@ -139,8 +139,7 @@ class RekapPresensiGuruController extends Controller
                         $row->jam_masuk ? substr($row->jam_masuk, 0, 5) : '-',
                         $row->jam_pulang ? substr($row->jam_pulang, 0, 5) : '-',
                         $row->terlambat ? 'Ya' : '-',
-                        $row->masuk_jarak_meter ?? '-',
-                        $row->masuk_skor_wajah ?? '-',
+                        $row->keteranganLokasi()['teks'] ?? '-',
                         $data['insidenPerHari']->get($row->tanggal->toDateString()) ?? '-',
                         $row->koreksi_mandiri ? 'Ya' : '-',
                         $row->keterangan ?? '-',
