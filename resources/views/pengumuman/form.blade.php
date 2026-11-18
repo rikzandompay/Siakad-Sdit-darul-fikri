@@ -5,11 +5,7 @@
 
 @section('content')
     <div>
-        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <a href="{{ route('pengumuman.index') }}" class="hover:text-blue-600">Pengumuman</a>
-            <span class="material-symbols-outlined text-xs">chevron_right</span>
-            <span class="text-blue-600 font-medium">{{ $baru ? 'Buat' : 'Ubah' }}</span>
-        </div>
+        <x-breadcrumb :items="[['label' => 'Pengumuman', 'url' => route('pengumuman.index')], ['label' => '{{ $baru ? 'Buat' : 'Ubah' }}']]" :class="'mb-1'" />
         <h2 class="font-bold text-2xl text-blue-600">{{ $baru ? 'Buat Pengumuman' : 'Ubah Pengumuman' }}</h2>
         <p class="text-gray-500 text-sm mt-1">
             Pengumuman dicetak sebagai surat resmi sekolah dengan kop dan tanda tangan kepala sekolah.

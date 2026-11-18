@@ -245,9 +245,7 @@
                                         <input type="hidden" name="nilai[{{ $index }}][siswa_id]"
                                             value="{{ $s->id }}">
                                         <div class="flex items-center gap-2">
-                                            <div
-                                                class="w-7 h-7 rounded-full {{ $s->jenis_kelamin == 'L' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }} flex items-center justify-center flex-shrink-0">
-                                                <span class="material-symbols-outlined text-[16px]">person</span></div>
+                                            <x-avatar-person :jenis-kelamin="$s->jenis_kelamin" size="sm" shrink />
                                             <div class="min-w-0">
                                                 <p class="font-medium text-gray-900 text-xs truncate">{{ $s->nama_siswa }}
                                                 </p>

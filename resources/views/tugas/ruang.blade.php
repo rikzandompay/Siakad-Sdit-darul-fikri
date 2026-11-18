@@ -5,13 +5,7 @@
 @section('content')
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
     <div class="min-w-0">
-        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <a href="{{ route('kelas.index') }}" class="hover:text-blue-600">Kelas &amp; Mapel</a>
-            <span class="material-symbols-outlined text-xs">chevron_right</span>
-            <a href="{{ route('kelas.show', $kelas) }}" class="hover:text-blue-600">{{ $kelas->nama_kelas }}</a>
-            <span class="material-symbols-outlined text-xs">chevron_right</span>
-            <span class="text-blue-600 font-medium">{{ $mapel->nama_pelajaran }}</span>
-        </div>
+        <x-breadcrumb :items="[['label' => 'Kelas &amp; Mapel', 'url' => route('kelas.index')], ['label' => '{{ $kelas->nama_kelas }}', 'url' => route('kelas.show', $kelas)], ['label' => '{{ $mapel->nama_pelajaran }}']]" :class="'mb-1'" />
         <h2 class="font-bold text-2xl text-blue-600">Ruang Tugas {{ $mapel->nama_pelajaran }}</h2>
         <p class="text-gray-500 text-sm mt-1">{{ $kelas->nama_kelas }} · {{ $jumlahSiswa }} siswa. Tugas di sini tampil di aplikasi MyDarfik wali murid.</p>
     </div>

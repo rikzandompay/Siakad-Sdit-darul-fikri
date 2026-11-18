@@ -6,11 +6,7 @@
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div class="space-y-1">
-            <div class="flex items-center gap-2 text-sm text-gray-500">
-                <span>Akademik</span>
-                <span class="material-symbols-outlined text-xs">chevron_right</span>
-                <span class="text-blue-600 font-medium">Data Guru</span>
-            </div>
+            <x-breadcrumb :items="[['label' => 'Akademik'], ['label' => 'Data Guru']]" />
             <h2 class="font-bold text-2xl text-blue-600">Manajemen Data Guru</h2>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
@@ -111,11 +107,7 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <div
-                                        class="w-8 h-8 shrink-0 rounded-full {{ $g->jenis_kelamin == 'L' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }} flex items-center justify-center"
-                                        aria-hidden="true">
-                                        <span class="material-symbols-outlined text-[18px]">person</span>
-                                    </div>
+                                    <x-avatar-person :jenis-kelamin="$g->jenis_kelamin" shrink />
                                     <div>
                                         <span class="font-medium text-gray-900">{{ $g->nama_lengkap ?? $g->name }}</span>
                                         @if($g->nama_lengkap && $g->nama_lengkap !== $g->name)

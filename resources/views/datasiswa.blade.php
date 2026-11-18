@@ -6,11 +6,7 @@
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div class="space-y-1">
-            <div class="flex items-center gap-2 text-sm text-gray-500">
-                <span>Akademik</span>
-                <span class="material-symbols-outlined text-xs">chevron_right</span>
-                <span class="text-blue-600 font-medium">Data Siswa</span>
-            </div>
+            <x-breadcrumb :items="[['label' => 'Akademik'], ['label' => 'Data Siswa']]" />
             <h2 class="font-bold text-2xl text-blue-600">Manajemen Data Siswa</h2>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
@@ -137,11 +133,7 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <div
-                                        class="w-8 h-8 shrink-0 rounded-full {{ $s->jenis_kelamin == 'L' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }} flex items-center justify-center"
-                                        aria-hidden="true">
-                                        <span class="material-symbols-outlined text-[18px]">person</span>
-                                    </div>
+                                    <x-avatar-person :jenis-kelamin="$s->jenis_kelamin" shrink />
                                     <span class="font-medium text-gray-900">{{ $s->nama_siswa }}</span>
                                 </div>
                             </td>

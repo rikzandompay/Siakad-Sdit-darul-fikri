@@ -6,11 +6,7 @@
 <!-- Breadcrumbs -->
 <div class="flex items-center justify-between">
     <div class="space-y-1">
-        <div class="flex items-center gap-2 text-sm text-gray-500">
-            <a href="{{ route('kelas.index') }}" class="hover:text-blue-600">Kelas & Mapel</a>
-            <span class="material-symbols-outlined text-xs">chevron_right</span>
-            <span class="text-blue-600 font-medium">{{ $kelas->nama_kelas }}</span>
-        </div>
+        <x-breadcrumb :items="[['label' => 'Kelas & Mapel', 'url' => route('kelas.index')], ['label' => '{{ $kelas->nama_kelas }}']]" />
         <div class="flex items-center gap-4">
             <a href="{{ route('kelas.index') }}" class="p-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
                 <span class="material-symbols-outlined">arrow_back</span>

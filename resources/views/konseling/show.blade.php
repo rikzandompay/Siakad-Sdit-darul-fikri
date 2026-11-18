@@ -11,11 +11,7 @@
 
 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
     <div class="min-w-0">
-        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <a href="{{ route('konseling.index') }}" class="hover:text-blue-600">Konseling</a>
-            <span class="material-symbols-outlined text-xs">chevron_right</span>
-            <span class="text-blue-600 font-medium truncate">{{ $siswa?->nama_siswa }}</span>
-        </div>
+        <x-breadcrumb :items="[['label' => 'Konseling', 'url' => route('konseling.index')], ['label' => '{{ $siswa?->nama_siswa }}']]" :class="'mb-1'" />
         <h2 class="font-bold text-2xl text-blue-600 break-words">{{ $percakapan->topik }}</h2>
         <p class="text-gray-500 text-sm mt-1">
             Wali dari {{ $siswa?->nama_siswa }} ({{ $siswa?->kelas?->nama_kelas ?? '-' }})

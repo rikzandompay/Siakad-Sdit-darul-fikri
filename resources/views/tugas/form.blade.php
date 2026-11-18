@@ -5,13 +5,7 @@
 
 @section('content')
 <div>
-    <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
-        <a href="{{ route('kelas.index') }}" class="hover:text-blue-600">Kelas &amp; Mapel</a>
-        <span class="material-symbols-outlined text-xs">chevron_right</span>
-        <a href="{{ route('tugas.ruang', [$kelas, $mapel]) }}" class="hover:text-blue-600">{{ $kelas->nama_kelas }} · {{ $mapel->nama_pelajaran }}</a>
-        <span class="material-symbols-outlined text-xs">chevron_right</span>
-        <span class="text-blue-600 font-medium">{{ $baru ? 'Buat' : 'Ubah' }}</span>
-    </div>
+    <x-breadcrumb :items="[['label' => 'Kelas &amp; Mapel', 'url' => route('kelas.index')], ['label' => '{{ $kelas->nama_kelas }} · {{ $mapel->nama_pelajaran }}', 'url' => route('tugas.ruang', [$kelas, $mapel])], ['label' => '{{ $baru ? 'Buat' : 'Ubah' }}']]" :class="'mb-1'" />
     <h2 class="font-bold text-2xl text-blue-600">{{ $baru ? 'Buat Tugas' : 'Ubah Tugas' }}</h2>
     <p class="text-gray-500 text-sm mt-1">{{ $mapel->nama_pelajaran }} · {{ $kelas->nama_kelas }}</p>
 </div>

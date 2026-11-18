@@ -5,13 +5,7 @@
 @section('content')
 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
     <div class="min-w-0">
-        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <a href="{{ route('kelas.index') }}" class="hover:text-blue-600">Kelas &amp; Mapel</a>
-            <span class="material-symbols-outlined text-xs">chevron_right</span>
-            <a href="{{ route('tugas.ruang', [$tugas->kelas_id, $tugas->pelajaran_id]) }}" class="hover:text-blue-600">{{ $tugas->kelas?->nama_kelas }} · {{ $tugas->mataPelajaran?->nama_pelajaran }}</a>
-            <span class="material-symbols-outlined text-xs">chevron_right</span>
-            <span class="text-blue-600 font-medium">Tugas</span>
-        </div>
+        <x-breadcrumb :items="[['label' => 'Kelas &amp; Mapel', 'url' => route('kelas.index')], ['label' => '{{ $tugas->kelas?->nama_kelas }} · {{ $tugas->mataPelajaran?->nama_pelajaran }}', 'url' => route('tugas.ruang', [$tugas->kelas_id, $tugas->pelajaran_id])], ['label' => 'Tugas']]" :class="'mb-1'" />
         <h2 class="font-bold text-2xl text-blue-600 break-words">{{ $tugas->judul }}</h2>
         <p class="text-gray-500 text-sm mt-1">{{ $tugas->kelas?->nama_kelas }} · {{ $tugas->mataPelajaran?->nama_pelajaran }} · {{ $tugas->tenggat ? 'Tenggat '.$tugas->tenggat->translatedFormat('d F Y') : 'Tanpa tenggat' }}</p>
         @if($tugas->deskripsi)<p class="text-sm text-gray-700 mt-3 whitespace-pre-line break-words max-w-3xl">{{ $tugas->deskripsi }}</p>@endif

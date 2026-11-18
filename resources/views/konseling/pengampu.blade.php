@@ -4,11 +4,7 @@
 
 @section('content')
 <div>
-    <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
-        <a href="{{ route('konseling.index') }}" class="hover:text-blue-600">Konseling</a>
-        <span class="material-symbols-outlined text-xs">chevron_right</span>
-        <span class="text-blue-600 font-medium">Pengampu</span>
-    </div>
+    <x-breadcrumb :items="[['label' => 'Konseling', 'url' => route('konseling.index')], ['label' => 'Pengampu']]" :class="'mb-1'" />
     <h2 class="font-bold text-2xl text-blue-600">Pengampu Konseling</h2>
     <p class="text-gray-500 text-sm mt-1">Tetapkan satu guru untuk tiap kelas. Wali murid di aplikasi MyDarfik otomatis terhubung ke pengampu kelas anaknya. Satu guru boleh mengampu beberapa kelas.</p>
 </div>

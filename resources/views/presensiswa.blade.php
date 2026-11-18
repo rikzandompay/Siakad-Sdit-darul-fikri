@@ -6,11 +6,7 @@
 <!-- Header with Export Buttons -->
 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
     <div>
-        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <a href="{{ route('presensi.index') }}" class="hover:text-blue-600">Presensi</a>
-            <span class="material-symbols-outlined text-xs">chevron_right</span>
-            <span class="text-blue-600 font-medium">{{ $kelas->nama_kelas }}</span>
-        </div>
+        <x-breadcrumb :items="[['label' => 'Presensi', 'url' => route('presensi.index')], ['label' => '{{ $kelas->nama_kelas }}']]" :class="'mb-1'" />
         <h2 class="font-bold text-2xl text-blue-600">Presensi Siswa</h2>
         <p class="text-gray-500 text-sm">Kelola kehadiran harian siswa {{ $kelas->nama_kelas }}</p>
     </div>
@@ -140,9 +136,7 @@
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">{{ $s->nis }}</td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 shrink-0 rounded-full {{ $s->jenis_kelamin == 'L' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }} flex items-center justify-center">
-                                        <span class="material-symbols-outlined text-[20px]">person</span>
-                                    </div>
+                                    <x-avatar-person :jenis-kelamin="$s->jenis_kelamin" size="lg" shrink />
                                     <span class="font-medium text-gray-900">{{ $s->nama_siswa }}</span>
                                 </div>
                             </td>
@@ -200,12 +194,6 @@
 
 @push('scripts')
 <script>
-    // Map nama hari Indonesia ke index JS (0=Minggu, 1=Senin, ...)
-    const hariMap = {
-        'Minggu': 0, 'Senin': 1, 'Selasa': 2, 'Rabu': 3,
-        'Kamis': 4, 'Jumat': 5, 'Sabtu': 6
-    };
-
     function filterJadwalByDay(dateValue) {
         if (!dateValue) return;
 

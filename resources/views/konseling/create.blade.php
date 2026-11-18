@@ -4,11 +4,7 @@
 
 @section('content')
 <div>
-    <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
-        <a href="{{ route('konseling.index') }}" class="hover:text-blue-600">Konseling</a>
-        <span class="material-symbols-outlined text-xs">chevron_right</span>
-        <span class="text-blue-600 font-medium">Mulai percakapan</span>
-    </div>
+    <x-breadcrumb :items="[['label' => 'Konseling', 'url' => route('konseling.index')], ['label' => 'Mulai percakapan']]" :class="'mb-1'" />
     <h2 class="font-bold text-2xl text-blue-600">Mulai Percakapan</h2>
     <p class="text-gray-500 text-sm mt-1">Pesan dikirim ke wali murid lewat aplikasi MyDarfik.</p>
 </div>

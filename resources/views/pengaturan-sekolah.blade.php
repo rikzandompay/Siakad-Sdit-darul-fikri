@@ -4,11 +4,7 @@
 
 @section('content')
 <div>
-    <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
-        <a href="{{ route('pengaturan.index') }}" class="hover:text-blue-600">Pengaturan</a>
-        <span class="material-symbols-outlined text-xs">chevron_right</span>
-        <span class="text-blue-600 font-medium">Lokasi, Jam Masuk &amp; Hari Libur</span>
-    </div>
+    <x-breadcrumb :items="[['label' => 'Pengaturan', 'url' => route('pengaturan.index')], ['label' => 'Lokasi, Jam Masuk &amp; Hari Libur']]" :class="'mb-1'" />
     <h2 class="font-bold text-2xl text-blue-600">Lokasi, Jam Masuk &amp; Hari Libur</h2>
     <p class="text-gray-500 text-sm mt-1">Dipakai aplikasi MyDarfik untuk memeriksa lokasi saat guru absen, dan menentukan hari yang tidak dihitung Tidak Hadir otomatis.</p>
 </div>
