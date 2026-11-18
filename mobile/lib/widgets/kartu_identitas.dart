@@ -211,7 +211,7 @@ class _FotoPlaceholder extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(inisial, style: AppText.title.copyWith(color: AppColors.brand700)),
+        Icon(Icons.person_outline, size: 26, color: AppColors.brand700),
         Text(
           'FOTO 3×4',
           style: AppText.overline.copyWith(

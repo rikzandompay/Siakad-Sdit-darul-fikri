@@ -14,8 +14,11 @@
 
 .kartu .foto { left: 5.5mm; top: 17.5mm; width: 17.5mm; height: 22.7mm; overflow: hidden; background-color: #D4E6FA; border: 0.35mm solid #14284B; border-radius: 2.2mm; text-align: center; }
 .kartu .foto img { left: 0; top: 0; width: 17.5mm; height: 22.7mm; object-fit: cover; }
-.kartu .foto .ini { left: 0; top: 7.4mm; width: 17.5mm; font-size: 15pt; font-weight: bold; color: #1E7FC4; }
-.kartu .foto .cap { left: 0; top: 13mm; width: 17.5mm; font-size: 5.3pt; letter-spacing: 0.15mm; color: #1E7FC4; }
+/* Siluet orang netral (dompdf tidak bisa memuat ikon font): kepala + bahu. */
+.kartu .foto .ini { left: 0; top: 0; width: 17.5mm; }
+.kartu .foto .ini .kepala { left: 6.2mm; top: 5mm; width: 5.2mm; height: 5.2mm; border-radius: 50%; background-color: #1E7FC4; }
+.kartu .foto .ini .badan { left: 3.6mm; top: 11.4mm; width: 10.4mm; height: 7mm; border-radius: 5.2mm 5.2mm 0 0; background-color: #1E7FC4; }
+.kartu .foto .cap { left: 0; top: 18.9mm; width: 17.5mm; font-size: 5.3pt; letter-spacing: 0.15mm; color: #1E7FC4; }
 
 .kartu .nama { left: 27mm; top: 17.4mm; width: 34.5mm; font-weight: bold; white-space: nowrap; overflow: hidden; }
 .kartu .ikon { left: 27mm; width: 3.2mm; }

@@ -2,7 +2,6 @@
 @php
     $namaTampil = \Illuminate\Support\Str::limit($guru->nama_lengkap ?? $guru->name, 40);
     $ukuranNama = max(5.8, min(10.2, 230 / max(1, mb_strlen($namaTampil))));
-    $inisial = \App\Support\Sekolah::inisial($guru->nama_lengkap ?? $guru->name);
 @endphp
 <div class="kartu">
     <img class="hias-tr" src="{{ $aset['swoosh_tr'] }}" alt="">
@@ -15,7 +14,7 @@
         @if($foto)
             <img src="{{ $foto }}" alt="">
         @else
-            <div class="ini">{{ $inisial }}</div>
+            <div class="ini"><div class="kepala"></div><div class="badan"></div></div>
             <div class="cap">FOTO 3×4</div>
         @endif
     </div>

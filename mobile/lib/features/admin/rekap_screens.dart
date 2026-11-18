@@ -267,10 +267,22 @@ class _RekapSholatScreenState extends State<RekapSholatScreen> with OpsiAdmin {
     }
   }
 
+  /// Kelas 1 dan 2 tidak mengikuti sholat Dzuhur, jadi pilihan Dzuhur
+  /// disembunyikan untuk kelas tersebut.
+  bool get _ikutDzuhur =>
+      daftarKelas('kelas_wali').firstWhere(
+        (k) => k['id'] == _kelas,
+        orElse: () => const {},
+      )['ikut_dzuhur'] !=
+      false;
+
   @override
   Widget build(BuildContext context) {
     final api = context.read<ApiClient>();
-    final q = {'kelas_id': _kelas, 'jenis': _jenis, 'rentang': _rentang};
+    // Jaga-jaga bila kelas berganti: jangan pernah meminta rekap Dzuhur
+    // untuk kelas yang tidak ikut sholat Dzuhur.
+    final jenis = _ikutDzuhur ? _jenis : 'Dhuha';
+    final q = {'kelas_id': _kelas, 'jenis': jenis, 'rentang': _rentang};
     return AppPage(
       title: 'Rekap Sholat',
       subtitle: 'Kehadiran sholat berjamaah per kelas',
@@ -300,11 +312,11 @@ class _RekapSholatScreenState extends State<RekapSholatScreen> with OpsiAdmin {
                   ),
                   const SizedBox(height: 10),
                   PilihanChips<String>(
-                    pilihan: const {
+                    pilihan: {
                       'Dhuha': 'Sholat Dhuha',
-                      'Dzuhur': 'Sholat Dzuhur',
+                      if (_ikutDzuhur) 'Dzuhur': 'Sholat Dzuhur',
                     },
-                    nilai: _jenis,
+                    nilai: jenis,
                     onChanged: (v) => setState(() => _jenis = v),
                   ),
                   const SizedBox(height: 8),

@@ -17,7 +17,7 @@
         @if($foto)
             <img src="{{ $foto }}" alt="">
         @else
-            <div class="ini">{{ $siswa->initials }}</div>
+            <div class="ini"><div class="kepala"></div><div class="badan"></div></div>
             <div class="cap">FOTO 3×4</div>
         @endif
     </div>

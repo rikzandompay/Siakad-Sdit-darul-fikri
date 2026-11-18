@@ -365,7 +365,7 @@ class _FotoKosong extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Text(inisial, style: gaya(15, FontWeight.w800, const Color(0xFF1E7FC4))),
+      Icon(Icons.person_outline, size: mm(9), color: const Color(0xFF1E7FC4)),
       SizedBox(height: mm(0.8)),
       Text(
         'FOTO 3×4',

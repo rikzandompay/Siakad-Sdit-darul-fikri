@@ -351,7 +351,6 @@ class _MenuGrid extends StatelessWidget {
       if (bisaPresensi)
         ('Rekap Nilai', 'rekap_nilai', () => buka('/guru/rekap-nilai'), 0),
       ('Bagi Tugas', 'tugas', () => buka('/guru/tugas'), 0),
-      ('Nilai Tugas', 'nilai', () => buka('/guru/tugas'), 0),
       ('Surat Izin', 'surat_izin', () => buka('/guru/izin'), izinMenunggu),
       ('Konseling', 'konseling', () => buka('/guru/konseling'), 0),
       ('Absen Saya', 'absen_saya', () => buka('/guru/absen'), 0),

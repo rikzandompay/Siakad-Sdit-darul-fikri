@@ -240,11 +240,9 @@ class _IzinGuruScreenState extends State<IzinGuruScreen> {
                                     horizontal: 12,
                                     vertical: 10,
                                   ),
-                                  onTap: () => unduhLaporan(
+                                  onTap: () => pratinjauPdf(
                                     context,
-                                    jenis: 'surat-izin',
-                                    format: 'pdf',
-                                    keterangan: 'Surat Izin',
+                                    keterangan: 'surat izin',
                                     namaBerkas:
                                         'surat-izin-${_namaBerkasSederhana(i['siswa'])}-${i['tanggal_mulai']}',
                                     alamatApi: '/guru/izin/${i['id']}/surat',
@@ -267,7 +265,7 @@ class _IzinGuruScreenState extends State<IzinGuruScreen> {
                                         ),
                                       ),
                                       const Icon(
-                                        Icons.download_outlined,
+                                        Icons.chevron_right,
                                         color: AppColors.brand700,
                                       ),
                                     ],

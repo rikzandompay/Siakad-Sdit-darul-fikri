@@ -599,8 +599,11 @@ class ListRowCard extends StatelessWidget {
   }
 }
 
+/// Avatar bulat dengan ikon orang; foto asli (bila ada) tetap dipakai lebih dulu.
 class InisialAvatar extends StatelessWidget {
   const InisialAvatar(this.inisial, {super.key, this.size = 52});
+
+  /// Dipertahankan agar pemanggil lama tetap jalan; tidak ditampilkan lagi.
   final String inisial;
   final double size;
 
@@ -613,17 +616,15 @@ class InisialAvatar extends StatelessWidget {
       shape: BoxShape.circle,
     ),
     alignment: Alignment.center,
-    child: Text(
-      inisial,
-      style: AppText.heading.copyWith(
-        color: AppColors.brand700,
-        fontSize: size * 0.32,
-      ),
+    child: Icon(
+      Icons.person_outline,
+      size: size * 0.58,
+      color: AppColors.brand700,
     ),
   );
 }
 
-/// Foto profil bulat; bila belum ada (atau gagal dimuat) tampil inisial.
+/// Foto profil bulat; bila belum ada (atau gagal dimuat) tampil ikon orang.
 class FotoAvatar extends StatelessWidget {
   const FotoAvatar({
     super.key,

@@ -27,7 +27,7 @@
                 @if ($user->fotoUrl())
                     <img src="{{ $user->fotoUrl() }}" alt="Foto profil" class="w-full h-full object-cover">
                 @else
-                    {{ strtoupper(substr($user->nama_lengkap ?? $user->name, 0, 2)) }}
+                    <span class="material-symbols-outlined text-[44px]" aria-hidden="true">person</span>
                 @endif
             </div>
             <div class="min-w-0">

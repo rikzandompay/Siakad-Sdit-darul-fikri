@@ -64,8 +64,8 @@
         @forelse($percakapan as $p)
             <li>
                 <a href="{{ route('konseling.show', $p) }}" class="flex items-start gap-4 px-4 md:px-6 py-4 hover:bg-blue-50/40 transition-colors">
-                    <div class="w-10 h-10 shrink-0 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
-                        {{ $p->siswa?->initials }}
+                    <div class="w-10 h-10 shrink-0 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[22px]">person</span>
                     </div>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center justify-between gap-3">

@@ -36,3 +36,6 @@ Thumbs.db
 
 # Laporan audit keamanan internal: jangan masuk repo (repo GitHub publik)
 safety.md
+
+# Dokumen, panduan, dan video demo (PDF/DOCX/MP4): terlalu besar & internal
+/docs/

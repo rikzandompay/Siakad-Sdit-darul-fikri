@@ -171,7 +171,7 @@
                             alt="Foto {{ Auth::user()->nama_lengkap ?? Auth::user()->name }}"
                             class="w-full h-full object-cover">
                     @else
-                        {{ strtoupper(substr(Auth::user()->nama_lengkap ?? Auth::user()->name, 0, 2)) }}
+                        <span class="material-symbols-outlined text-[22px]" aria-hidden="true">person</span>
                     @endif
                 </a>
             </div>

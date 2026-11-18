@@ -87,7 +87,7 @@
                         <td class="px-6 py-4 text-sm text-gray-400">{{ $index + 1 }}</td>
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full {{ $s->jenis_kelamin == 'L' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }} flex flex-shrink-0 items-center justify-center text-xs font-bold">{{ $s->initials }}</div>
+                                <div class="w-8 h-8 rounded-full {{ $s->jenis_kelamin == 'L' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }} flex flex-shrink-0 items-center justify-center"><span class="material-symbols-outlined text-[18px]">person</span></div>
                                 <div>
                                     <p class="font-medium text-gray-900 whitespace-nowrap">{{ $s->nama_siswa }}</p>
                                     <p class="text-[11px] text-gray-400 tracking-wider">NIS: {{ $s->nis }}</p>

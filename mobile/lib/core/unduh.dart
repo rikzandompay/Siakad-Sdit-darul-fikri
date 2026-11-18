@@ -4,6 +4,7 @@ import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../widgets/common.dart';
@@ -109,6 +110,59 @@ Future<void> unduhLaporan(
         'Berkas tidak dapat disimpan. Periksa ruang kosong HP lalu coba lagi.',
         error: true,
       );
+    }
+  }
+}
+
+/// Tampilkan surat PDF tanpa menyimpannya ke folder Download.
+/// Berkas hanya ditaruh di cache aplikasi (dibersihkan sistem kapan saja),
+/// lalu dibuka dengan aplikasi pembaca PDF bawaan HP.
+Future<void> pratinjauPdf(
+  BuildContext context, {
+  required String alamatApi,
+  required String namaBerkas,
+  String keterangan = 'Surat',
+}) async {
+  final api = context.read<ApiClient>();
+  final messenger = ScaffoldMessenger.of(context);
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        duration: const Duration(minutes: 1),
+        content: Text('Menyiapkan pratinjau $keterangan...'),
+      ),
+    );
+  try {
+    final data = Uint8List.fromList(await api.bytes(alamatApi));
+    final nama = namaBerkas.toLowerCase().endsWith('.pdf')
+        ? namaBerkas
+        : '$namaBerkas.pdf';
+    final folder = await getApplicationCacheDirectory();
+    final berkas = File('${folder.path}/pratinjau/$nama');
+    await berkas.parent.create(recursive: true);
+    await berkas.writeAsBytes(data, flush: true);
+
+    messenger.hideCurrentSnackBar();
+    final hasil = await OpenFilex.open(berkas.path, type: 'application/pdf');
+    if (hasil.type != ResultType.done) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Tidak ada aplikasi pembaca PDF di HP ini. Pasang aplikasi seperti Google Drive atau Adobe Acrobat.',
+          ),
+        ),
+      );
+    }
+  } on ApiException catch (e) {
+    messenger.hideCurrentSnackBar();
+    if (context.mounted) {
+      showMessage(context, e.message, error: true);
+    }
+  } catch (_) {
+    messenger.hideCurrentSnackBar();
+    if (context.mounted) {
+      showMessage(context, 'Surat tidak dapat dibuka. Coba lagi.', error: true);
     }
   }
 }
