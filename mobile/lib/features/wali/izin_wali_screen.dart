@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -501,10 +503,7 @@ class _IzinWaliScreenState extends State<IzinWaliScreen> {
     ),
     if (_suratLengkap)
       _PratinjauSurat(
-        key: ValueKey(
-          '${_namaLengkap.text}|${_kota.text}|${_kontak.text}|'
-          '${_ymd(_mulaiKeperluan!)}|$_jumlahHari|$_alasanPilihan|${_alasanSurat()}',
-        ),
+        key: const ValueKey('pratinjau-surat'),
         api: api,
         siswaId: anak['id'],
         nama: _namaLengkap.text,
@@ -602,7 +601,8 @@ class _IzinWaliScreenState extends State<IzinWaliScreen> {
 }
 
 /// Pratinjau surat dari server (teks sudah diformat sama seperti PDF).
-class _PratinjauSurat extends StatelessWidget {
+/// Isian berubah tiap ketikan; permintaan baru dikirim setelah jeda singkat.
+class _PratinjauSurat extends StatefulWidget {
   const _PratinjauSurat({
     super.key,
     required this.api,
@@ -624,21 +624,66 @@ class _PratinjauSurat extends StatelessWidget {
   final String alasan;
   final String kontak;
 
+  @override
+  State<_PratinjauSurat> createState() => _PratinjauSuratState();
+}
+
+class _PratinjauSuratState extends State<_PratinjauSurat> {
+  static const _jedaKetik = Duration(milliseconds: 400);
+
+  Timer? _tunda;
+  Future<Map<String, dynamic>>? _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _ambil();
+  }
+
+  @override
+  void didUpdateWidget(_PratinjauSurat lama) {
+    super.didUpdateWidget(lama);
+    if (_isianBerubah(lama)) {
+      _tunda?.cancel();
+      _tunda = Timer(_jedaKetik, () {
+        if (mounted) setState(() => _future = _ambil());
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _tunda?.cancel();
+    super.dispose();
+  }
+
+  bool _isianBerubah(_PratinjauSurat lama) =>
+      lama.nama != widget.nama ||
+      lama.kota != widget.kota ||
+      lama.tanggalMulai != widget.tanggalMulai ||
+      lama.jumlahHari != widget.jumlahHari ||
+      lama.alasan != widget.alasan ||
+      lama.kontak != widget.kontak;
+
   String _ymd(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  Future<Map<String, dynamic>> _ambil() =>
+      widget.api.post('/wali/izin/pratinjau-surat', {
+        'siswa_id': widget.siswaId,
+        'nama_lengkap': widget.nama,
+        'kota': widget.kota,
+        if (widget.tanggalMulai != null)
+          'tanggal_mulai': _ymd(widget.tanggalMulai!),
+        'jumlah_hari': widget.jumlahHari,
+        'alasan': widget.alasan,
+        'kontak': widget.kontak,
+      });
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>>(
-      future: api.post('/wali/izin/pratinjau-surat', {
-        'siswa_id': siswaId,
-        'nama_lengkap': nama,
-        'kota': kota,
-        if (tanggalMulai != null) 'tanggal_mulai': _ymd(tanggalMulai!),
-        'jumlah_hari': jumlahHari,
-        'alasan': alasan,
-        'kontak': kontak,
-      }),
+      future: _future,
       builder: (context, s) {
         final d = s.data?['data'] as Map?;
         Widget baris(String kiri, String kanan) => Padding(

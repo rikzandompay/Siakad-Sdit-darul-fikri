@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\Sekolah;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -64,12 +65,12 @@ class CacheService
 
     public static function keyPresensiHariIni(int $guruId): string
     {
-        return 'presensi:hari_ini:guru:'.$guruId.':'.now()->format('Y-m-d');
+        return 'presensi:hari_ini:guru:'.$guruId.':'.Sekolah::now()->format('Y-m-d');
     }
 
     public static function keyPresensiSholatHariIni(int $guruId, string $jenis): string
     {
-        return 'presensi_sholat:hari_ini:guru:'.$guruId.':jenis:'.$jenis.':'.now()->format('Y-m-d');
+        return 'presensi_sholat:hari_ini:guru:'.$guruId.':jenis:'.$jenis.':'.Sekolah::now()->format('Y-m-d');
     }
 
     public static function keyMataPelajaranAll(): string
@@ -89,7 +90,7 @@ class CacheService
 
     public static function keyDashboard(int $guruId): string
     {
-        return 'dashboard:guru:'.$guruId.':'.now()->format('Y-m-d');
+        return 'dashboard:guru:'.$guruId.':'.Sekolah::now()->format('Y-m-d');
     }
 
     // ─── Cache Invalidation ──────────────────────────────────────────────

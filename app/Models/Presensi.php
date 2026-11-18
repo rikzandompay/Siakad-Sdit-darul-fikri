@@ -5,20 +5,11 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
 
 class Presensi extends Model
 {
-    protected static function booted(): void
-    {
-        static::saved(function () {
-            Cache::flush();
-        });
-
-        static::deleted(function () {
-            Cache::flush();
-        });
-    }
+    // Sengaja tanpa hook cache: tabel cache hanya berisi angka ringkasan (mis. total_siswa_aktif),
+    // bukan salinan presensi, jadi tidak perlu dikosongkan setiap kali presensi disimpan.
 
     protected $table = 'presensi';
 
@@ -51,17 +42,6 @@ class Presensi extends Model
     public function siswa()
     {
         return $this->belongsTo(Siswa::class, 'siswa_id');
-    }
-
-    public static function getRekapBulan($kelasId, $bulan, $tahun)
-    {
-        return static::whereHas('jadwal', function ($q) use ($kelasId) {
-            $q->where('kelas_id', $kelasId);
-        })
-            ->whereMonth('tanggal', $bulan)
-            ->whereYear('tanggal', $tahun)
-            ->with(['siswa', 'jadwal.mataPelajaran'])
-            ->get();
     }
 
     public function getStatusLabelAttribute(): string
