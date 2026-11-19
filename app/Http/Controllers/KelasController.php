@@ -28,16 +28,7 @@ class KelasController extends Controller
         $kelas->load([
             'waliKelas',
             'siswa' => fn ($q) => $q->where('status', 'Aktif')->orderBy('nama_siswa'),
-            'jadwalPelajaran' => fn ($q) => $q->orderByRaw("
-                CASE hari
-                    WHEN 'Senin' THEN 1
-                    WHEN 'Selasa' THEN 2
-                    WHEN 'Rabu' THEN 3
-                    WHEN 'Kamis' THEN 4
-                    WHEN 'Jumat' THEN 5
-                    WHEN 'Sabtu' THEN 6
-                END
-            ")->orderBy('jam_mulai'),
+            'jadwalPelajaran' => fn ($q) => $q->urutHari()->orderBy('jam_mulai'),
             'jadwalPelajaran.mataPelajaran',
             'jadwalPelajaran.guru',
         ]);
@@ -65,8 +56,8 @@ class KelasController extends Controller
             'wali_kelas_id' => 'nullable|exists:users,id',
         ]);
 
-        Kelas::create($validated);
-        $this->clearKelasCache();
+        $kelas = Kelas::create($validated);
+        $this->clearKelasCache($kelas->wali_kelas_id);
 
         return redirect()->route('kelas.index')->with('success', 'Kelas berhasil ditambahkan!');
     }
@@ -78,24 +69,34 @@ class KelasController extends Controller
             'wali_kelas_id' => 'nullable|exists:users,id',
         ]);
 
+        $oldWaliId = $kelas->wali_kelas_id;
         $kelas->update($validated);
-        $this->clearKelasCache();
+        $this->clearKelasCache($oldWaliId, $kelas->wali_kelas_id);
 
         return redirect()->route('kelas.index')->with('success', 'Kelas berhasil diperbarui!');
     }
 
     public function destroy(Kelas $kelas)
     {
+        $waliId = $kelas->wali_kelas_id;
         $kelas->delete();
-        $this->clearKelasCache();
+        $this->clearKelasCache($waliId);
 
         return redirect()->route('kelas.index')->with('success', 'Kelas berhasil dihapus!');
     }
 
-    private function clearKelasCache()
+    private function clearKelasCache(?int ...$waliIds): void
     {
         Cache::forget('kelas_list_admin');
         Cache::forget('kelas_list_dashboard');
         Cache::forget('kelas_list_filter');
+        Cache::forget('total_kelas');
+
+        foreach (array_unique(array_filter($waliIds)) as $waliId) {
+            Cache::forget("rekap_kelas_wali_ids_guru_{$waliId}");
+            Cache::forget("rekap_kelas_wali_list_guru_{$waliId}");
+            Cache::forget("sholat:kelas:guru:{$waliId}");
+            Cache::forget("total_siswa_aktif_guru_{$waliId}");
+        }
     }
 }

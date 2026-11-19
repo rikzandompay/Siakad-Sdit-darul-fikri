@@ -8,6 +8,7 @@ use App\Models\PerangkatGuru;
 use App\Models\PresensiGuru;
 use App\Models\User;
 use App\Models\WajahGuru;
+use App\Support\Sekolah;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -62,8 +63,8 @@ class RekapPresensiGuruController extends Controller
     public function simpanManual(Request $request)
     {
         $data = $request->validate([
-            'guru_id' => ['required', Rule::in($this->guruList()->pluck('id')->all())],
-            'tanggal' => 'required|date|before_or_equal:today',
+            'guru_id' => ['required', Rule::in(User::guruAktif()->pluck('id')->all())],
+            'tanggal' => 'required|date|before_or_equal:'.Sekolah::now()->toDateString(),
             'status' => ['required', Rule::in(PresensiGuru::STATUS)],
             'jam_masuk' => 'nullable|required_if:status,'.PresensiGuru::HADIR.'|date_format:H:i',
             'jam_pulang' => 'nullable|date_format:H:i|after_or_equal:jam_masuk',
@@ -112,22 +113,14 @@ class RekapPresensiGuruController extends Controller
     public function exportCsv(Request $request)
     {
         $data = $this->data($request);
-        $filename = 'rekap_presensi_guru_'.($data['selectedGuru'] ? str($data['selectedGuru']->nama_lengkap)->slug('_').'_' : '').now()->format('Ymd').'.csv';
+        $filename = 'rekap_presensi_guru_'.($data['selectedGuru'] ? str($data['selectedGuru']->nama_lengkap)->slug('_').'_' : '').Sekolah::now()->format('Ymd').'.csv';
 
-        return response()->stream(function () use ($data) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-
-            fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
-            fputcsv($file, ['SD IT DARUL FIKRI']);
-            fputcsv($file, ['REKAPITULASI PRESENSI GURU']);
-            fputcsv($file, []);
-            fputcsv($file, ['Periode', ':', $data['periodeLabel']]);
-            if ($data['selectedGuru']) {
-                $this->putSafeCsv($file, ['Guru', ':', $data['selectedGuru']->nama_lengkap]);
-            }
-            fputcsv($file, ['Jam masuk acuan', ':', $data['jamMasuk']]);
-            fputcsv($file, []);
+        return $this->streamCsv($filename, function ($file) use ($data) {
+            $this->putKopCsv($file, 'REKAPITULASI PRESENSI GURU', array_values(array_filter([
+                ['Periode', ':', $data['periodeLabel']],
+                $data['selectedGuru'] ? ['Guru', ':', $data['selectedGuru']->nama_lengkap] : null,
+                ['Jam masuk acuan', ':', $data['jamMasuk']],
+            ])));
 
             if ($data['selectedGuru']) {
                 fputcsv($file, ['No', 'Tanggal', 'Status', 'Jam Masuk', 'Jam Pulang', 'Terlambat', 'Lokasi Presensi', 'Lokasi Palsu', 'Koreksi Mandiri', 'Keterangan']);
@@ -169,11 +162,7 @@ class RekapPresensiGuruController extends Controller
                     ]);
                 }
             }
-            fclose($file);
-        }, 200, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ]);
+        });
     }
 
     public function exportPdf(Request $request)
@@ -195,7 +184,7 @@ class RekapPresensiGuruController extends Controller
         $start = $range['start']->toDateString();
         $end = $range['end']->toDateString();
 
-        $guruList = $this->guruList();
+        $guruList = User::guruAktif()->get();
         $selectedGuru = $request->filled('guru_id') ? $guruList->firstWhere('id', (int) $request->get('guru_id')) : null;
 
         $detail = collect();
@@ -222,14 +211,6 @@ class RekapPresensiGuruController extends Controller
             'insidenPerHari' => $selectedGuru ? InsidenLokasiPalsu::petaPerHari([$selectedGuru->id], $start, $end)->get($selectedGuru->id, collect()) : collect(),
             'insidenDetail' => $insidenDetail,
         ];
-    }
-
-    private function guruList(): Collection
-    {
-        return User::where('status', 'Aktif')
-            ->whereNotIn('username', config('presensi_guru.kecualikan_username'))
-            ->orderBy('nama_lengkap')
-            ->get();
     }
 
     private function ringkasan(Collection $guruList, string $start, string $end): Collection

@@ -10,8 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Presensi kelas hanya boleh diisi oleh wali kelas dari kelas tersebut.
- * Admin/kepala sekolah tetap boleh. Kelas dibaca dari parameter rute
- * (kelas / jadwal) atau input jadwal_id.
+ * Admin/kepala sekolah dan guru mapel tidak ikut mengisi. Kelas dibaca dari
+ * parameter rute (kelas / jadwal) atau input jadwal_id.
  */
 class EnsureWaliKelas
 {

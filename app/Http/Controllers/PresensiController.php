@@ -7,51 +7,25 @@ use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Presensi;
 use App\Models\Siswa;
+use App\Support\Sekolah;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
 class PresensiController extends Controller
 {
-    protected function ensureTeacherCanAccessKelas(int $kelasId, bool $allowAdminForRekap = false): void
+    protected function ensureTeacherCanAccessKelas(int $kelasId): void
     {
-        if ($allowAdminForRekap && auth()->user()->isAdmin()) {
-            return;
-        }
-
-        $guruId = Auth::id();
-        $isWaliKelas = Kelas::where('id', $kelasId)->where('wali_kelas_id', $guruId)->exists();
-        $isGuruPengajar = JadwalPelajaran::where('guru_id', $guruId)
-            ->where('kelas_id', $kelasId)
-            ->exists();
-
-        if (! $isWaliKelas && ! $isGuruPengajar) {
-            abort(403, 'Anda tidak memiliki akses ke kelas ini.');
-        }
+        abort_unless(Auth::user()->mengampuKelas($kelasId), 403, 'Anda tidak memiliki akses ke kelas ini.');
     }
 
     /** Mengisi presensi hanya boleh dilakukan wali kelas dari kelas tersebut (bukan admin, bukan guru pengajar mapel). */
     protected function ensureWaliKelas(int $kelasId): void
     {
-        abort_unless(Kelas::where('id', $kelasId)->where('wali_kelas_id', Auth::id())->exists(), 403, 'Presensi hanya dapat diisi oleh wali kelas.');
-    }
-
-    protected function ensureJadwalOwnership(int $jadwalId): void
-    {
-        $guruId = Auth::id();
-        $jadwal = JadwalPelajaran::find($jadwalId);
-        if (! $jadwal) {
-            abort(404, 'Jadwal tidak ditemukan.');
-        }
-
-        $isWaliKelas = Kelas::where('id', $jadwal->kelas_id)->where('wali_kelas_id', $guruId)->exists();
-        $isGuruPengajar = $jadwal->guru_id === $guruId;
-
-        if (! $isWaliKelas && ! $isGuruPengajar) {
-            abort(403, 'Anda tidak memiliki akses ke jadwal ini.');
-        }
+        abort_unless(Auth::user()->mengampuKelas($kelasId, hanyaWali: true), 403, 'Presensi hanya dapat diisi oleh wali kelas.');
     }
 
     /**
@@ -60,42 +34,31 @@ class PresensiController extends Controller
     public function index()
     {
         $guruId = Auth::id();
-
-        // Presensi kelas hanya untuk kelas yang diwalikan.
-        $kelasIdsGuru = Kelas::where('wali_kelas_id', $guruId)->pluck('id')->toArray();
-
         $kelasList = Kelas::withCount('siswaAktif')
             ->with('waliKelas')
-            ->whereIn('id', $kelasIdsGuru)
+            ->where('wali_kelas_id', $guruId)
             ->orderBy('nama_kelas')
             ->get();
 
-        $today = Carbon::today();
-        $todayStr = $today->toDateString();
+        $kelasIdsGuru = $kelasList->pluck('id')->all();
+        $todayStr = Sekolah::now()->toDateString();
+        $guruJadwalIds = JadwalPelajaran::whereIn('kelas_id', $kelasIdsGuru)->pluck('id')->all();
 
-        // Hanya hitung presensi dari jadwal guru ini
-        $guruJadwalIds = JadwalPelajaran::whereIn('kelas_id', $kelasIdsGuru)->pluck('id')->toArray();
+        $totalSiswaAktif = Cache::remember("total_siswa_aktif_guru_{$guruId}", 300, fn () => Siswa::where('status', 'Aktif')->whereIn('kelas_id', $kelasIdsGuru)->count());
 
-        $totalSiswaAktif = Cache::remember("total_siswa_aktif_guru_{$guruId}", 300, function () use ($kelasIdsGuru) {
-            return Siswa::where('status', 'Aktif')->whereIn('kelas_id', $kelasIdsGuru)->count();
+        $presensiStats = Cache::remember("presensi_stats_guru_{$guruId}_{$todayStr}", 60, function () use ($todayStr, $guruJadwalIds) {
+            $presensiToday = Presensi::where('tanggal', $todayStr)->whereIn('jadwal_id', $guruJadwalIds)->get();
+
+            return [
+                'hadirCount' => $presensiToday->where('status_kehadiran', 'H')->count(),
+                'sakitCount' => $presensiToday->where('status_kehadiran', 'S')->count(),
+                'izinCount' => $presensiToday->where('status_kehadiran', 'I')->count(),
+                'alpaCount' => $presensiToday->where('status_kehadiran', 'A')->count(),
+                'totalPresensi' => $presensiToday->count(),
+            ];
         });
 
-        $presensiStats = Cache::remember("presensi_stats_guru_{$guruId}_{$todayStr}", 60, function () use ($today, $guruJadwalIds) {
-            $presensiToday = Presensi::where('tanggal', $today)->whereIn('jadwal_id', $guruJadwalIds)->get();
-            $hadirCount = $presensiToday->where('status_kehadiran', 'H')->count();
-            $sakitCount = $presensiToday->where('status_kehadiran', 'S')->count();
-            $izinCount = $presensiToday->where('status_kehadiran', 'I')->count();
-            $alpaCount = $presensiToday->where('status_kehadiran', 'A')->count();
-            $totalPresensi = $presensiToday->count();
-
-            return compact('hadirCount', 'sakitCount', 'izinCount', 'alpaCount', 'totalPresensi');
-        });
-
-        $hadirCount = $presensiStats['hadirCount'];
-        $sakitCount = $presensiStats['sakitCount'];
-        $izinCount = $presensiStats['izinCount'];
-        $alpaCount = $presensiStats['alpaCount'];
-        $totalPresensi = $presensiStats['totalPresensi'];
+        extract($presensiStats);
         $persenHadir = $totalPresensi > 0 ? round(($hadirCount / $totalPresensi) * 100, 1) : 0;
 
         return view('presensikelas', compact(
@@ -105,77 +68,39 @@ class PresensiController extends Controller
     }
 
     /**
-     * Form input presensi per kelas (matching screenshot UI)
+     * Form input presensi per kelas
      */
     public function show(Kelas $kelas, Request $request)
     {
         $this->ensureWaliKelas($kelas->id);
 
-        $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
+        $tanggal = $request->get('tanggal', Sekolah::now()->toDateString());
         $jadwalId = $request->get('jadwal_id');
         $guruId = Auth::id();
 
-        // Cache daftar siswa aktif kelas ini
-        $siswa = Cache::remember("siswa_aktif_kelas_{$kelas->id}", 300, function () use ($kelas) {
-            return $kelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
-        });
+        $siswa = Cache::remember("siswa_aktif_kelas_{$kelas->id}", 300, fn () => $kelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get());
+        $jadwalList = Cache::remember("jadwal_list_wali_kelas_{$kelas->id}", 300, fn () => $kelas->jadwalPelajaran()
+            ->with('mataPelajaran', 'guru')
+            ->urutHari()->orderBy('jam_mulai')->get());
 
-        // Cache jadwal kelas ini - wali kelas mengisi semua jadwal kelasnya (5 menit)
-        $jadwalList = Cache::remember("jadwal_list_wali_kelas_{$kelas->id}", 300, function () use ($kelas) {
-            return $kelas->jadwalPelajaran()
-                ->with('mataPelajaran', 'guru')
-                ->orderByRaw("
-                    CASE hari
-                        WHEN 'Senin' THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu' THEN 3
-                        WHEN 'Kamis' THEN 4 WHEN 'Jumat' THEN 5 WHEN 'Sabtu' THEN 6
-                    END
-                ")->orderBy('jam_mulai')->get();
-        });
-
-        // Auto-select jadwal berdasarkan hari dari tanggal yang dipilih
-        $hariTanggal = Carbon::parse($tanggal)->translatedFormat('l'); // Nama hari dalam Bahasa Indonesia
-        // Map hari translasi Carbon ke format jadwal
-        $hariMap = [
-            'Senin' => 'Senin', 'Selasa' => 'Selasa', 'Rabu' => 'Rabu',
-            'Kamis' => 'Kamis', 'Jumat' => 'Jumat', 'Sabtu' => 'Sabtu',
-        ];
-        $hariTanggalEn = Carbon::parse($tanggal)->format('l'); // English day name
-        $hariIndonesia = ['Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu',
-            'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'];
-        $hariNow = $hariIndonesia[$hariTanggalEn] ?? null;
-
-        if (! $jadwalId && $jadwalList->count() > 0) {
-            // Coba auto-select jadwal yang sesuai hari tanggal
-            $jadwalHariIni = $jadwalList->firstWhere('hari', $hariNow);
-            $jadwalId = $jadwalHariIni ? $jadwalHariIni->id : $jadwalList->first()->id;
+        if (! $jadwalId && $jadwalList->isNotEmpty()) {
+            $hariNow = Sekolah::hari(Carbon::parse($tanggal, Sekolah::timezone()));
+            $jadwalId = ($jadwalList->firstWhere('hari', $hariNow) ?? $jadwalList->first())->id;
         }
 
-        // Existing presensi data
-        $existingPresensi = [];
-        if ($jadwalId) {
-            $existingPresensi = Presensi::where('jadwal_id', $jadwalId)
-                ->where('tanggal', $tanggal)
-                ->pluck('status_kehadiran', 'siswa_id')
-                ->toArray();
-        }
+        $existingPresensi = $jadwalId
+            ? Presensi::where('jadwal_id', $jadwalId)->where('tanggal', $tanggal)->pluck('status_kehadiran', 'siswa_id')->toArray()
+            : [];
 
-        // Summary counts
-        $hadirCount = collect($existingPresensi)->filter(fn ($v) => $v === 'H')->count();
-        $sakitCount = collect($existingPresensi)->filter(fn ($v) => $v === 'S')->count();
-        $izinCount = collect($existingPresensi)->filter(fn ($v) => $v === 'I')->count();
-        $alpaCount = collect($existingPresensi)->filter(fn ($v) => $v === 'A')->count();
+        $hitung = array_count_values($existingPresensi);
+        $hadirCount = $hitung['H'] ?? 0;
+        $sakitCount = $hitung['S'] ?? 0;
+        $izinCount = $hitung['I'] ?? 0;
+        $alpaCount = $hitung['A'] ?? 0;
 
-        // Mapel list for filter - derived from $jadwalList to save query
         $mapelList = $jadwalList->pluck('mataPelajaran')->unique('id')->values();
-
-        // Kelas list for dropdown - hanya kelas yang diampu guru login (di-cache)
-        $kelasIdsGuru = Cache::remember("kelas_ids_guru_{$guruId}", 300, function () use ($guruId) {
-            return JadwalPelajaran::where('guru_id', $guruId)->pluck('kelas_id')->unique()->toArray();
-        });
-
-        $kelasList = Cache::remember("kelas_list_guru_{$guruId}", 300, function () use ($kelasIdsGuru) {
-            return Kelas::whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
-        });
+        // Hanya kelas perwalian agar dropdown tidak mengarah ke kelas yang memicu 403.
+        $kelasList = Kelas::where('wali_kelas_id', $guruId)->orderBy('nama_kelas')->get();
 
         return view('presensiswa', compact(
             'kelas', 'siswa', 'jadwalList', 'mapelList', 'kelasList', 'tanggal', 'jadwalId',
@@ -191,18 +116,16 @@ class PresensiController extends Controller
         $jadwal = JadwalPelajaran::findOrFail($request->input('jadwal_id'));
         $this->ensureWaliKelas($jadwal->kelas_id);
 
-        $jadwalKelasId = $jadwal->kelas_id;
-
         $validated = $request->validate([
             'jadwal_id' => 'required|exists:jadwal_pelajaran,id',
             'tanggal' => 'required|date',
             'presensi' => 'required|array',
-            'presensi.*.siswa_id' => ['required', Rule::exists('siswa', 'id')->where('kelas_id', $jadwalKelasId)],
+            'presensi.*.siswa_id' => ['required', Rule::exists('siswa', 'id')->where('kelas_id', $jadwal->kelas_id)],
             'presensi.*.status' => 'required|in:H,I,S,A',
             'presensi.*.keterangan' => 'nullable|string|max:255',
         ]);
 
-        $tanggalObj = Carbon::parse($validated['tanggal']);
+        $tanggalObj = Carbon::parse($validated['tanggal'], Sekolah::timezone());
 
         foreach ($validated['presensi'] as $data) {
             Presensi::updateOrCreate(
@@ -218,13 +141,7 @@ class PresensiController extends Controller
             );
         }
 
-        $jadwal = JadwalPelajaran::find($validated['jadwal_id']);
-
-        // Invalidate cache
-        $guruId = Auth::id();
-        $todayStr = $tanggalObj->toDateString();
-        Cache::forget("presensi_stats_guru_{$guruId}_{$todayStr}");
-        Cache::forget("stats_presensi_today_{$todayStr}");
+        Cache::forget('presensi_stats_guru_'.Auth::id().'_'.$tanggalObj->toDateString());
 
         return redirect()->route('presensi.show', [
             'kelas' => $jadwal->kelas_id,
@@ -238,50 +155,20 @@ class PresensiController extends Controller
      */
     public function exportCsv(Kelas $kelas, Request $request)
     {
-        $this->ensureTeacherCanAccessKelas($kelas->id);
+        [$data, $dateRange, $rentangLabel] = $this->dataEksporKelas($kelas, $request);
+        $filename = 'presensi_'.str_replace(' ', '_', $kelas->nama_kelas).'_'.Sekolah::now()->format('Ymd').'.csv';
 
-        $dateRange = $this->getDateRange($request->get('rentang', 'hari_ini'), $request->get('tanggal'));
-        $jadwalId = $request->get('jadwal_id');
+        return $this->streamCsv($filename, function ($file) use ($data, $kelas, $dateRange, $rentangLabel) {
+            $this->putKopCsv($file, 'LAPORAN KEHADIRAN SISWA', [
+                ['Kelas', ':', $kelas->nama_kelas],
+                ['Periode', ':', $rentangLabel.' ('.$dateRange['start']->format('d/m/Y').' - '.$dateRange['end']->format('d/m/Y').')'],
+                ['Tanggal Cetak', ':', Sekolah::now()->translatedFormat('d F Y')],
+            ]);
 
-        $query = Presensi::whereHas('jadwal', fn ($q) => $q->where('kelas_id', $kelas->id))
-            ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
-            ->with(['siswa', 'jadwal.mataPelajaran']);
-
-        if ($jadwalId) {
-            $query->where('jadwal_id', $jadwalId);
-        }
-
-        $data = $query->orderBy('tanggal')->get();
-
-        $filename = 'presensi_'.str_replace(' ', '_', $kelas->nama_kelas).'_'.now()->format('Ymd').'.csv';
-
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ];
-
-        $rentangLabel = $this->getRentangLabel($request->get('rentang', 'hari_ini'));
-
-        $callback = function () use ($data, $kelas, $dateRange, $rentangLabel) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM for UTF-8
-
-            // Header Section
-            fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
-            fputcsv($file, ['SD IT DARUL FIKRI']);
-            fputcsv($file, ['LAPORAN KEHADIRAN SISWA']);
-            fputcsv($file, []);
-            fputcsv($file, ['Kelas', ':', $kelas->nama_kelas]);
-            fputcsv($file, ['Periode', ':', $rentangLabel.' ('.Carbon::parse($dateRange['start'])->format('d/m/Y').' - '.Carbon::parse($dateRange['end'])->format('d/m/Y').')']);
-            fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
-            fputcsv($file, []);
-
-            // Data Header
             fputcsv($file, ['No', 'Tanggal', 'NIS', 'Nama Siswa', 'Mata Pelajaran', 'Status', 'Keterangan']);
-            $no = 1;
-            foreach ($data as $p) {
+            foreach ($data as $i => $p) {
                 $this->putSafeCsv($file, [
-                    $no++,
+                    $i + 1,
                     $p->tanggal->format('d/m/Y'),
                     $p->siswa->nis ?? '-',
                     $p->siswa->nama_siswa ?? '-',
@@ -290,10 +177,7 @@ class PresensiController extends Controller
                     $p->keterangan ?? '-',
                 ]);
             }
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        });
     }
 
     /**
@@ -301,26 +185,13 @@ class PresensiController extends Controller
      */
     public function exportPdf(Kelas $kelas, Request $request)
     {
-        $this->ensureTeacherCanAccessKelas($kelas->id);
+        [$data, $dateRange, $rentangLabel] = $this->dataEksporKelas($kelas, $request);
 
-        $dateRange = $this->getDateRange($request->get('rentang', 'hari_ini'), $request->get('tanggal'));
-        $jadwalId = $request->get('jadwal_id');
-
-        $query = Presensi::whereHas('jadwal', fn ($q) => $q->where('kelas_id', $kelas->id))
-            ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
-            ->with(['siswa', 'jadwal.mataPelajaran']);
-
-        if ($jadwalId) {
-            $query->where('jadwal_id', $jadwalId);
-        }
-
-        $data = $query->orderBy('tanggal')->get();
-
-        // Group by siswa for summary
+        $grouped = $data->groupBy('siswa_id');
         $siswaList = $kelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
         $summary = [];
         foreach ($siswaList as $s) {
-            $presensiSiswa = $data->where('siswa_id', $s->id);
+            $presensiSiswa = $grouped->get($s->id, collect());
             $summary[$s->id] = [
                 'siswa' => $s,
                 'hadir' => $presensiSiswa->where('status_kehadiran', 'H')->count(),
@@ -330,8 +201,6 @@ class PresensiController extends Controller
             ];
         }
 
-        $rentangLabel = $this->getRentangLabel($request->get('rentang', 'hari_ini'));
-
         return view('exports.presensi-pdf', compact('kelas', 'data', 'summary', 'dateRange', 'rentangLabel'));
     }
 
@@ -340,231 +209,153 @@ class PresensiController extends Controller
         $guruId = Auth::id();
         $selectedKelasId = $request->get('kelas_id');
         $selectedPelajaranId = $request->get('pelajaran_id');
-        $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
+        $tanggal = $request->get('tanggal', Sekolah::now()->toDateString());
         $rentang = $request->get('rentang', 'bulan_ini');
 
-        // Rekap presensi kelas hanya untuk wali kelas: daftar kelas = kelas yang diwalikan (di-cache).
-        $kelasIdsGuru = Cache::remember("rekap_kelas_wali_ids_guru_{$guruId}", 300, function () {
-            return Auth::user()->kelasDiampuIds(hanyaWali: true);
-        });
+        $kelasIdsGuru = Cache::remember("rekap_kelas_wali_ids_guru_{$guruId}", 300, fn () => Auth::user()->kelasDiampuIds(hanyaWali: true));
         abort_if($selectedKelasId && ! in_array((int) $selectedKelasId, $kelasIdsGuru, true), 403, 'Rekap presensi hanya untuk wali kelas ini.');
-        $kelasList = Cache::remember("rekap_kelas_wali_list_guru_{$guruId}", 300, function () use ($kelasIdsGuru) {
-            return Kelas::with('waliKelas')->whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get();
-        });
 
-        // Seluruh mapel di kelas yang diwalikan.
-        $jadwalQuery = JadwalPelajaran::whereIn('kelas_id', $kelasIdsGuru);
+        $kelasList = Cache::remember("rekap_kelas_wali_list_guru_{$guruId}", 300, fn () => Kelas::with('waliKelas')->whereIn('id', $kelasIdsGuru)->orderBy('nama_kelas')->get());
 
-        // Jika ada kelas yang dipilih, filter mapel hanya untuk kelas tersebut
-        if ($selectedKelasId) {
-            $jadwalQuery->where('kelas_id', $selectedKelasId);
-        }
-
-        $mapelIdsGuru = $jadwalQuery->pluck('pelajaran_id')->unique();
+        $mapelIdsGuru = JadwalPelajaran::whereIn('kelas_id', $kelasIdsGuru)
+            ->when($selectedKelasId, fn ($q) => $q->where('kelas_id', $selectedKelasId))
+            ->pluck('pelajaran_id')->unique();
         $mapelList = MataPelajaran::whereIn('id', $mapelIdsGuru)->orderBy('nama_pelajaran')->get();
 
-        // Hitung date range
-        $dateRange = $this->getDateRange($rentang, $tanggal);
-        $periodeLabel = $this->getPeriodeLabelWithDate($rentang, $tanggal);
-
+        $periodeLabel = $this->periodeLabel($rentang, $tanggal);
         $rekapData = [];
         $selectedKelas = null;
 
         if ($selectedKelasId) {
-            $this->ensureTeacherCanAccessKelas($selectedKelasId);
-            $selectedKelas = Kelas::find($selectedKelasId);
-            $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
-
-            $isWaliKelas = Auth::user()->mengampuKelas((int) $selectedKelasId, hanyaWali: true);
-            // Wali kelas melihat semua mapel kelasnya; guru mapel hanya melihat mapel yang diajar.
-            $presensiQuery = Presensi::whereHas('jadwal', function ($q) use ($selectedKelasId, $selectedPelajaranId, $guruId, $isWaliKelas) {
-                $q->where('kelas_id', $selectedKelasId);
-                if (! $isWaliKelas) {
-                    $q->where('guru_id', $guruId);
-                }
-                if ($selectedPelajaranId) {
-                    $q->where('pelajaran_id', $selectedPelajaranId);
-                }
-            })
-                ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
-                ->get();
-
-            foreach ($siswaList as $siswa) {
-                $siswaPresensi = $presensiQuery->where('siswa_id', $siswa->id);
-
-                $rekapData[$siswa->id] = [
-                    'siswa' => $siswa,
-                    'summary' => [
-                        'H' => $siswaPresensi->where('status_kehadiran', 'H')->count(),
-                        'S' => $siswaPresensi->where('status_kehadiran', 'S')->count(),
-                        'I' => $siswaPresensi->where('status_kehadiran', 'I')->count(),
-                        'A' => $siswaPresensi->where('status_kehadiran', 'A')->count(),
-                    ],
-                ];
-            }
+            $hasil = $this->bangunRekap((int) $selectedKelasId, $selectedPelajaranId ? (int) $selectedPelajaranId : null, $rentang, $tanggal);
+            $selectedKelas = $hasil['selectedKelas'];
+            $rekapData = $hasil['rekapData'];
         }
 
         return view('rekap-presensi', compact('kelasList', 'mapelList', 'selectedKelas', 'selectedPelajaranId', 'rekapData', 'tanggal', 'rentang', 'periodeLabel'));
     }
 
-    private function getRekapDataForExport(Request $request)
-    {
-        $guruId = Auth::id();
-        $selectedKelasId = $request->get('kelas_id');
-        $selectedPelajaranId = $request->get('pelajaran_id');
-        $tanggal = $request->get('tanggal', Carbon::today()->format('Y-m-d'));
-        $rentang = $request->get('rentang', 'bulan_ini');
-
-        if (! $selectedKelasId) {
-            return ['selectedKelas' => null, 'rekapData' => [], 'periodeLabel' => '', 'selectedPelajaran' => null];
-        }
-
-        abort_unless(Auth::user()->mengampuKelas((int) $selectedKelasId, hanyaWali: true), 403, 'Rekap presensi hanya untuk wali kelas ini.');
-        $selectedKelas = Kelas::find($selectedKelasId);
-        $selectedPelajaran = $selectedPelajaranId ? MataPelajaran::find($selectedPelajaranId) : null;
-        $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
-
-        $dateRange = $this->getDateRange($rentang, $tanggal);
-        $periodeLabel = $this->getPeriodeLabelWithDate($rentang, $tanggal);
-
-        $isWaliKelas = Auth::user()->mengampuKelas((int) $selectedKelasId, hanyaWali: true);
-        $presensiQuery = Presensi::whereHas('jadwal', function ($q) use ($selectedKelasId, $selectedPelajaranId, $guruId, $isWaliKelas) {
-            $q->where('kelas_id', $selectedKelasId);
-            if (! $isWaliKelas) {
-                $q->where('guru_id', $guruId);
-            }
-            if ($selectedPelajaranId) {
-                $q->where('pelajaran_id', $selectedPelajaranId);
-            }
-        })
-            ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
-            ->get();
-
-        $rekapData = [];
-        foreach ($siswaList as $siswa) {
-            $siswaPresensi = $presensiQuery->where('siswa_id', $siswa->id);
-            $rekapData[$siswa->id] = [
-                'siswa' => $siswa,
-                'summary' => [
-                    'H' => $siswaPresensi->where('status_kehadiran', 'H')->count(),
-                    'S' => $siswaPresensi->where('status_kehadiran', 'S')->count(),
-                    'I' => $siswaPresensi->where('status_kehadiran', 'I')->count(),
-                    'A' => $siswaPresensi->where('status_kehadiran', 'A')->count(),
-                ],
-            ];
-        }
-
-        return ['selectedKelas' => $selectedKelas, 'rekapData' => $rekapData, 'periodeLabel' => $periodeLabel, 'selectedPelajaran' => $selectedPelajaran];
-    }
-
     public function exportRekapCsv(Request $request)
     {
         $data = $this->getRekapDataForExport($request);
-
         if (! $data['selectedKelas']) {
             return redirect()->back()->with('error', 'Pilih kelas terlebih dahulu.');
         }
 
         $kelas = $data['selectedKelas'];
-        $rekapData = $data['rekapData'];
-        $periodeLabel = $data['periodeLabel'];
         $selectedPelajaran = $data['selectedPelajaran'];
-
         $namaPelajaran = $selectedPelajaran ? '_'.str_replace(' ', '_', $selectedPelajaran->nama_pelajaran) : '';
-        $filename = 'rekap_presensi_'.str_replace(' ', '_', $kelas->nama_kelas).$namaPelajaran.'_'.now()->format('Ymd').'.csv';
+        $filename = 'rekap_presensi_'.str_replace(' ', '_', $kelas->nama_kelas).$namaPelajaran.'_'.Sekolah::now()->format('Ymd').'.csv';
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ];
+        return $this->streamCsv($filename, function ($file) use ($data, $kelas, $selectedPelajaran) {
+            $this->putKopCsv($file, 'REKAPITULASI PRESENSI SISWA', [
+                ['Kelas', ':', $kelas->nama_kelas],
+                ['Mata Pelajaran', ':', $selectedPelajaran ? $selectedPelajaran->nama_pelajaran : 'Semua Mata Pelajaran'],
+                ['Periode', ':', $data['periodeLabel']],
+                ['Tanggal Cetak', ':', Sekolah::now()->translatedFormat('d F Y')],
+            ]);
 
-        $callback = function () use ($rekapData, $kelas, $periodeLabel, $selectedPelajaran) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-
-            // Header Section
-            fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
-            fputcsv($file, ['SD IT DARUL FIKRI']);
-            fputcsv($file, ['REKAPITULASI PRESENSI SISWA']);
-            fputcsv($file, []);
-            fputcsv($file, ['Kelas', ':', $kelas->nama_kelas]);
-            fputcsv($file, ['Mata Pelajaran', ':', $selectedPelajaran ? $selectedPelajaran->nama_pelajaran : 'Semua Mata Pelajaran']);
-            fputcsv($file, ['Periode', ':', $periodeLabel]);
-            fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
-            fputcsv($file, []);
-
-            // Data Header
             fputcsv($file, ['No', 'NIS', 'Nama Siswa', 'Hadir (H)', 'Sakit (S)', 'Izin (I)', 'Alpa (A)', 'Total']);
             $no = 1;
-            foreach ($rekapData as $row) {
-                $total = $row['summary']['H'] + $row['summary']['S'] + $row['summary']['I'] + $row['summary']['A'];
+            foreach ($data['rekapData'] as $row) {
+                $s = $row['summary'];
                 $this->putSafeCsv($file, [
                     $no++,
                     $row['siswa']->nis ?? '-',
                     $row['siswa']->nama_siswa ?? '-',
-                    $row['summary']['H'],
-                    $row['summary']['S'],
-                    $row['summary']['I'],
-                    $row['summary']['A'],
-                    $total,
+                    $s['H'], $s['S'], $s['I'], $s['A'],
+                    $s['H'] + $s['S'] + $s['I'] + $s['A'],
                 ]);
             }
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        });
     }
 
     public function exportRekapPdf(Request $request)
     {
         $data = $this->getRekapDataForExport($request);
-
         if (! $data['selectedKelas']) {
             return redirect()->back()->with('error', 'Pilih kelas terlebih dahulu.');
         }
 
-        $selectedKelas = $data['selectedKelas'];
-        $rekapData = $data['rekapData'];
-        $periodeLabel = $data['periodeLabel'];
-        $selectedPelajaran = $data['selectedPelajaran'];
-
-        return view('exports.rekap-presensi-pdf', compact('selectedKelas', 'rekapData', 'periodeLabel', 'selectedPelajaran'));
+        return view('exports.rekap-presensi-pdf', $data);
     }
 
-    private function getDateRange($rentang, $tanggal = null)
+    /** @return array{0: Collection, 1: array{start: Carbon, end: Carbon}, 2: string} */
+    private function dataEksporKelas(Kelas $kelas, Request $request): array
     {
-        $now = $tanggal ? Carbon::parse($tanggal) : Carbon::today();
+        $this->ensureTeacherCanAccessKelas($kelas->id);
 
-        return match ($rentang) {
-            'minggu_ini' => ['start' => $now->copy()->startOfWeek(), 'end' => $now->copy()->endOfWeek()],
-            'bulan_ini' => ['start' => $now->copy()->startOfMonth(), 'end' => $now->copy()->endOfMonth()],
-            'semester_ini' => [
-                'start' => $now->month >= 7 ? Carbon::create($now->year, 7, 1) : Carbon::create($now->year, 1, 1),
-                'end' => $now->month >= 7 ? Carbon::create($now->year, 12, 31) : Carbon::create($now->year, 6, 30),
-            ],
-            default => ['start' => $now->copy()->startOfDay(), 'end' => $now->copy()->endOfDay()],
-        };
-    }
+        $rentang = $request->get('rentang', 'hari_ini');
+        $dateRange = $this->periodeRange($rentang, $request->get('tanggal'));
+        $data = Presensi::whereHas('jadwal', fn ($q) => $q->where('kelas_id', $kelas->id))
+            ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
+            ->when($request->get('jadwal_id'), fn ($q, $id) => $q->where('jadwal_id', $id))
+            ->with(['siswa', 'jadwal.mataPelajaran'])
+            ->orderBy('tanggal')
+            ->get();
 
-    private function getRentangLabel($rentang)
-    {
-        return match ($rentang) {
+        $rentangLabel = match ($rentang) {
             'minggu_ini' => 'Minggu Ini',
             'bulan_ini' => 'Bulan Ini',
             'semester_ini' => 'Semester Ini',
             default => 'Hari Ini',
         };
+
+        return [$data, $dateRange, $rentangLabel];
     }
 
-    private function getPeriodeLabelWithDate($rentang, $tanggal = null)
+    private function getRekapDataForExport(Request $request): array
     {
-        $now = $tanggal ? Carbon::parse($tanggal) : Carbon::today();
+        $selectedKelasId = $request->get('kelas_id');
+        if (! $selectedKelasId) {
+            return ['selectedKelas' => null, 'rekapData' => [], 'periodeLabel' => '', 'selectedPelajaran' => null];
+        }
 
-        return match ($rentang) {
-            'minggu_ini' => 'Minggu '.$now->copy()->startOfWeek()->translatedFormat('d M').' - '.$now->copy()->endOfWeek()->translatedFormat('d M Y'),
-            'bulan_ini' => $now->translatedFormat('F Y'),
-            'semester_ini' => ($now->month >= 7 ? 'Semester Ganjil ' : 'Semester Genap ').$now->year,
-            default => $now->translatedFormat('d F Y'),
-        };
+        abort_unless(Auth::user()->mengampuKelas((int) $selectedKelasId, hanyaWali: true), 403, 'Rekap presensi hanya untuk wali kelas ini.');
+
+        $selectedPelajaranId = $request->get('pelajaran_id');
+        $tanggal = $request->get('tanggal', Sekolah::now()->toDateString());
+        $rentang = $request->get('rentang', 'bulan_ini');
+
+        return $this->bangunRekap((int) $selectedKelasId, $selectedPelajaranId ? (int) $selectedPelajaranId : null, $rentang, $tanggal) + [
+            'selectedPelajaran' => $selectedPelajaranId ? MataPelajaran::find($selectedPelajaranId) : null,
+        ];
+    }
+
+    private function bangunRekap(int $kelasId, ?int $pelajaranId, string $rentang, string $tanggal): array
+    {
+        $selectedKelas = Kelas::findOrFail($kelasId);
+        $siswaList = $selectedKelas->siswa()->where('status', 'Aktif')->orderBy('nama_siswa')->get();
+        $dateRange = $this->periodeRange($rentang, $tanggal);
+
+        $grouped = Presensi::whereHas('jadwal', function ($q) use ($kelasId, $pelajaranId) {
+            $q->where('kelas_id', $kelasId);
+            if ($pelajaranId) {
+                $q->where('pelajaran_id', $pelajaranId);
+            }
+        })
+            ->whereBetween('tanggal', [$dateRange['start'], $dateRange['end']])
+            ->get()
+            ->groupBy('siswa_id');
+
+        $rekapData = [];
+        foreach ($siswaList as $siswa) {
+            $list = $grouped->get($siswa->id, collect());
+            $rekapData[$siswa->id] = [
+                'siswa' => $siswa,
+                'summary' => [
+                    'H' => $list->where('status_kehadiran', 'H')->count(),
+                    'S' => $list->where('status_kehadiran', 'S')->count(),
+                    'I' => $list->where('status_kehadiran', 'I')->count(),
+                    'A' => $list->where('status_kehadiran', 'A')->count(),
+                ],
+            ];
+        }
+
+        return [
+            'selectedKelas' => $selectedKelas,
+            'rekapData' => $rekapData,
+            'periodeLabel' => $this->periodeLabel($rentang, $tanggal),
+        ];
     }
 }

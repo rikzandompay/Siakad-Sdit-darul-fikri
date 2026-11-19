@@ -72,8 +72,8 @@ class WaliController extends Controller
                     'sudah_masuk_waktu' => $now->format('H:i') >= config("sholat.waktu.{$j}"),
                 ])->values(),
             ],
-            'tugas' => $tugas ? $this->dataTugas($tugas, $siswa) : null,
-            'pengumuman' => $pengumuman ? $this->dataPengumuman($pengumuman) : null,
+            'tugas' => $tugas ? $this->dataTugas($tugas, NilaiTugas::where('tugas_id', $tugas->id)->where('siswa_id', $siswa->id)->first()) : null,
+            'pengumuman' => $pengumuman?->untukApi(),
         ]);
     }
 
@@ -130,7 +130,7 @@ class WaliController extends Controller
                 'jadwal' => $jadwal->where('hari', $hariBesok)->map($map)->values(),
                 'bawa' => $jadwal->where('hari', $hariBesok)->pluck('mataPelajaran.nama_pelajaran')->filter()->unique()->values(),
             ],
-            'minggu' => collect(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'])
+            'minggu' => collect(array_slice(Sekolah::HARI, 0, 6))
                 ->mapWithKeys(fn ($h) => [$h => $jadwal->where('hari', $h)->map($map)->values()]),
         ]);
     }
@@ -138,7 +138,7 @@ class WaliController extends Controller
     public function pengumuman(): JsonResponse
     {
         return response()->json(['data' => Pengumuman::whereIn('sasaran', [Pengumuman::SEMUA, Pengumuman::WALI])
-            ->orderByDesc('penting')->latest()->limit(50)->get()->map(fn ($p) => $this->dataPengumuman($p))]);
+            ->orderByDesc('penting')->latest()->limit(50)->get()->map(fn ($p) => $p->untukApi())]);
     }
 
     /** Surat pengumuman PDF untuk dibuka dari aplikasi wali. */
@@ -156,8 +156,11 @@ class WaliController extends Controller
     {
         $siswa = $this->anak($request);
         $tugas = $siswa->kelas_id ? Tugas::with(['mataPelajaran', 'guru'])->where('kelas_id', $siswa->kelas_id)->latest()->limit(50)->get() : collect();
+        $nilaiMap = $tugas->isEmpty()
+            ? collect()
+            : NilaiTugas::where('siswa_id', $siswa->id)->whereIn('tugas_id', $tugas->pluck('id'))->get()->keyBy('tugas_id');
 
-        return response()->json(['data' => $tugas->map(fn ($t) => $this->dataTugas($t, $siswa))]);
+        return response()->json(['data' => $tugas->map(fn ($t) => $this->dataTugas($t, $nilaiMap->get($t->id)))]);
     }
 
     // ── Izin ─────────────────────────────────────────────────────
@@ -336,9 +339,9 @@ class WaliController extends Controller
     public function guru(Request $request): JsonResponse
     {
         $q = trim((string) $request->input('q'));
-        $guru = User::where('status', 'Aktif')->whereNotIn('username', config('presensi_guru.kecualikan_username'))
+        $guru = User::guruAktif()
             ->when($q !== '', fn ($w) => $w->where('nama_lengkap', 'like', "%{$q}%"))
-            ->with(['jadwalPelajaran.mataPelajaran', 'kelasWali'])->orderBy('nama_lengkap')->get();
+            ->with(['jadwalPelajaran.mataPelajaran', 'kelasWali'])->get();
 
         return response()->json(['data' => $guru->map(fn ($g) => [
             'id' => $g->id, 'nama' => $g->nama_lengkap ?? $g->name, 'inisial' => Sekolah::inisial($g->nama_lengkap ?? $g->name),
@@ -359,7 +362,7 @@ class WaliController extends Controller
                 'wali_kelas' => $guru->kelasWali()->pluck('nama_kelas'),
             ],
             'hari_ini' => Sekolah::hari(),
-            'minggu' => collect(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'])->mapWithKeys(fn ($h) => [$h => $jadwal->where('hari', $h)->map(fn ($j) => [
+            'minggu' => collect(array_slice(Sekolah::HARI, 0, 6))->mapWithKeys(fn ($h) => [$h => $jadwal->where('hari', $h)->map(fn ($j) => [
                 'mata_pelajaran' => $j->mataPelajaran?->nama_pelajaran, 'kelas' => $j->kelas?->nama_kelas,
                 'jam_mulai' => substr($j->jam_mulai, 0, 5), 'jam_selesai' => substr($j->jam_selesai, 0, 5),
             ])->values()]),
@@ -438,25 +441,12 @@ class WaliController extends Controller
         ]);
     }
 
-    private function dataTugas(Tugas $t, Siswa $siswa): array
+    private function dataTugas(Tugas $t, ?NilaiTugas $nilai): array
     {
-        $nilai = NilaiTugas::where('tugas_id', $t->id)->where('siswa_id', $siswa->id)->first();
-
         return [
             'id' => $t->id, 'judul' => $t->judul, 'deskripsi' => $t->deskripsi,
             'mata_pelajaran' => $t->mataPelajaran?->nama_pelajaran, 'guru' => $t->guru?->nama_lengkap,
             'tenggat' => $t->tenggat?->toDateString(), 'nilai' => $nilai?->nilai, 'catatan' => $nilai?->catatan,
-        ];
-    }
-
-    private function dataPengumuman(Pengumuman $p): array
-    {
-        return [
-            'id' => $p->id, 'judul' => $p->judul, 'isi' => $p->isi, 'sasaran' => $p->sasaran,
-            'penting' => $p->penting, 'tanggal' => $p->created_at->toDateString(), 'nomor_surat' => $p->nomor_surat,
-            'tanggal_surat' => $p->tanggal_surat?->toDateString(), 'tempat' => $p->tempat,
-            'jadwal_hari_tanggal' => $p->jadwal_hari_tanggal, 'jadwal_waktu' => $p->jadwal_waktu,
-            'jadwal_tempat' => $p->jadwal_tempat,
         ];
     }
 }

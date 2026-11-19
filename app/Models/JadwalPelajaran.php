@@ -2,10 +2,18 @@
 
 namespace App\Models;
 
+use App\Support\Sekolah;
 use Illuminate\Database\Eloquent\Model;
 
 class JadwalPelajaran extends Model
 {
+    /** Urut Senin → Sabtu (sesuai Sekolah::HARI), untuk daftar jadwal sepekan. */
+    public function scopeUrutHari($query)
+    {
+        return $query->orderByRaw('CASE hari '.collect(Sekolah::HARI)
+            ->map(fn ($hari, $urutan) => 'WHEN ? THEN '.$urutan)->implode(' ').' END', array_values(Sekolah::HARI));
+    }
+
     protected $table = 'jadwal_pelajaran';
 
     protected $fillable = [

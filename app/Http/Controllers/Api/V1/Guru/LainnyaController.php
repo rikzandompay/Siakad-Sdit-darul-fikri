@@ -34,7 +34,8 @@ class LainnyaController extends Controller
 
         // Hanya tugas di pasangan kelas + mapel yang ia ajar (ruang tugas mapel).
         $pasangan = $pilihan->map(fn ($p) => $p['kelas_id'].'-'.$p['pelajaran_id'])->all();
-        $tugas = Tugas::with(['kelas', 'mataPelajaran'])->withCount(['nilai as dinilai' => fn ($q) => $q->whereNotNull('nilai')])
+        $tugas = Tugas::with(['kelas' => fn ($q) => $q->withCount('siswaAktif'), 'mataPelajaran'])
+            ->withCount(['nilai as dinilai' => fn ($q) => $q->whereNotNull('nilai')])
             ->whereIn('kelas_id', $pilihan->pluck('kelas_id'))
             ->latest()->limit(100)->get()
             ->filter(fn ($t) => in_array($t->kelas_id.'-'.$t->pelajaran_id, $pasangan, true))
@@ -46,7 +47,7 @@ class LainnyaController extends Controller
                 'id' => $t->id, 'judul' => $t->judul, 'deskripsi' => $t->deskripsi,
                 'kelas' => $t->kelas?->nama_kelas, 'mata_pelajaran' => $t->mataPelajaran?->nama_pelajaran,
                 'tenggat' => $t->tenggat?->toDateString(), 'dinilai' => $t->dinilai,
-                'jumlah_siswa' => $t->kelas?->siswaAktif()->count() ?? 0,
+                'jumlah_siswa' => $t->kelas?->siswa_aktif_count ?? 0,
             ]),
         ]);
     }
@@ -162,11 +163,7 @@ class LainnyaController extends Controller
     public function pengumuman(Request $request): JsonResponse
     {
         return response()->json(['data' => Pengumuman::when(! $request->user()->isAdmin(), fn ($q) => $q->untukGuru())
-            ->orderByDesc('penting')->latest()->limit(50)->get()->map(fn ($p) => [
-                'id' => $p->id, 'judul' => $p->judul, 'isi' => $p->isi, 'sasaran' => $p->sasaran, 'penting' => $p->penting, 'tanggal' => $p->created_at->toDateString(),
-                'nomor_surat' => $p->nomor_surat, 'tanggal_surat' => $p->tanggal_surat?->toDateString(), 'tempat' => $p->tempat,
-                'jadwal_hari_tanggal' => $p->jadwal_hari_tanggal, 'jadwal_waktu' => $p->jadwal_waktu, 'jadwal_tempat' => $p->jadwal_tempat,
-            ])]);
+            ->orderByDesc('penting')->latest()->limit(50)->get()->map(fn ($p) => $p->untukApi())]);
     }
 
     /** Surat pengumuman PDF untuk dibuka dari aplikasi guru. */
@@ -188,7 +185,7 @@ class LainnyaController extends Controller
 
         return response()->json([
             'hari_ini' => Sekolah::hari(),
-            'minggu' => collect(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'])->mapWithKeys(fn ($h) => [$h => $jadwal->where('hari', $h)->map(fn ($j) => [
+            'minggu' => collect(array_slice(Sekolah::HARI, 0, 6))->mapWithKeys(fn ($h) => [$h => $jadwal->where('hari', $h)->map(fn ($j) => [
                 'mata_pelajaran' => $j->mataPelajaran?->nama_pelajaran, 'kelas' => $j->kelas?->nama_kelas,
                 'jam_mulai' => substr($j->jam_mulai, 0, 5), 'jam_selesai' => substr($j->jam_selesai, 0, 5),
             ])->values()]),

@@ -168,10 +168,7 @@ class KonselingController extends Controller
     public function pengampu()
     {
         $kelasList = Kelas::with(['pengampuKonseling', 'waliKelas'])->withCount('siswaAktif')->orderBy('nama_kelas')->get();
-        $guruList = User::where('status', 'Aktif')
-            ->whereNotIn('username', config('presensi_guru.kecualikan_username'))
-            ->orderBy('nama_lengkap')
-            ->get();
+        $guruList = User::guruAktif()->get();
 
         return view('konseling.pengampu', compact('kelasList', 'guruList'));
     }

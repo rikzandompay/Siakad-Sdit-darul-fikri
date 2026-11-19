@@ -257,51 +257,17 @@
                                     <!-- Formatif Inputs - 4 BABs -->
                                     @for ($bab = 1; $bab <= 4; $bab++)
                                         @php $babKey = "bab{$bab}"; @endphp
-                                        <td class="px-1 py-1 border-r border-gray-100">
-                                            <input type="number"
-                                                name="nilai[{{ $index }}][formatif][{{ $babKey }}][tp1]"
-                                                value="{{ $formatifData[$babKey]['tp1'] ?? 0 }}" min="0"
-                                                max="100" step="0.01"
-                                                class="formatif-input w-full text-center text-xs px-1 py-1 border border-gray-200 rounded focus:border-blue-200 focus:ring-1 focus:ring-blue-200"
-                                                data-row="{{ $index }}" data-bab="{{ $bab }}"
-                                                data-component="tp1" onchange="calculateAll({{ $index }})">
-                                        </td>
-                                        <td class="px-1 py-1 border-r border-gray-100">
-                                            <input type="number"
-                                                name="nilai[{{ $index }}][formatif][{{ $babKey }}][tp2]"
-                                                value="{{ $formatifData[$babKey]['tp2'] ?? 0 }}" min="0"
-                                                max="100" step="0.01"
-                                                class="formatif-input w-full text-center text-xs px-1 py-1 border border-gray-200 rounded focus:border-blue-200 focus:ring-1 focus:ring-blue-200"
-                                                data-row="{{ $index }}" data-bab="{{ $bab }}"
-                                                data-component="tp2" onchange="calculateAll({{ $index }})">
-                                        </td>
-                                        <td class="px-1 py-1 border-r border-gray-100">
-                                            <input type="number"
-                                                name="nilai[{{ $index }}][formatif][{{ $babKey }}][tp3]"
-                                                value="{{ $formatifData[$babKey]['tp3'] ?? 0 }}" min="0"
-                                                max="100" step="0.01"
-                                                class="formatif-input w-full text-center text-xs px-1 py-1 border border-gray-200 rounded focus:border-blue-200 focus:ring-1 focus:ring-blue-200"
-                                                data-row="{{ $index }}" data-bab="{{ $bab }}"
-                                                data-component="tp3" onchange="calculateAll({{ $index }})">
-                                        </td>
-                                        <td class="px-1 py-1 border-r border-gray-100">
-                                            <input type="number"
-                                                name="nilai[{{ $index }}][formatif][{{ $babKey }}][tp4]"
-                                                value="{{ $formatifData[$babKey]['tp4'] ?? 0 }}" min="0"
-                                                max="100" step="0.01"
-                                                class="formatif-input w-full text-center text-xs px-1 py-1 border border-gray-200 rounded focus:border-blue-200 focus:ring-1 focus:ring-blue-200"
-                                                data-row="{{ $index }}" data-bab="{{ $bab }}"
-                                                data-component="tp4" onchange="calculateAll({{ $index }})">
-                                        </td>
-                                        <td class="px-1 py-1 border-r border-gray-100">
-                                            <input type="number"
-                                                name="nilai[{{ $index }}][formatif][{{ $babKey }}][uh]"
-                                                value="{{ $formatifData[$babKey]['uh'] ?? 0 }}" min="0"
-                                                max="100" step="0.01"
-                                                class="formatif-input w-full text-center text-xs px-1 py-1 border border-gray-200 rounded focus:border-blue-200 focus:ring-1 focus:ring-blue-200"
-                                                data-row="{{ $index }}" data-bab="{{ $bab }}"
-                                                data-component="uh" onchange="calculateAll({{ $index }})">
-                                        </td>
+                                        @foreach (['tp1', 'tp2', 'tp3', 'tp4', 'uh'] as $komp)
+                                            <td class="px-1 py-1 border-r border-gray-100">
+                                                <input type="number"
+                                                    name="nilai[{{ $index }}][formatif][{{ $babKey }}][{{ $komp }}]"
+                                                    value="{{ $formatifData[$babKey][$komp] ?? 0 }}" min="0"
+                                                    max="100" step="0.01"
+                                                    class="formatif-input w-full text-center text-xs px-1 py-1 border border-gray-200 rounded focus:border-blue-200 focus:ring-1 focus:ring-blue-200"
+                                                    data-row="{{ $index }}" data-bab="{{ $bab }}"
+                                                    data-component="{{ $komp }}" onchange="calculateAll({{ $index }})">
+                                            </td>
+                                        @endforeach
                                         <td class="px-1 py-1 border-r border-gray-200 bg-blue-50 text-center">
                                             <span class="font-bold text-blue-600 text-xs bab-avg"
                                                 id="bab-avg-{{ $index }}-{{ $bab }}">0.0</span>

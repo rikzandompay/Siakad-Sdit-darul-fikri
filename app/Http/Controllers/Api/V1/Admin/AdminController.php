@@ -25,7 +25,6 @@ use App\Support\SuratPengumuman;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
@@ -38,7 +37,7 @@ class AdminController extends Controller
         $totalSiswa = Siswa::where('status', 'Aktif')->count();
         $hadir = Presensi::where('tanggal', $hariIni)->where('status_kehadiran', 'H')->distinct()->count('siswa_id');
         $tercatat = Presensi::where('tanggal', $hariIni)->distinct()->count('siswa_id');
-        $guru = $this->guruAktif();
+        $guru = User::guruAktif()->get();
         $sudahAbsen = PresensiGuru::where('tanggal', $hariIni)->whereNotNull('jam_masuk')->whereIn('guru_id', $guru->pluck('id'))->count();
 
         return response()->json([
@@ -83,8 +82,7 @@ class AdminController extends Controller
         $absen = PresensiGuru::where('tanggal', $hariIni)->get()->keyBy('guru_id');
         $q = trim((string) $request->input('q'));
 
-        $guru = User::where('status', 'Aktif')
-            ->whereNotIn('username', config('presensi_guru.kecualikan_username', []))
+        $guru = User::guruAktif()
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($sub) use ($q) {
                     $sub->whereRaw('LOWER(nama_lengkap) LIKE ?', ['%'.mb_strtolower($q).'%'])
@@ -92,7 +90,6 @@ class AdminController extends Controller
                 });
             })
             ->with(['jadwalPelajaran.mataPelajaran', 'kelasWali'])
-            ->orderBy('nama_lengkap')
             ->get();
 
         return response()->json(['data' => $guru->map(fn ($g) => [
@@ -141,7 +138,7 @@ class AdminController extends Controller
 
     public function pengumuman(): JsonResponse
     {
-        return response()->json(['data' => Pengumuman::orderByDesc('penting')->latest()->limit(100)->get()->map(fn ($p) => $this->dataPengumuman($p))]);
+        return response()->json(['data' => Pengumuman::orderByDesc('penting')->latest()->limit(100)->get()->map(fn ($p) => $p->untukApi())]);
     }
 
     public function simpanPengumuman(Request $request, ?Pengumuman $pengumuman = null): JsonResponse
@@ -165,7 +162,7 @@ class AdminController extends Controller
             $pengumuman->update(['nomor_surat' => NomorSurat::berikutnya(NomorSurat::PENGUMUMAN, $pengumuman->tanggal_surat)]);
         }
 
-        return response()->json(['message' => 'Pengumuman tersimpan.', 'data' => $this->dataPengumuman($pengumuman->fresh())], 201);
+        return response()->json(['message' => 'Pengumuman tersimpan.', 'data' => $pengumuman->fresh()->untukApi()], 201);
     }
 
     /** PDF surat pengumuman (kop sekolah + tanda tangan kepala sekolah) untuk diunduh dari aplikasi. */
@@ -251,7 +248,7 @@ class AdminController extends Controller
         $request->validate(['rentang' => 'nullable|in:hari_ini,minggu_ini,bulan_ini,semester_ini']);
         $rentangNama = $request->input('rentang', 'bulan_ini');
         $range = $this->periodeRange($rentangNama, Sekolah::now()->toDateString());
-        $guru = $this->guruAktif()->load(['jadwalPelajaran.mataPelajaran', 'kelasWali']);
+        $guru = User::guruAktif()->with(['jadwalPelajaran.mataPelajaran', 'kelasWali'])->get();
         $jamMasuk = PengaturanSekolah::jamMasuk().':59';
         $hitung = PresensiGuru::toBase()->whereBetween('tanggal', [$range['start']->toDateString(), $range['end']->toDateString()])
             ->selectRaw('guru_id,
@@ -372,11 +369,6 @@ class AdminController extends Controller
 
     // ── Bantuan ──────────────────────────────────────────────────
 
-    private function guruAktif(): Collection
-    {
-        return User::where('status', 'Aktif')->whereNotIn('username', config('presensi_guru.kecualikan_username'))->orderBy('nama_lengkap')->get();
-    }
-
     /** @return array{0: Kelas, 1: array, 2: string} */
     private function filterRekap(Request $request): array
     {
@@ -397,21 +389,11 @@ class AdminController extends Controller
         ];
     }
 
-    private function dataPengumuman(Pengumuman $p): array
-    {
-        return [
-            'id' => $p->id, 'judul' => $p->judul, 'isi' => $p->isi, 'sasaran' => $p->sasaran,
-            'penting' => $p->penting, 'tanggal' => $p->created_at->toDateString(), 'nomor_surat' => $p->nomor_surat,
-            'tanggal_surat' => $p->tanggal_surat?->toDateString(), 'tempat' => $p->tempat,
-            'jadwal_hari_tanggal' => $p->jadwal_hari_tanggal, 'jadwal_waktu' => $p->jadwal_waktu,
-            'jadwal_tempat' => $p->jadwal_tempat,
-        ];
-    }
-
     private function bersihkanCache(): void
     {
-        // Cache yang dipakai halaman Pengaturan di web.
+        // Cache yang dipakai halaman Pengaturan & Dashboard di web.
         Cache::forget('tahun_ajaran_list');
+        Cache::forget('tahun_aktif');
         Cache::forget('mapel_list_all');
     }
 }

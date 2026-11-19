@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Rapor;
 use Illuminate\Database\Eloquent\Model;
 
 class NilaiRapot extends Model
@@ -151,51 +152,6 @@ class NilaiRapot extends Model
      */
     public static function getPredikat($nilaiRapor): string
     {
-        if ($nilaiRapor >= 85) {
-            return 'A';
-        }
-        if ($nilaiRapor >= 75) {
-            return 'B';
-        }
-        if ($nilaiRapor >= 65) {
-            return 'C';
-        }
-        if ($nilaiRapor >= 55) {
-            return 'D';
-        }
-        if ($nilaiRapor >= 45) {
-            return 'E';
-        }
-
-        return 'F';
-    }
-
-    public function getPredikatAttribute(): string
-    {
-        return static::getPredikat($this->nilai_rapor);
-    }
-
-    /**
-     * Check if student passes (Tuntas) - threshold is 75
-     */
-    public function isTuntas(): bool
-    {
-        return $this->nilai_rapor >= 75;
-    }
-
-    /**
-     * Scope for students who need remedial
-     */
-    public function scopePerluRemedial($query)
-    {
-        return $query->where('nilai_rapor', '<', 75);
-    }
-
-    /**
-     * Scope for students who pass
-     */
-    public function scopeTuntas($query)
-    {
-        return $query->where('nilai_rapor', '>=', 75);
+        return Rapor::predikat((float) $nilaiRapor);
     }
 }

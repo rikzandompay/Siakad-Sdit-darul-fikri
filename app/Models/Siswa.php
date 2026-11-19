@@ -183,15 +183,4 @@ class Siswa extends Model
 
         return $path;
     }
-
-    public function getInitialsAttribute(): string
-    {
-        $words = explode(' ', $this->nama_siswa);
-        $initials = '';
-        foreach (array_slice($words, 0, 2) as $word) {
-            $initials .= strtoupper(substr($word, 0, 1));
-        }
-
-        return $initials;
-    }
 }

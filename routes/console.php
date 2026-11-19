@@ -1,13 +1,7 @@
 <?php
 
 use App\Support\Sekolah;
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
-
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
 
 // Presensi sholat: siswa yang belum scan QR sampai batas waktu dicatat Tidak Hadir.
 foreach (config('sholat.batas_tidak_hadir', []) as $jenis => $jam) {

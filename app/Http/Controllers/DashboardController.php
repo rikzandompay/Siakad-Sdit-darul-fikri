@@ -8,7 +8,6 @@ use App\Models\Presensi;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Support\Sekolah;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
@@ -23,8 +22,8 @@ class DashboardController extends Controller
         $totalKelas = Cache::remember('total_kelas', 300, fn () => Kelas::count());
         $tahunAktif = Cache::remember('tahun_aktif', 300, fn () => TahunAjaran::getAktif());
 
-        // Stats presensi hari ini (realtime tanpa lag cache)
-        $dataPresensiToday = Presensi::where('tanggal', Carbon::today())
+        // Stats presensi hari ini (realtime tanpa lag cache, pakai tanggal sekolah WIB)
+        $dataPresensiToday = Presensi::where('tanggal', Sekolah::now()->toDateString())
             ->selectRaw("
                 COUNT(*) as total,
                 SUM(CASE WHEN status_kehadiran = 'H' THEN 1 ELSE 0 END) as hadir,
@@ -45,16 +44,7 @@ class DashboardController extends Controller
         // Jadwal mengajar guru sepekan (di-cache per user, 5 menit)
         $jadwalSepekan = Cache::remember("jadwal_sepekan_guru_{$userId}", 300, fn () => JadwalPelajaran::where('guru_id', $userId)
             ->with(['kelas', 'mataPelajaran'])
-            ->orderByRaw("
-                    CASE hari
-                        WHEN 'Senin' THEN 1
-                        WHEN 'Selasa' THEN 2
-                        WHEN 'Rabu' THEN 3
-                        WHEN 'Kamis' THEN 4
-                        WHEN 'Jumat' THEN 5
-                        WHEN 'Sabtu' THEN 6
-                    END
-                ")->orderBy('jam_mulai')->get()
+            ->urutHari()->orderBy('jam_mulai')->get()
         );
 
         // Daftar kelas (5 menit)

@@ -44,4 +44,23 @@ class Pengumuman extends Model
     {
         return $query->whereIn('sasaran', [self::SEMUA, self::GURU]);
     }
+
+    /** Bentuk JSON seragam untuk seluruh endpoint pengumuman MyDarfik (admin, guru, wali). */
+    public function untukApi(): array
+    {
+        return [
+            'id' => $this->id,
+            'judul' => $this->judul,
+            'isi' => $this->isi,
+            'sasaran' => $this->sasaran,
+            'penting' => $this->penting,
+            'tanggal' => $this->created_at->toDateString(),
+            'nomor_surat' => $this->nomor_surat,
+            'tanggal_surat' => $this->tanggal_surat?->toDateString(),
+            'tempat' => $this->tempat,
+            'jadwal_hari_tanggal' => $this->jadwal_hari_tanggal,
+            'jadwal_waktu' => $this->jadwal_waktu,
+            'jadwal_tempat' => $this->jadwal_tempat,
+        ];
+    }
 }

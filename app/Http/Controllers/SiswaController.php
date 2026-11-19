@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Kelas;
 use App\Models\Siswa;
+use App\Support\Sekolah;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -33,36 +35,7 @@ class SiswaController extends Controller
 
     public function index(Request $request)
     {
-        $query = Siswa::with('kelas');
-        if (! auth()->user()->isAdmin()) {
-            $query->whereIn('kelas_id', $this->accessibleKelasIds());
-        }
-
-        // Search
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('nama_siswa', 'like', "%{$search}%")
-                    ->orWhere('nis', 'like', "%{$search}%");
-            });
-        }
-
-        // Filter by kelas
-        if ($request->filled('kelas_id') && $request->kelas_id !== '') {
-            $query->where('kelas_id', $request->kelas_id);
-        }
-
-        // Filter by gender
-        if ($request->filled('jenis_kelamin') && $request->jenis_kelamin !== '') {
-            $query->where('jenis_kelamin', $request->jenis_kelamin);
-        }
-
-        // Filter by status
-        if ($request->filled('status') && $request->status !== '') {
-            $query->where('status', $request->status);
-        }
-
-        $siswa = $query->orderBy('nama_siswa')->paginate(15)->withQueryString();
+        $siswa = $this->queryFilter($request)->paginate(15)->withQueryString();
         $kelasList = Cache::remember('kelas_list_filter', 300, fn () => Kelas::orderBy('nama_kelas')->get());
 
         return view('datasiswa', compact('siswa', 'kelasList'));
@@ -131,56 +104,20 @@ class SiswaController extends Controller
      */
     public function exportCsv(Request $request)
     {
-        $query = Siswa::with('kelas');
-        if (! auth()->user()->isAdmin()) {
-            $query->whereIn('kelas_id', $this->accessibleKelasIds());
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('nama_siswa', 'like', "%{$search}%")
-                    ->orWhere('nis', 'like', "%{$search}%");
-            });
-        }
-        if ($request->filled('kelas_id') && $request->kelas_id !== '') {
-            $query->where('kelas_id', $request->kelas_id);
-        }
-        if ($request->filled('jenis_kelamin') && $request->jenis_kelamin !== '') {
-            $query->where('jenis_kelamin', $request->jenis_kelamin);
-        }
-        if ($request->filled('status') && $request->status !== '') {
-            $query->where('status', $request->status);
-        }
-
-        $data = $query->orderBy('nama_siswa')->get();
-        $filename = 'data_siswa_'.now()->format('Ymd_His').'.csv';
-
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ];
-
+        $data = $this->queryFilter($request)->get();
+        $filename = 'data_siswa_'.Sekolah::now()->format('Ymd_His').'.csv';
         // Tanggal lahir adalah kata sandi aplikasi wali: hanya admin/kepala sekolah yang mengekspornya.
         $tampilTanggalLahir = auth()->user()->isAdmin();
 
-        $callback = function () use ($data, $tampilTanggalLahir) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-
-            // Header Section
-            fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
-            fputcsv($file, ['SD IT DARUL FIKRI']);
-            fputcsv($file, ['LAPORAN DATA SISWA']);
-            fputcsv($file, []);
-            fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
-            fputcsv($file, []);
+        return $this->streamCsv($filename, function ($file) use ($data, $tampilTanggalLahir) {
+            $this->putKopCsv($file, 'LAPORAN DATA SISWA', [
+                ['Tanggal Cetak', ':', Sekolah::now()->translatedFormat('d F Y')],
+            ]);
 
             fputcsv($file, array_values(array_filter(['No', 'NIS', 'NISN', 'Nama Siswa', $tampilTanggalLahir ? 'Tanggal Lahir' : null, 'Alamat', 'Jenis Kelamin', 'Kelas', 'Nama Wali', 'No HP Wali', 'Status'])));
-            $no = 1;
-            foreach ($data as $s) {
+            foreach ($data as $i => $s) {
                 $this->putSafeCsv($file, [
-                    $no++,
+                    $i + 1,
                     $s->nis,
                     $s->nisn,
                     $s->nama_siswa,
@@ -193,10 +130,7 @@ class SiswaController extends Controller
                     $s->status,
                 ]);
             }
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        });
     }
 
     /**
@@ -204,34 +138,24 @@ class SiswaController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        $query = Siswa::with('kelas');
-        if (! auth()->user()->isAdmin()) {
-            $query->whereIn('kelas_id', $this->accessibleKelasIds());
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('nama_siswa', 'like', "%{$search}%")
-                    ->orWhere('nis', 'like', "%{$search}%");
-            });
-        }
-        if ($request->filled('kelas_id') && $request->kelas_id !== '') {
-            $query->where('kelas_id', $request->kelas_id);
-        }
-        if ($request->filled('jenis_kelamin') && $request->jenis_kelamin !== '') {
-            $query->where('jenis_kelamin', $request->jenis_kelamin);
-        }
-        if ($request->filled('status') && $request->status !== '') {
-            $query->where('status', $request->status);
-        }
-
-        $data = $query->orderBy('nama_siswa')->get();
-
+        $data = $this->queryFilter($request)->get();
         // Tanggal lahir adalah kata sandi aplikasi wali: hanya admin/kepala sekolah yang melihatnya.
         $tampilTanggalLahir = auth()->user()->isAdmin();
 
         return view('exports.siswa-pdf', compact('data', 'tampilTanggalLahir'));
+    }
+
+    private function queryFilter(Request $request): Builder
+    {
+        return Siswa::with('kelas')
+            ->when(! auth()->user()->isAdmin(), fn ($q) => $q->whereIn('kelas_id', $this->accessibleKelasIds()))
+            ->when($request->filled('search'), fn ($q) => $q->where(fn ($sub) => $sub
+                ->where('nama_siswa', 'like', "%{$request->search}%")
+                ->orWhere('nis', 'like', "%{$request->search}%")))
+            ->when($request->filled('kelas_id'), fn ($q) => $q->where('kelas_id', $request->kelas_id))
+            ->when($request->filled('jenis_kelamin'), fn ($q) => $q->where('jenis_kelamin', $request->jenis_kelamin))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
+            ->orderBy('nama_siswa');
     }
 
     private function clearSiswaCache($kelasId, $oldKelasId = null)

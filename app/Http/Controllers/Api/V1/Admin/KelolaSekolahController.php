@@ -103,7 +103,7 @@ class KelolaSekolahController extends Controller
                 'wali_kelas' => $k->waliKelas?->nama_lengkap ?? $k->waliKelas?->name,
                 'pengampu_id' => $k->pengampu_konseling_id,
             ]),
-            'guru' => $this->guruAktif()->map(fn ($g) => ['id' => $g->id, 'nama' => $g->nama_lengkap ?? $g->name]),
+            'guru' => User::guruAktif()->get()->map(fn ($g) => ['id' => $g->id, 'nama' => $g->nama_lengkap ?? $g->name]),
         ]);
     }
 
@@ -146,8 +146,8 @@ class KelolaSekolahController extends Controller
     public function koreksiAbsenGuru(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'guru_id' => ['required', Rule::in($this->guruAktif()->pluck('id')->all())],
-            'tanggal' => 'required|date|before_or_equal:today',
+            'guru_id' => ['required', Rule::in(User::guruAktif()->pluck('id')->all())],
+            'tanggal' => 'required|date|before_or_equal:'.Sekolah::now()->toDateString(),
             'status' => ['required', Rule::in(PresensiGuru::STATUS)],
             'jam_masuk' => 'nullable|required_if:status,'.PresensiGuru::HADIR.'|date_format:H:i',
             'jam_pulang' => 'nullable|date_format:H:i|after_or_equal:jam_masuk',
@@ -296,13 +296,8 @@ class KelolaSekolahController extends Controller
         return response()->json(['message' => 'Akun wali disinkronkan dari data siswa ('.Wali::sinkronSemua().' akun).']);
     }
 
-    private function guruAktif()
-    {
-        return User::where('status', 'Aktif')->whereNotIn('username', config('presensi_guru.kecualikan_username'))->orderBy('nama_lengkap')->get();
-    }
-
     private function pastikanGuru(User $guru): void
     {
-        abort_unless($this->guruAktif()->contains('id', $guru->id), 404, 'Guru tidak ditemukan.');
+        abort_unless(User::guruAktif()->whereKey($guru->id)->exists(), 404, 'Guru tidak ditemukan.');
     }
 }

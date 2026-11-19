@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Kelas;
 use App\Models\PresensiSholat;
-use App\Services\CacheService;
+use App\Support\Sekolah;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -52,6 +52,11 @@ class PresensiSholatController extends Controller
         return Carbon::now(config('sholat.timezone'))->toDateString();
     }
 
+    private function kunciStatHariIni(int $guruId, string $jenis): string
+    {
+        return "presensi_sholat:hari_ini:guru:{$guruId}:jenis:{$jenis}:{$this->todaySekolah()}";
+    }
+
     public function index(Request $request)
     {
         $jenisSholat = PresensiSholat::normalizeJenis($request->get('jenis'));
@@ -66,7 +71,7 @@ class PresensiSholatController extends Controller
         $stats = $kelasIds->isEmpty()
             ? ['hadir' => 0, 'tidakHadir' => 0]
             : Cache::remember(
-                CacheService::keyPresensiSholatHariIni(Auth::id(), $jenisSholat),
+                $this->kunciStatHariIni(Auth::id(), $jenisSholat),
                 120,
                 function () use ($today, $jenisSholat, $kelasIds) {
                     $counts = PresensiSholat::where('tanggal', $today)
@@ -182,7 +187,7 @@ class PresensiSholatController extends Controller
             ['kelas_id', 'status_kehadiran', 'keterangan', 'recorded_by', 'updated_at']
         );
 
-        CacheService::clearPresensiSholat(Auth::id(), $validated['jenis_sholat']);
+        Cache::forget($this->kunciStatHariIni(Auth::id(), $validated['jenis_sholat']));
 
         return redirect()->route('presensi-sholat.show', [
             'kelas' => $validated['kelas_id'],
@@ -285,25 +290,14 @@ class PresensiSholatController extends Controller
         $jenisSholat = $data['jenisSholat'];
         $periodeLabel = $data['periodeLabel'];
 
-        $filename = 'rekap_presensi_sholat_'.$jenisSholat.'_'.str_replace(' ', '_', $kelas->nama_kelas).'_'.now()->format('Ymd').'.csv';
+        $filename = 'rekap_presensi_sholat_'.$jenisSholat.'_'.str_replace(' ', '_', $kelas->nama_kelas).'_'.Sekolah::now()->format('Ymd').'.csv';
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ];
-
-        $callback = function () use ($rekapData, $kelas, $jenisSholat, $periodeLabel) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-
-            fputcsv($file, ['YAYASAN PENDIDIKAN DARUL FIKRI']);
-            fputcsv($file, ['SD IT DARUL FIKRI']);
-            fputcsv($file, ['REKAPITULASI PRESENSI SHOLAT '.strtoupper($jenisSholat)]);
-            fputcsv($file, []);
-            $this->putSafeCsv($file, ['Kelas', ':', $kelas->nama_kelas]);
-            fputcsv($file, ['Periode', ':', $periodeLabel]);
-            fputcsv($file, ['Tanggal Cetak', ':', now()->translatedFormat('d F Y')]);
-            fputcsv($file, []);
+        return $this->streamCsv($filename, function ($file) use ($rekapData, $kelas, $jenisSholat, $periodeLabel) {
+            $this->putKopCsv($file, 'REKAPITULASI PRESENSI SHOLAT '.strtoupper($jenisSholat), [
+                ['Kelas', ':', $kelas->nama_kelas],
+                ['Periode', ':', $periodeLabel],
+                ['Tanggal Cetak', ':', Sekolah::now()->translatedFormat('d F Y')],
+            ]);
 
             fputcsv($file, ['No', 'NIS', 'Nama Siswa', 'Hadir', 'Tidak Hadir', 'Total', '% Hadir']);
             $no = 1;
@@ -318,10 +312,7 @@ class PresensiSholatController extends Controller
                     $row['summary']['persen'],
                 ]);
             }
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        });
     }
 
     public function exportRekapPdf(Request $request)

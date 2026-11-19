@@ -159,6 +159,17 @@ class User extends Authenticatable
         }
     }
 
+    /**
+     * Guru yang terdaftar untuk presensi (aktif dan bukan akun sistem).
+     * Dipakai layar rekap presensi guru, pemilih pengampu, dan koreksi absen.
+     */
+    public function scopeGuruAktif($query)
+    {
+        return $query->where('status', 'Aktif')
+            ->whereNotIn('username', config('presensi_guru.kecualikan_username'))
+            ->orderBy('nama_lengkap');
+    }
+
     public function isAdmin(): bool
     {
         // ponytail: config-driven admin list avoids remote DB migration; upgrade to role column when schema changes

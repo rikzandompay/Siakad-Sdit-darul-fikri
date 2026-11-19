@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\JadwalPelajaran;
 use App\Models\MataPelajaran;
 use App\Models\TahunAjaran;
 use Illuminate\Http\Request;
@@ -156,6 +157,13 @@ class PengaturanController extends Controller
 
     public function destroyTahunAjaran(TahunAjaran $tahunAjaran)
     {
+        if ($tahunAjaran->status_aktif === 'Y') {
+            return redirect()->route('pengaturan.index')->withErrors(['tahun_ajaran' => 'Semester aktif tidak bisa dihapus.']);
+        }
+        if ($tahunAjaran->nilaiRapot()->exists()) {
+            return redirect()->route('pengaturan.index')->withErrors(['tahun_ajaran' => 'Semester ini sudah punya nilai rapor, jadi tidak bisa dihapus.']);
+        }
+
         $tahunAjaran->delete();
         $this->clearTahunAjaranCache();
 
@@ -165,6 +173,7 @@ class PengaturanController extends Controller
     // ── Mata Pelajaran ──
     public function storeMapel(Request $request)
     {
+        $request->merge(['kode_pelajaran' => strtoupper(trim((string) $request->input('kode_pelajaran')))]);
         $validated = $request->validate([
             'kode_pelajaran' => 'required|string|max:20|unique:mata_pelajaran,kode_pelajaran',
             'nama_pelajaran' => 'required|string|max:100',
@@ -178,6 +187,7 @@ class PengaturanController extends Controller
 
     public function updateMapel(Request $request, MataPelajaran $mapel)
     {
+        $request->merge(['kode_pelajaran' => strtoupper(trim((string) $request->input('kode_pelajaran')))]);
         $validated = $request->validate([
             'kode_pelajaran' => 'required|string|max:20|unique:mata_pelajaran,kode_pelajaran,'.$mapel->id,
             'nama_pelajaran' => 'required|string|max:100',
@@ -191,6 +201,10 @@ class PengaturanController extends Controller
 
     public function destroyMapel(MataPelajaran $mapel)
     {
+        if (JadwalPelajaran::where('pelajaran_id', $mapel->id)->exists()) {
+            return redirect()->route('pengaturan.index')->withErrors(['mapel' => 'Mata pelajaran masih dipakai di jadwal, jadi tidak bisa dihapus.']);
+        }
+
         $mapel->delete();
         $this->clearMapelCache();
 

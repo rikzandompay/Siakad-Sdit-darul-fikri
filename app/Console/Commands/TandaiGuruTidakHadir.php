@@ -42,8 +42,7 @@ class TandaiGuruTidakHadir extends Command
         $batas = PengaturanSekolah::batasMasuk();
         $now = now();
 
-        $rows = User::where('status', 'Aktif')
-            ->whereNotIn('username', config('presensi_guru.kecualikan_username'))
+        $rows = User::guruAktif()
             ->whereNotIn('id', PresensiGuru::where('tanggal', $tanggalStr)->select('guru_id'))
             ->pluck('id')
             ->map(fn ($id) => [
